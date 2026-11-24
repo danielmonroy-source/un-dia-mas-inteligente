@@ -1036,7 +1036,7 @@ function renderDaily(){
     <div class="modes">
     ${row('t','1',R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden y luego en desorden'+(R.tTries?` · intentos: ${R.tTries}`:''))}
     ${row('c','2',R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc())}
-    ${row('en','3',R.en,'Inglés: 15 palabras y 2 frases',enSub)}
+    ${row('en','3',R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub)}
     ${row('rd','4',!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de 5 preguntas bien`:'Unos 3 minutos y 5 preguntas')}</div>
     ${R.rd?'':'<button class="mini dchg" data-d="chg">Cambiar lectura</button>'}
     <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':'Completa las 4 partes y gana 50 puntos de premio.'}</p>${full?boleta(R):''}`;
@@ -1110,7 +1110,7 @@ function say(t){t=t.replace(/…/g,'').trim();if(!VOICE)pickVoice();
 const sayBtn=t=>`<button class="say" data-say="${t}" aria-label="Escuchar">🔊</button>`;
 document.addEventListener('click',e=>{const b=e.target.closest('[data-say]');if(b)say(b.dataset.say)});
 
-/* ===== Inglés: 15 palabras por día (emoji|inglés|español) ===== */
+/* ===== Inglés: 10 palabras por día (emoji|inglés|español) ===== */
 const WORDS=`
 🐶|dog|perro;🐱|cat|gato;🐦|bird|pájaro;🐟|fish|pez;🐴|horse|caballo;🐮|cow|vaca;🐷|pig|cerdo;🐭|mouse|ratón;🐰|rabbit|conejo;🐸|frog|rana
 🔴|red|rojo;🔵|blue|azul;🟢|green|verde;🟡|yellow|amarillo;🟠|orange|naranja;🟣|purple|morado;⚫|black|negro;⚪|white|blanco;🟤|brown|café;💗|pink|rosa
@@ -1165,8 +1165,8 @@ const enS=()=>{S.enKnown=S.enKnown||{};S.enLearned=S.enLearned||{};
   if(S.enIdx&&!S.enDone){WORDS.slice(0,S.enIdx).flat().forEach(w=>S.enLearned[w.en]=1);S.enDone=1} // avance de la primera versión
   return S};
 const enOut=w=>S.enKnown[w]||S.enLearned[w];
-const EN_N=15; /* palabras por día; se quedan fijas en el día; si papá marca una como sabida, se cambia por la siguiente */
-function enWords(){enS();const R=dayRec();let L=(R.enW||[]).filter(w=>WBY[w]&&!S.enKnown[w]);
+const EN_N=10; /* palabras por día; se quedan fijas en el día; si papá marca una como sabida, se cambia por la siguiente */
+function enWords(){enS();const R=dayRec();let L=(R.enW||[]).filter(w=>WBY[w]&&!S.enKnown[w]).slice(0,EN_N);
   if(!R.enW)L=[];
   for(const w of WALL){if(L.length>=EN_N)break;if(!enOut(w.en)&&!L.includes(w.en))L.push(w.en)}
   if(L.length<EN_N){const rest=shuffle(WALL.filter(w=>!S.enKnown[w.en]&&!L.includes(w.en)));while(L.length<EN_N&&rest.length)L.push(rest.pop().en)}
