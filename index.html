@@ -599,15 +599,24 @@ document.addEventListener('keydown',e=>{if($('play').hidden||!G)return;
   if(/^[0-9]$/.test(e.key))typeKey(e.key);else if(e.key==='Backspace')typeKey('del');else if(e.key==='Enter')typeKey('ok')});
 function judge(ok,btn){
   G.lock=true;const q=G.list[G.i],{t,n}=q,r=t*n,key=t+'x'+n;
+  if(!ok&&G.mode==='reto'){ // en el reto: no avanza hasta acertar; ya no cuenta como acierto y se repite al final
+    S.facts[key]=0;S.miss[key]=(S.miss[key]||0)+1;G.combo=0;
+    if(!q.retry&&!q.wrong){G.res[q.k]='no';G.list.push(Object.assign({},q,{retry:true,wrong:0}))}
+    q.wrong=(q.wrong||0)+1;mood('m2','oops');tone(220,.25,'triangle');flame('m2',0);$('combo').hidden=true;dots();save();
+    const el=$('q');
+    if(q.wrong>=3){el.innerHTML=qText(q,true);el.classList.add('show');$('lab').textContent=`Es ${r}. Ahora escríbelo tú.`;
+      G.to=setTimeout(()=>{G.lock=false;G.typed='';el.classList.remove('show');el.innerHTML=qText(q,false)},1800)}
+    else{$('lab').textContent=q.wrong===1?'Casi. Inténtalo otra vez':'Otra vez. Puedes usar la pista';G.typed='';el.innerHTML=qText(q,false);G.lock=false}
+    return}
   if(ok){
     S.facts[key]=Math.min(3,box(t,n)+1);
-    if(!q.retry){G.first++;G.res[q.k]='ok'}
-    G.combo++;G.maxc=Math.max(G.maxc,G.combo);
-    const p=G.hint?5:10+Math.min(G.combo,10)*2;G.pts+=p;
+    if(!q.retry&&!q.wrong){G.first++;G.res[q.k]='ok'}
+    G.combo=q.wrong?0:G.combo+1;G.maxc=Math.max(G.maxc,G.combo);
+    const p=q.wrong?0:G.hint?5:10+Math.min(G.combo,10)*2;G.pts+=p;
     if(btn)btn.classList.add('good');
     if(q.type==='tec')$('q').innerHTML=qText(q,true);
     mood('m2','happy');
-    const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');
+    if(p){const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go')}
     tone(520+G.combo*40,.1);tone(780+G.combo*40,.16,'sine',.08);
   }else{
     S.facts[key]=0;S.miss[key]=(S.miss[key]||0)+1;G.combo=0;
@@ -646,11 +655,10 @@ function finish(){
   if(isP)S.med[t+'-'+mode]=Math.max(best(t,mode),G.first);
   const okO=G.res.slice(0,10).filter(x=>x==='ok').length,okD=G.res.slice(10,20).filter(x=>x==='ok').length,retoOk=okO===10&&okD>=8;
   if(mode==='reto'){const R=dayRec();R.tTries++;if(R.tCal==null)R.tCal=r1((okO+okD)/2);
-    if(retoOk&&!R.tOk){R.tOk=true;S.rk=S.rk||{};S.rk[t]=(S.rk[t]||0)+1;rnews.push(`¡Reto cumplido con la <b>tabla del ${t}</b>! En orden sin fallar y en desorden ${okD} de 10`)}
-    else if(!retoOk&&!R.tOk)rnews.push(`En orden: <b>${okO} de 10</b> (necesitas 10). En desorden: <b>${okD} de 10</b> (necesitas 8). ¡Tú puedes!`);
+    if(!R.tOk){R.tOk=true;if(retoOk){S.rk=S.rk||{};S.rk[t]=(S.rk[t]||0)+1}rnews.push(`¡Terminaste la <b>tabla del ${t}</b>! A la primera: en orden <b>${okO} de 10</b> y en desorden <b>${okD} de 10</b>.`)}
     const bn=retoBonus();if(bn)rnews.push(bn)}
   save();renderTop();
-  $('endT').textContent=mode==='reto'?(retoOk?'¡Reto cumplido!':'¡Casi! Otra vez'):G.first===10?'¡Perfecto!':pass?(mode==='mix'?'¡Excelente!':'¡Medalla ganada!'):G.first>=5?'¡Muy bien!':'¡Sigue así!';
+  $('endT').textContent=mode==='reto'?(okO+okD===20?'¡Perfecto!':'¡Tabla lista!'):G.first===10?'¡Perfecto!':pass?(mode==='mix'?'¡Excelente!':'¡Medalla ganada!'):G.first>=5?'¡Muy bien!':'¡Sigue así!';
   $('eOk').textContent=G.first;$('eOkL').textContent='a la primera de '+(mode==='reto'?20:10);againAct=()=>start(G.mode,G.t);$('ePts').textContent=G.pts;$('eCombo').textContent=G.maxc;
   const news=rnews;
   if(isP&&pass&&!G.medBefore)news.push(`Medalla de <b>${MODES.find(m=>m.id===mode).name}</b> en la tabla del ${t}`);
@@ -659,7 +667,7 @@ function finish(){
   news.push(...commonNews(bk,G.lvl,G.maxc));
   $('news').innerHTML=news.map(x=>`<li>${x}</li>`).join('');
   // siguiente paso
-  if(mode==='reto'){$('again').hidden=true;if(retoOk){nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Al reto del día'}else{nextAct=()=>start('reto',t);$('nextb').textContent='Intentar de nuevo'}}
+  if(mode==='reto'){$('again').hidden=true;if(true){nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Al reto del día'}else{nextAct=()=>start('reto',t);$('nextb').textContent='Intentar de nuevo'}}
   else if(mode==='mix'){nextAct=()=>start('mix',0);$('nextb').textContent='Otro repaso';$('again').hidden=true}
   else if(!pass){nextAct=()=>start(mode,t);$('nextb').textContent='Intentar de nuevo';$('again').hidden=true}
   else{$('again').hidden=false;
@@ -870,7 +878,8 @@ function srKey(v){
     if(C.val[p]<C.B[p]){why='prestar';C.pulse='t'+(p+1);srSay(`Arriba hay ${C.val[p]} y abajo ${C.B[p]}: no alcanza. Toca el número de la izquierda para pedirle prestado.`)}
     else srSay(`¡Casi! ¿Cuánto es ${C.val[p]} − ${C.B[p]}?`)}
   E[why]=(E[why]||0)+1;
-  if(C.wrong[p]>=2){
+  if(C.wrong[p]>=2&&SG.mode==='reto'&&C.wrong[p]>=4&&C.op==='-'&&C.val[p]>=C.B[p])srSay(`Piensa: ${C.val[p]} − ${C.B[p]}. Puedes contar hacia atrás.`);
+  if(C.wrong[p]>=2&&SG.mode!=='reto'){
     if(C.op==='-'&&C.val[p]<C.B[p])autoBorrow(C,p);
     if(C.op==='+'&&C.cE[p]&&C.cT[p]==null&&p<wide(C)){C.cT[p]=1;C.cAuto[p]=false}
     const ex=C.op==='+'?(p>=wide(C)?'baja el 1 que llevabas':`${C.A[p]} + ${C.B[p]}${C.cE[p]?' + 1':''} = ${C.A[p]+C.B[p]+C.cE[p]}`):`${C.val[p]} − ${C.B[p]} = ${e}`;
@@ -1013,7 +1022,7 @@ function renderDaily(){
   $('daily').innerHTML=`<div class="dh">Reto de hoy <span>${full?'¡Completo! +50':n+' de 4'}</span></div>
     <div class="dbar"><i style="width:${n*25}%"></i></div>
     <div class="modes">
-    ${row('t','1',R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden sin fallar y en desorden máximo 2 errores'+(R.tTries?` · intentos: ${R.tTries}`:''))}
+    ${row('t','1',R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden y luego en desorden'+(R.tTries?` · intentos: ${R.tTries}`:''))}
     ${row('c','2',R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc())}
     ${row('en','3',R.en,'Inglés: 15 palabras y 2 frases',enSub)}
     ${row('rd','4',!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de 5 preguntas bien`:'Unos 3 minutos y 5 preguntas')}</div>
@@ -1205,10 +1214,10 @@ function qzAsk(){
   qzDots()}
 function qzResolve(ok,b,q){QZ.lock=true;
   if(ok){
-    if(!q.retry){QZ.first++;QZ.res[q.k]='ok'}
-    QZ.combo++;QZ.maxc=Math.max(QZ.maxc,QZ.combo);const p=10+Math.min(QZ.combo,10)*2;QZ.pts+=p;
+    if(!q.retry&&!q.wrong){QZ.first++;QZ.res[q.k]='ok'}
+    QZ.combo=q.wrong?0:QZ.combo+1;QZ.maxc=Math.max(QZ.maxc,QZ.combo);const p=q.wrong?0:10+Math.min(QZ.combo,10)*2;QZ.pts+=p;
     if(b)b.classList.add('good');mood('m5','happy');$('qzmsg').innerHTML=q.okMsg||['¡Muy bien!','¡Exacto!','¡Eso es!','¡Súper!'][Math.floor(Math.random()*4)];
-    const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');
+    if(p){const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go')}
     tone(520+QZ.combo*40,.1);tone(780+QZ.combo*40,.16,'sine',.08);if(q.after)say(q.after);
   }else{
     if(!q.retry){QZ.res[q.k]='no';if(QZ.miss)QZ.miss.push(q.k)}QZ.combo=0;
@@ -1227,8 +1236,13 @@ $('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[Q
       if(q.pos>=q.build.length)qzResolve(!q.miss,null,q)}
     else{q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${q.build[q.pos-1]||'…'}»?`}
     return}
-  const b=e.target.closest('.op');if(!b)return;
-  qzResolve(q.opts[+b.dataset.i].v===q.ans,b,q)});
+  const b=e.target.closest('.op');if(!b||b.disabled)return;
+  const ok=q.opts[+b.dataset.i].v===q.ans;
+  if(!ok&&QZ.kind==='en'){ // no avanza hasta acertar; ya no cuenta como acierto y se repite al final
+    if(!q.retry&&!q.wrong){QZ.res[q.k]='no';QZ.list.push(Object.assign({},q,{retry:true,wrong:0,opts:shuffle(q.opts.slice())}))}
+    q.wrong=(q.wrong||0)+1;QZ.combo=0;b.classList.add('bad');b.disabled=true;mood('m5','oops');tone(220,.25,'triangle');
+    $('qzmsg').innerHTML='No es esa. Intenta otra vez.';$('qzcombo').hidden=true;flame('m5',0);qzDots();save();return}
+  qzResolve(ok,b,q)});
 $('qzquit').addEventListener('click',()=>{if(QZ)clearTimeout(QZ.to);if(QZ&&QZ.kind==='rd')rdOpen(QZ.si);else{show('home');renderHome()}});
 function qzFinish(){
   const b=bookRound(QZ.pts,QZ.maxc),R=dayRec(),news=[],N=QZ.n;
