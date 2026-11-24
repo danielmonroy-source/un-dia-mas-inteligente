@@ -128,6 +128,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 @keyframes mk{0%{opacity:0;transform:scale(.3)}20%{opacity:1;transform:scale(1.1)}35%{transform:scale(1)}75%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.9)}}
 .op.good::after{content:' ✓';font-weight:800}.op.bad::after{content:' ✗';font-weight:800}
 @media (prefers-reduced-motion:reduce){#mark.go{animation-duration:1.2s}}
+.rdprev details{background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:6px 12px;margin:4px 0 10px}#rdPrev summary{cursor:pointer;font-weight:700;min-height:40px;line-height:1.3;padding:8px 0}.rdprev p,.rdprev li{font-size:15px;line-height:1.45}.rdprev ol{padding-left:20px}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 /* suma y resta */
 .worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
@@ -328,6 +329,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       </select></label>
       <label>Lectura del reto: <select id="rdSel"></select></label>
       <p class="note" id="rdSelNote"></p>
+      <div id="rdPrev" class="rdprev" hidden></div>
+      <button class="ghost" id="rdAssign" hidden></button>
       <button class="ghost" id="reset">Borrar todo el avance</button>
       <div id="rstBox" hidden>
         <p class="note">Esto borra todo el avance de Adolfo y no se puede deshacer. Escribe la contraseña de papás para confirmar.</p>
@@ -1095,10 +1098,16 @@ $('sumSel').addEventListener('change',e=>{S.colSum=e.target.value;save();renderH
 function rdSelRender(){const o=x=>`<option value="${x.id}">${x.e} ${x.t}${rdRead(x)?` (ya la leyó: ${(S.rd||{})[x.id]}/${x.q.length})`:''}</option>`;
   const U=STORIES.filter(x=>!rdRead(x)),D=STORIES.filter(rdRead);
   $('rdSel').innerHTML=`<option value="">Al azar (una que no haya leído)</option><optgroup label="Sin leer (${U.length})">${U.map(o).join('')}</optgroup>${D.length?`<optgroup label="Ya leídas (${D.length})">${D.map(o).join('')}</optgroup>`:''}`;
-  $('rdSel').value=STORIES.some(x=>x.id===S.rdSel)?S.rdSel:'';
+  $('rdSel').value=STORIES.some(x=>x.id===S.rdSel)?S.rdSel:'';rdPrevRender();
   const R=dayRec(),cur=STORIES[rdPick()];
-  $('rdSelNote').textContent=R.rd?`Hoy ya leyó «${(STORIES.find(x=>x.id===R.rd)||cur).t}». Lo que elijas aquí le aparecerá mañana.`:`Hoy le toca: «${cur.t}». Si no eliges ninguna, cada día le sale una al azar de las que no ha leído.`}
-$('rdSel').addEventListener('change',e=>{S.rdSel=e.target.value;const R=dayRec();if(!R.rd)R.rdPick=null;rdPick();save();renderHome();rdSelRender()});
+  $('rdSelNote').textContent=R.rd?`Hoy ya leyó «${(STORIES.find(x=>x.id===R.rd)||cur).t}». Lo que elijas aquí le aparecerá mañana.`:`Hoy le toca: «${cur.t}». Escoge otra en la lista para leerla antes de ponérsela. Si no eliges ninguna, cada día le sale una al azar de las que no ha leído.`}
+function rdPrevRender(){const v=$('rdSel').value,x=STORIES.find(y=>y.id===v),cur=STORIES.some(y=>y.id===S.rdSel)?S.rdSel:'';
+  const P=$('rdPrev'),B=$('rdAssign');
+  if(!x){P.hidden=true;P.innerHTML=''}
+  else{P.hidden=false;P.innerHTML=`<details><summary>Leer «${x.t}» antes de elegirla (${x.tema}, unos ${rdMins(x)} min)</summary>${x.p.map(t=>`<p>${t}</p>`).join('')}<p><b>Preguntas</b> (la respuesta correcta en negritas):</p><ol>${x.q.map(q=>`<li>${q[0]}<br><b>${q[1]}</b> · ${q[2]} · ${q[3]}</li>`).join('')}</ol></details>`}
+  B.hidden=v===cur;B.textContent=x?`Ponerle «${x.t}»`:'Dejar que salga al azar'}
+$('rdSel').addEventListener('change',rdPrevRender);
+$('rdAssign').addEventListener('click',()=>{S.rdSel=$('rdSel').value;const R=dayRec();if(!R.rd)R.rdPick=null;rdPick();save();renderHome();rdSelRender();tone(660,.06)});
 $('resSel').addEventListener('change',e=>{S.colRes=e.target.value;save();renderHome()});
 function srReto(){
   if(SG)clearTimeout(SG.to);
