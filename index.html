@@ -73,6 +73,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .mode .sc i.y{background:var(--gold);box-shadow:inset 0 -4px 0 #d99a00}
 .peek{margin-top:14px;background:var(--card);border-radius:16px;padding:8px 14px}
 .peek summary{cursor:pointer;font-weight:700;min-height:36px;line-height:36px}
+.rdold{margin-top:16px}.rdold summary{cursor:pointer;font-weight:700;min-height:40px;line-height:40px}
 .peek div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 16px;font-size:20px;font-weight:700;padding-bottom:8px}
 /* juego */
 .dots{display:flex;gap:6px;justify-content:center;margin:6px 0}
@@ -319,6 +320,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
         <option value="sin3">3 cifras, sin llevar ni prestar</option>
         <option value="con3">3 cifras, llevando/prestando</option>
       </select></label>
+      <label>Lectura del reto: <select id="rdSel"></select></label>
+      <p class="note" id="rdSelNote"></p>
       <button class="ghost" id="reset">Borrar todo el avance</button>
       <div id="rstBox" hidden>
         <p class="note">Esto borra todo el avance de Adolfo y no se puede deshacer. Escribe la contraseña de papás para confirmar.</p>
@@ -1053,15 +1056,13 @@ function renderDaily(){
     ${row('c','2',R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc())}
     ${row('en','3',R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub)}
     ${row('rd','4',!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de ${R.rdN||5} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`)}</div>
-    ${R.rd?'':'<button class="mini dchg" data-d="chg">Cambiar lectura</button>'}
     <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':'Completa las 4 partes y gana 50 puntos de premio.'}</p>${full?boleta(R):''}`;
   const sel=$('retoSel');
   sel.innerHTML=`<option value="0">Automática (una que no se sabe)</option>`+[2,3,4,5,6,7,8,9,10].map(t=>`<option value="${t}">×${t}</option>`).join('');
-  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-')}
+  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-');rdSelRender()}
 $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const k=b.dataset.d;tone(660,.06);
   if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
   else if(k==='rd')rdOpen(rdPick());
-  else if(k==='chg'){rdChange();renderDaily()}
   else if(k==='en')openEnx();
   else{S.tab='libre';S.world=k;save();renderHome();window.scrollTo(0,0)}});
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.tab=b.dataset.t;save();tone(660,.06);renderHome()});
@@ -1084,6 +1085,13 @@ const COLV=['sin2','mix2','con2','sin3','con3'],colLv=op=>{const v=op==='+'?S.co
 const COLT={sin2:'sencillas de 2 cifras',mix2:'de 2 cifras, algunas difíciles',con2:'de 2 cifras',sin3:'sencillas de 3 cifras',con3:'de 3 cifras'};
 const colDesc=()=>{const a=colLv('+'),b=colLv('-');return `5 sumas ${a.startsWith('con')?'llevando ':''}${COLT[a]} y 5 restas ${b.startsWith('con')?'pidiendo prestado ':''}${COLT[b]}`};
 $('sumSel').addEventListener('change',e=>{S.colSum=e.target.value;save();renderHome()});
+function rdSelRender(){const o=x=>`<option value="${x.id}">${x.e} ${x.t}${rdRead(x)?` (ya la leyó: ${(S.rd||{})[x.id]}/${x.q.length})`:''}</option>`;
+  const U=STORIES.filter(x=>!rdRead(x)),D=STORIES.filter(rdRead);
+  $('rdSel').innerHTML=`<option value="">Al azar (una que no haya leído)</option><optgroup label="Sin leer (${U.length})">${U.map(o).join('')}</optgroup>${D.length?`<optgroup label="Ya leídas (${D.length})">${D.map(o).join('')}</optgroup>`:''}`;
+  $('rdSel').value=STORIES.some(x=>x.id===S.rdSel)?S.rdSel:'';
+  const R=dayRec(),cur=STORIES[rdPick()];
+  $('rdSelNote').textContent=R.rd?`Hoy ya leyó «${(STORIES.find(x=>x.id===R.rd)||cur).t}». Lo que elijas aquí le aparecerá mañana.`:`Hoy le toca: «${cur.t}». Si no eliges ninguna, cada día le sale una al azar de las que no ha leído.`}
+$('rdSel').addEventListener('change',e=>{S.rdSel=e.target.value;const R=dayRec();if(!R.rd)R.rdPick=null;rdPick();save();renderHome();rdSelRender()});
 $('resSel').addEventListener('change',e=>{S.colRes=e.target.value;save();renderHome()});
 function srReto(){
   if(SG)clearTimeout(SG.to);
@@ -1288,8 +1296,8 @@ function qzFinish(){
     const tries=S.rdLog.filter(x=>x.id===st.id).length+1;
     S.rdLog.unshift({d:today(),h:hhmm(),id:st.id,ok:QZ.first,n:N,miss:QZ.miss||[],secs:QZ.secs||0,peek:!!QZ.peek,try:tries});if(S.rdLog.length>60)S.rdLog.length=60;
     S.rd[st.id]=Math.max(S.rd[st.id]||0,QZ.first);
-    if(!R.rd){R.rd=st.id;R.rdCal=r1(QZ.first/N*10);news.push('¡Terminaste la <b>lectura de hoy</b>!')}
-    R.rdOk=Math.max(R.rdOk||0,QZ.first);if(R.rd===st.id)R.rdN=N;
+    if(!R.rd&&QZ.si===rdPick()){R.rd=st.id;R.rdCal=r1(QZ.first/N*10);if(S.rdSel===st.id)S.rdSel='';news.push('¡Terminaste la <b>lectura de hoy</b>!')}
+    if(R.rd===st.id){R.rdOk=Math.max(R.rdOk||0,QZ.first);R.rdN=N}
     news.push(QZ.first===N?`¡Contestaste las ${N} preguntas bien! Entendiste todo.`:`Contestaste bien <b>${QZ.first} de ${N}</b>. Si quieres, léela otra vez.`);
   }
   const bnq=retoBonus();if(bnq)news.push(bnq);
@@ -1433,29 +1441,262 @@ q:[['¿Quiénes construyeron Chichén Itzá?','Los mayas','Los romanos','Los egi
 ['¿Qué se ve en la pirámide en marzo y septiembre?','Una serpiente de luz y sombra','Un dragón de fuego','Una lluvia de estrellas'],
 ['¿A qué suena el eco cuando aplaudes?','Al canto de un pájaro','A un trueno','A un perro'],
 ['¿Por qué decimos que los mayas eran grandes astrónomos?','Observaban el cielo e hicieron calendarios','Construían barcos','Jugaban fútbol'],
-['¿A quién está dedicada la pirámide El Castillo?','A Kukulkán, la serpiente emplumada','Al quetzal','A la Luna']]}];
+['¿A quién está dedicada la pirámide El Castillo?','A Kukulkán, la serpiente emplumada','Al quetzal','A la Luna']]},
+{id:'monarca',e:'🦋',t:'El gran viaje de la mariposa monarca',tema:'Insectos',p:[
+'Cada otoño, millones de mariposas naranjas con rayas negras empiezan un viaje increíble. Son las mariposas monarca. Salen de Canadá y de Estados Unidos y vuelan hasta los bosques de Michoacán y del Estado de México. ¡Recorren más de cuatro mil kilómetros!',
+'Lo más sorprendente es que ninguna de ellas ha hecho ese viaje antes. Nadie les enseña el camino. Los científicos creen que se guían con el Sol, como si llevaran una brújula dentro de su cuerpo diminuto.',
+'Llegan a México a finales de octubre, más o menos cuando celebramos el Día de Muertos. Por eso, en algunos pueblos se dice que las mariposas traen de visita a los que ya se fueron.',
+'En el bosque se cuelgan de los árboles llamados oyameles. Se juntan tantas que las ramas se doblan y los troncos se ven anaranjados. Así se protegen del frío durante todo el invierno.',
+'Las orugas de la monarca solo comen una planta: el algodoncillo. Esa planta hace que su cuerpo sepa horrible, y los pájaros aprenden a no comérselas. Su color naranja es como un letrero que dice: «¡No me comas!».',
+'En marzo, cuando llega la primavera, las mariposas despiertan y regresan al norte. Para cuidarlas, hay que proteger sus bosques y sembrar algodoncillo. Así, el gran viaje seguirá pasando cada año.'],
+q:[['¿A qué estados de México llegan las mariposas monarca?','Michoacán y Estado de México','Yucatán y Quintana Roo','Sonora y Chihuahua'],
+['¿Quién les enseña el camino?','Nadie: se guían con el Sol','Sus papás','Un mapa'],
+['¿Cuándo llegan a México?','A finales de octubre','En Navidad','En el verano'],
+['¿En qué árboles se cuelgan?','En los oyameles','En las palmeras','En los cactus'],
+['¿Qué comen las orugas de la monarca?','Solo algodoncillo','Hojas de cualquier árbol','Moscas'],
+['¿Para qué sirve su color naranja?','Avisa a los pájaros que no se las coman','Para verse en la oscuridad','Para calentarse']]},
+{id:'tortugas',e:'🐢',t:'Las tortuguitas que buscan el mar',tema:'Animales del mar',p:[
+'Ximena vivía en un pueblo junto al mar, en Oaxaca. Una noche, su tío Ramón la despertó: «Ven, vamos a ver algo que no vas a olvidar nunca». Tomaron una lámpara con luz roja y caminaron por la playa.',
+'Su tío le explicó que, dos meses antes, una tortuga marina enorme había salido del agua para hacer un hoyo en la arena. Ahí había puesto cerca de cien huevos, los había tapado y había regresado al mar.',
+'De pronto, la arena empezó a moverse. ¡Una cabecita! Luego otra y otra. Decenas de tortuguitas, del tamaño de una galleta, salieron del nido y empezaron a caminar con sus aletas.',
+'—¿Cómo saben a dónde ir? —preguntó Ximena. —Buscan la parte más brillante —dijo su tío—. Por la noche, el mar brilla con la luz de la Luna. Por eso usamos luz roja: las luces blancas de las casas las confunden y se van para el lado equivocado.',
+'Ximena vio que una tortuguita se había volteado patas arriba. Quiso levantarla, pero su tío le recordó que no hay que cargarlas: deben caminar solas por la arena para que su cuerpo recuerde esa playa. Ximena solo le quitó una ramita del camino y la tortuguita se enderezó sola.',
+'Cuando la última llegó a las olas, Ximena se despidió. Su tío le contó que, cuando sean grandes, muchos años después, las tortugas hembras volverán a esa misma playa a poner sus huevos. «Entonces yo las estaré esperando», dijo Ximena.'],
+q:[['¿Dónde vivía Ximena?','En un pueblo junto al mar, en Oaxaca','En una ciudad grande','En el bosque'],
+['¿Por qué usaban una lámpara con luz roja?','Porque la luz blanca confunde a las tortuguitas','Porque era más bonita','Porque no tenían otra'],
+['¿Cuántos huevos puso la tortuga, más o menos?','Cerca de cien','Dos','Mil'],
+['¿Hacia dónde caminan las tortuguitas?','Hacia la parte más brillante, el mar','Hacia las casas','Hacia los árboles'],
+['¿Por qué no hay que cargarlas?','Deben caminar solas para recordar esa playa','Porque muerden','Porque pesan mucho'],
+['¿Qué harán las tortugas hembras cuando sean grandes?','Volver a esa playa a poner sus huevos','Quedarse a vivir en la arena','Irse a vivir a un río']]},
+{id:'dianoche',e:'🌎',t:'¿Por qué hay día y noche?',tema:'El planeta Tierra',p:[
+'Cuando miras el cielo, parece que el Sol sale por la mañana, cruza el cielo y se esconde en la tarde. Durante muchos siglos, la gente pensó que el Sol daba vueltas alrededor de nosotros. Pero no es así.',
+'En realidad, el que se mueve es nuestro planeta. La Tierra es como una pelota gigante que gira sobre sí misma, como un trompo. Tarda veinticuatro horas en dar una vuelta completa, y eso es lo que llamamos un día.',
+'El Sol solo puede alumbrar la mitad de la Tierra a la vez. La parte que mira hacia el Sol tiene día. La parte que queda del otro lado tiene noche. Mientras la Tierra gira, cada lugar pasa de la luz a la oscuridad y otra vez a la luz.',
+'Por eso, cuando en México es de día y estás en la escuela, en Japón es de noche y los niños están dormidos. ¡Al mismo tiempo, en el mismo planeta!',
+'¿Y por qué no sentimos que giramos? Porque todo gira junto con nosotros: el piso, el aire, las casas y los mares. Es como ir en un coche que avanza muy suavemente: si cierras los ojos, casi no notas que te mueves.',
+'Puedes hacer un experimento: en un cuarto oscuro, alumbra una pelota con una lámpara y gírala despacio. Verás cómo la luz va pasando por todos lados. Además de girar, la Tierra le da una vuelta completa al Sol cada año. ¡Nuestro planeta nunca se queda quieto!'],
+q:[['¿Qué es lo que se mueve para que haya día y noche?','La Tierra, que gira','El Sol, que da vueltas','La Luna'],
+['¿Cuánto tarda la Tierra en dar una vuelta sobre sí misma?','Veinticuatro horas','Una semana','Un año'],
+['¿Qué parte de la Tierra tiene día?','La que mira hacia el Sol','La de abajo','La que está más fría'],
+['Cuando en México es de día, ¿qué pasa en Japón?','Es de noche','También es de día','Está lloviendo'],
+['¿Por qué no sentimos que giramos?','Porque todo gira junto con nosotros','Porque giramos muy despacio','Porque estamos dormidos'],
+['¿Cuánto tarda la Tierra en darle la vuelta al Sol?','Un año','Un día','Un mes']]},
+{id:'cerebro',e:'🧠',t:'Tu cerebro, el jefe del cuerpo',tema:'El cuerpo humano',p:[
+'Dentro de tu cabeza hay un jefe que nunca descansa: tu cerebro. Pesa más o menos lo mismo que un melón chico y es suavecito, como una gelatina. Por eso está protegido por una caja de hueso muy dura: el cráneo.',
+'El cerebro da las órdenes a todo tu cuerpo. Cuando pateas una pelota, cuando te ríes o cuando te rascas la nariz, es porque el cerebro mandó un mensaje. Y lo hace rapidísimo, más rápido que un parpadeo.',
+'¿Cómo manda esos mensajes? Tiene miles de millones de células llamadas neuronas. Las neuronas se pasan mensajes unas a otras como si jugaran teléfono descompuesto, pero sin equivocarse. Los mensajes viajan por los nervios, que son como cables que llegan a todo tu cuerpo.',
+'Cada vez que aprendes algo, tus neuronas se conectan de una forma nueva. Si practicas muchas veces, ese camino se vuelve más fuerte, como una vereda en el pasto que se marca cuando pasas una y otra vez. Por eso, cuando practicas las tablas, cada día te salen más rápido.',
+'Mientras duermes, el cerebro no se apaga. Ordena todo lo que aprendiste en el día y lo guarda, como quien acomoda juguetes en sus cajas. Por eso dormir bien te ayuda a recordar.',
+'Para cuidar a tu cerebro: duerme suficiente, come frutas y verduras, toma agua, juega al aire libre y usa casco cuando andes en bici. ¡Es el único jefe que tienes!'],
+q:[['¿Qué protege al cerebro?','El cráneo, una caja de hueso','Un casco de plástico','El pelo'],
+['¿Cómo se llaman las células que pasan los mensajes?','Neuronas','Vitaminas','Huesos'],
+['¿Por dónde viajan los mensajes a todo el cuerpo?','Por los nervios','Por la sangre','Por el estómago'],
+['¿Qué pasa cuando practicas algo muchas veces?','El camino en el cerebro se hace más fuerte','Se te olvida','El cerebro se cansa para siempre'],
+['¿Qué hace el cerebro mientras duermes?','Ordena y guarda lo que aprendiste','Se apaga','Se hace más pequeño'],
+['¿Cuál de estas cosas ayuda a cuidar el cerebro?','Dormir suficiente','Ver tele toda la noche','No tomar agua']]},
+{id:'ajolote',e:'🦎',t:'El ajolote, el monstruo sonriente',tema:'Animales de México',p:[
+'En los canales de Xochimilco, en la Ciudad de México, vive un animal que parece sacado de una caricatura. Tiene la cara sonriente, unos ojitos pequeños y unas plumitas a los lados de la cabeza. Es el ajolote.',
+'Aunque parece pez, el ajolote es un anfibio, pariente de las ranas y las salamandras. Esas plumitas que tiene en la cabeza no son adorno: son sus branquias, y le sirven para respirar debajo del agua.',
+'Las ranas nacen como renacuajos y luego cambian para vivir fuera del agua. El ajolote, en cambio, se queda toda la vida como si fuera un bebé: nunca pierde sus branquias y siempre vive en el agua.',
+'Pero su superpoder más famoso es otro. Si un ajolote pierde una pata, ¡le vuelve a crecer completa, con todo y huesos! Puede reparar hasta partes de su corazón. Científicos de todo el mundo lo estudian para entender cómo lo hace.',
+'Los antiguos mexicas contaban que el ajolote era el dios Xólotl, que se escondió en el agua para no ser atrapado. Hoy el ajolote es tan querido que aparece en el billete de cincuenta pesos.',
+'Por desgracia, casi ya no quedan ajolotes libres. El agua de los canales se ensució y llegaron peces que se comen sus huevos. Muchas personas trabajan para limpiar los canales y salvarlo. Cuidar el agua es cuidar al monstruo sonriente.'],
+q:[['¿Dónde vive el ajolote?','En los canales de Xochimilco','En el mar','En el desierto'],
+['¿Qué son las plumitas de su cabeza?','Sus branquias para respirar','Plumas de adorno','Sus orejas'],
+['¿Qué tipo de animal es el ajolote?','Un anfibio, pariente de las ranas','Un pez','Un reptil, como la iguana'],
+['¿Qué pasa si un ajolote pierde una pata?','Le vuelve a crecer','Se queda sin ella','Le sale una aleta'],
+['¿En qué billete aparece el ajolote?','En el de cincuenta pesos','En el de quinientos pesos','En ninguno'],
+['¿Por qué ya casi no quedan ajolotes libres?','El agua se ensució y hay peces que se comen sus huevos','Se fueron a vivir al mar','Hace mucho frío']]},
+{id:'carritos',e:'🏎️',t:'La carrera de los carritos de cartón',tema:'Trabajo en equipo',p:[
+'La maestra Rosa anunció una carrera especial: cada equipo tenía que construir un carrito de cartón que bajara por una rampa. Emilio quedó con Valeria y con Toño. Emilio estaba seguro de que su idea era la mejor.',
+'—Hay que hacerlo largo y puntiagudo, como un cohete —dijo Emilio. —Mejor ancho, para que no se voltee —dijo Valeria. —¡Y con ruedas de tapas de frasco! —dijo Toño. Discutieron tanto que la primera tarde no construyeron nada.',
+'Al día siguiente, Emilio hizo el carrito a su manera, solo. Lo probó en una rampa de libros… y en la primera bajada se volteó y se le salió una rueda. Emilio se puso rojo. Valeria no se burló. Le dijo: «¿Y si lo arreglamos juntos?».',
+'Esta vez se escucharon. Usaron la forma puntiaguda de Emilio para que cortara el aire, la base ancha de Valeria para que no se volteara y las tapas de frasco de Toño, que giraban mucho mejor. Lo pintaron de verde y le pusieron un nombre: el Relámpago.',
+'El día de la carrera, el Relámpago bajó derechito y rapidísimo. Llegó en segundo lugar, a un pelito del primero. Pero la maestra Rosa les dio un premio especial: «Al mejor trabajo en equipo».',
+'De regreso a casa, Emilio pensó que una idea sola es como una rueda: sirve, pero no llega lejos. Juntas, las ideas de los tres habían hecho un carrito de verdad.'],
+q:[['¿Qué tenían que construir?','Un carrito de cartón','Un cohete de papel','Una casa de cartón'],
+['¿Qué pasó cuando Emilio lo hizo solo?','Se volteó y se le salió una rueda','Ganó la carrera','Se lo llevó el viento'],
+['¿Qué idea dio Valeria?','Hacerlo ancho para que no se volteara','Hacerlo de metal','Ponerle alas'],
+['¿De qué eran las ruedas del carrito?','De tapas de frasco','De botones','De galletas'],
+['¿En qué lugar llegó el Relámpago?','En segundo lugar','En primer lugar','En último lugar'],
+['¿Qué aprendió Emilio?','Que las ideas juntas llegan más lejos','Que hay que trabajar siempre solo','Que el cartón no sirve']]},
+{id:'sabana',e:'🦁',t:'Un día en la sabana africana',tema:'Animales del mundo',p:[
+'En África hay unos llanos enormes cubiertos de pasto, con pocos árboles. Se llaman sabanas. Ahí hace calor todo el año y hay solo dos temporadas: la de lluvias y la de secas. En la sabana viven algunos de los animales más famosos del mundo.',
+'El león es llamado el rey de la sabana. Vive en grupos que se llaman manadas. Aunque el macho tiene la melena y ruge muy fuerte, casi siempre son las leonas las que salen a cazar, trabajando en equipo. Los leones duermen muchísimo: ¡hasta veinte horas al día!',
+'La jirafa es el animal más alto del mundo. Con su cuello larguísimo alcanza las hojas de las acacias, unos árboles con espinas. Para que las espinas no la lastimen, usa su lengua, que es muy larga y de color oscuro, casi morado.',
+'El elefante africano es el animal terrestre más grande que existe. Su trompa es su nariz y también su mano: con ella respira, huele, toma agua, arranca pasto y hasta saluda a otros elefantes. Las elefantas viven en familias guiadas por la abuela, que recuerda dónde encontrar agua.',
+'Cuando llega la temporada de secas, millones de ñus y cebras caminan juntos buscando pasto verde. Es una de las caminatas de animales más grandes del planeta.',
+'Cada animal de la sabana tiene su lugar: unos comen pasto, otros comen hojas y otros cazan. Así, todos juntos, mantienen vivo ese enorme jardín.'],
+q:[['¿Cómo es la sabana?','Llanos con mucho pasto y pocos árboles','Un bosque lleno de nieve','Un desierto sin plantas'],
+['¿Quiénes salen a cazar casi siempre?','Las leonas','Los leones con melena','Las jirafas'],
+['¿Cuántas horas al día pueden dormir los leones?','Hasta veinte','Dos','Ninguna'],
+['¿Para qué usa la jirafa su lengua larga?','Para comer hojas sin lastimarse con las espinas','Para asustar a los leones','Para nadar'],
+['¿Quién guía a la familia de elefantes?','La abuela','El león','El elefante más joven'],
+['¿Qué hacen los ñus y las cebras en la temporada de secas?','Caminan juntos buscando pasto verde','Se esconden en cuevas','Duermen todo el tiempo']]},
+{id:'rayos',e:'⚡',t:'Rayos y truenos',tema:'El clima',p:[
+'¿Alguna vez has visto una tormenta desde la ventana? Primero el cielo se pone oscuro, luego aparece un rayo que lo ilumina todo y, unos segundos después, se escucha un trueno: ¡BRRUM!',
+'Dentro de las nubes de tormenta hay gotitas de agua y pedacitos de hielo que suben y bajan empujados por el viento. Al chocar y frotarse, se llenan de electricidad, como cuando frotas un globo en tu pelo y se te paran los cabellos.',
+'Cuando se junta muchísima electricidad, salta una chispa gigante: eso es un rayo. Es tan caliente que, por un instante, está más caliente que la superficie del Sol.',
+'El rayo calienta el aire tan rápido que el aire se estira de golpe y hace una explosión de sonido. Eso es el trueno. El rayo y el trueno pasan al mismo tiempo, pero vemos primero el rayo porque la luz viaja mucho más rápido que el sonido.',
+'Hay un truco: cuando veas un rayo, cuenta los segundos hasta que oigas el trueno. Si cuentas tres segundos, la tormenta está como a un kilómetro. Si cada vez cuentas menos, la tormenta se está acercando.',
+'Los rayos son peligrosos, pero es fácil protegerse. Si hay tormenta, métete a una casa o a un coche. Nunca te pongas debajo de un árbol solo, ni te quedes en una alberca o en un campo abierto. Desde adentro, puedes disfrutar del espectáculo sin peligro.'],
+q:[['¿Qué es un rayo?','Una chispa gigante de electricidad','Una piedra que cae del cielo','Agua muy caliente'],
+['¿Qué es el trueno?','El ruido del aire que se estira de golpe','Las nubes que chocan como platillos','Un avión'],
+['¿Por qué vemos el rayo antes de oír el trueno?','La luz viaja más rápido que el sonido','El trueno pasa después','Porque los ojos están más arriba'],
+['Si cuentas tres segundos entre el rayo y el trueno, ¿a qué distancia está la tormenta?','Como a un kilómetro','Encima de tu casa','En otro país'],
+['¿Qué tan caliente es un rayo?','Más que la superficie del Sol','Como agua tibia','Está frío'],
+['¿Dónde es seguro estar durante una tormenta?','Dentro de una casa o un coche','Debajo de un árbol solo','En una alberca']]},
+{id:'cacao',e:'🍫',t:'Del cacao al chocolate',tema:'Historia de México',p:[
+'¿Te gusta el chocolate? Pues debes saber que es un regalo de México al mundo. Todo empieza en un árbol llamado cacao, que crece en lugares calientes y húmedos, como Tabasco y Chiapas.',
+'El árbol del cacao tiene algo curioso: sus frutos, que se llaman mazorcas, salen directamente del tronco. Son grandes, de color amarillo o rojizo, y adentro tienen unas semillas cubiertas de una pulpa blanca y dulce.',
+'Hace miles de años, los olmecas, los mayas y los mexicas ya preparaban una bebida con esas semillas. Pero no era dulce como el chocolate de hoy: era amarga y espumosa, y a veces le ponían chile. Era una bebida especial para guerreros y gobernantes.',
+'Las semillas de cacao eran tan valiosas que se usaban como dinero. Con unas cuantas semillas se podía comprar un tomate o un tamal; con más, ¡hasta un guajolote!',
+'Cuando los españoles llegaron, probaron la bebida y se la llevaron a Europa. Allá le agregaron azúcar y leche, y con el tiempo inventaron las barras y los chocolates que conocemos.',
+'Para hacer chocolate, las semillas se dejan fermentar, se secan al sol, se tuestan y se muelen hasta formar una pasta. Así que la próxima vez que tomes un chocolate caliente, recuerda que viene de un árbol mexicano y de una historia de miles de años.'],
+q:[['¿Dónde crece el árbol del cacao?','En lugares calientes y húmedos, como Tabasco y Chiapas','En la nieve','En el desierto'],
+['¿De dónde salen las mazorcas del cacao?','Directamente del tronco','De la tierra, como papas','De las hojas'],
+['¿Cómo era la bebida de cacao de los mayas y mexicas?','Amarga y espumosa','Muy dulce y fría','De color verde'],
+['¿Para qué usaban las semillas de cacao?','Como dinero','Como juguetes','Para hacer casas'],
+['¿Qué le agregaron los europeos al chocolate?','Azúcar y leche','Chile','Sal'],
+['¿Cuál es un paso para hacer chocolate?','Tostar las semillas','Congelar las hojas','Pintar las mazorcas']]},
+{id:'oscuridad',e:'🔦',t:'Leo y las sombras de la noche',tema:'Emociones',p:[
+'A Leo le encantaba el día, pero no la noche. Cuando su mamá apagaba la luz, su cuarto se llenaba de sombras raras. En la silla parecía haber un monstruo con joroba, y en la pared se movía algo con dedos largos y flacos.',
+'Una noche, Leo se tapó hasta la cabeza y llamó a su abuela Chela, que estaba de visita. La abuela no le dijo «no seas miedoso». Se sentó en la cama y le dijo: «A mí también me daba miedo la oscuridad. ¿Quieres que la investiguemos juntos?».',
+'La abuela le dio una linterna. Leo, con la mano temblando, alumbró la silla. El monstruo con joroba… ¡era su chamarra colgada con la mochila encima! Después alumbró la pared: los dedos largos eran las ramas del árbol de la calle, que se movían con el viento.',
+'—¿Ves? —dijo la abuela—. Las cosas en la oscuridad son las mismas que en el día. Solo se ven distintas. Luego le enseñó un truco: puso las manos frente a la linterna e hizo la sombra de un conejo. Leo hizo un perro, después un pájaro y hasta un cocodrilo.',
+'Esa noche Leo se rió tanto que se le olvidó tener miedo. Antes de dormir, acomodó su chamarra en el clóset para que la silla no pareciera monstruo.',
+'Desde entonces, Leo duerme con la linterna junto a su almohada. Casi nunca la usa. Pero sabe que, cuando algo le da miedo, lo mejor es mirarlo de cerca: muchas veces es más pequeño de lo que parece.'],
+q:[['¿Qué le daba miedo a Leo?','La oscuridad','Los perros','La escuela'],
+['¿Qué le dio la abuela Chela?','Una linterna','Un dulce','Un oso de peluche'],
+['¿Qué era el monstruo con joroba?','Su chamarra con la mochila en la silla','Su gato','Una almohada'],
+['¿Qué eran los dedos largos de la pared?','Las ramas de un árbol movidas por el viento','Un monstruo de verdad','Las manos de su hermano'],
+['¿Qué hicieron con la linterna y las manos?','Sombras de animales','Una carta','Un dibujo en la pared'],
+['¿Qué aprendió Leo?','Que si miras de cerca lo que te asusta, se hace más pequeño','Que hay que dormir con la luz prendida siempre','Que los monstruos existen']]},
+{id:'lego',e:'🧱',t:'La historia de los bloques LEGO',tema:'Juguetes',p:[
+'Hace casi cien años, en un pueblito de Dinamarca llamado Billund, vivía un carpintero llamado Ole Kirk Christiansen. Hacía mesas y escaleras, pero un día tuvo poco trabajo y empezó a fabricar juguetes de madera: patitos, cochecitos y yoyos.',
+'A sus juguetes les puso un nombre: LEGO. Viene de dos palabras en danés, «leg godt», que quieren decir «juega bien». Ole quería que los niños tuvieran juguetes bien hechos, porque decía que «solo lo mejor es suficiente».',
+'Con los años, la fábrica empezó a hacer juguetes de plástico. En 1958 inventaron el bloque como lo conocemos hoy: con botoncitos arriba y tubitos abajo, para que los bloques se apretaran bien y no se cayeran las construcciones.',
+'Lo más increíble es que un bloque de 1958 todavía embona con uno que compres hoy. Además, con solo seis bloques iguales de ocho botones se pueden hacer más de novecientos millones de combinaciones distintas. ¡No alcanzarías a probarlas todas en tu vida!',
+'Las famosas figuritas, con manos de pinza y cara sonriente, aparecieron en 1978. Desde entonces han sido astronautas, piratas, bomberos y superhéroes.',
+'Hoy hay ingenieros y artistas que construyen ciudades, barcos y hasta dinosaurios de tamaño real con bloques LEGO. Pero todos empezaron igual que tú: juntando bloques, imaginando y probando hasta que la construcción quedaba bien.'],
+q:[['¿En qué país se inventaron los LEGO?','En Dinamarca','En México','En China'],
+['¿Qué hacía Ole Kirk Christiansen antes de los juguetes?','Era carpintero','Era astronauta','Era doctor'],
+['¿Qué quiere decir «leg godt»?','Juega bien','Construye rápido','Bloque rojo'],
+['¿Para qué sirven los tubitos de abajo del bloque?','Para que los bloques se aprieten bien','Para que floten en el agua','Para que hagan ruido'],
+['¿Un bloque de 1958 embona con uno de hoy?','Sí, todavía embona','No, son diferentes','Solo si lo pintas'],
+['¿Cuándo aparecieron las figuritas?','En 1978','En 1932','El año pasado']]},
+{id:'videojuegos',e:'🎮',t:'¿Cómo se hace un videojuego?',tema:'Videojuegos',p:[
+'Hace unos cincuenta años salió uno de los primeros videojuegos famosos. Se llamaba Pong y era muy sencillo: dos rayitas blancas que se movían para arriba y para abajo, y un cuadrito que rebotaba como pelota de ping-pong. ¡Y a todo el mundo le encantó!',
+'Hoy los videojuegos tienen mundos enormes, música y personajes que corren, saltan y construyen. Pero, ¿quién los hace? Detrás de un videojuego hay un equipo de muchas personas, a veces cientos.',
+'Los programadores escriben el código: miles de instrucciones que le dicen a la computadora qué hacer. Por ejemplo: «Si el jugador aprieta este botón, el personaje salta». Para programar se usan mucho las matemáticas, ¡incluidas las tablas de multiplicar!',
+'Los artistas dibujan a los personajes y los paisajes. Los músicos componen las canciones y los sonidos, como el «ding» cuando ganas una moneda. Y los diseñadores inventan las reglas y los niveles, para que el juego no sea ni muy fácil ni imposible.',
+'Antes de que el juego salga a la venta, unas personas llamadas probadores lo juegan una y otra vez buscando errores. A esos errores les dicen «bugs», que en inglés quiere decir «bichos». Si el personaje atraviesa una pared, ¡hay un bicho!',
+'Jugar videojuegos es divertido, y también puede ser el inicio de una profesión. Eso sí: los mejores jugadores también descansan los ojos, se mueven, juegan afuera y saben cuándo apagar la consola.'],
+q:[['¿Cómo era Pong, uno de los primeros videojuegos?','Dos rayitas y un cuadrito que rebotaba','Un mundo enorme con dragones','Un juego de carreras de coches'],
+['¿Qué hacen los programadores?','Escriben las instrucciones del juego','Venden los juegos','Dibujan los personajes'],
+['¿Qué materia se usa mucho para programar?','Matemáticas','Educación física','Música'],
+['¿Quiénes inventan las reglas y los niveles?','Los diseñadores','Los probadores','Los papás'],
+['¿Qué quiere decir «bug»?','Bicho, un error del juego','Botón','Nivel nuevo'],
+['¿Qué hacen los mejores jugadores?','También descansan y saben cuándo apagar la consola','Juegan toda la noche sin parar','Nunca salen de su cuarto']]},
+{id:'youtubers',e:'📹',t:'Detrás de un video de YouTube',tema:'Internet',p:[
+'El primer video de YouTube se subió en el año 2005. Duraba solo diecinueve segundos y en él un muchacho hablaba frente a los elefantes de un zoológico. Nadie imaginaba que, años después, millones de personas harían videos todos los días.',
+'A las personas que hacen videos para YouTube se les llama youtubers. Algunos enseñan a dibujar, otros hacen experimentos, juegan videojuegos, cuentan chistes o explican cómo funcionan las cosas.',
+'Un video que dura diez minutos puede tardar muchas horas en hacerse. Primero hay que tener una idea y escribir un guion, que es como un plan de lo que se va a decir. Luego se graba, muchas veces repitiendo las partes que salieron mal.',
+'Después viene la edición: cortar los errores, poner música, letreros y efectos. Los youtubers que ves muy naturales y rápidos en realidad practicaron y trabajaron mucho detrás de la cámara.',
+'También hay que saber algo importante: no todo lo que se dice en internet es verdad. Un buen youtuber explica de dónde sacó su información. Y un buen espectador pregunta a un adulto cuando algo le parece raro.',
+'Y la regla de oro: en internet nunca compartas tu nombre completo, tu dirección, tu escuela ni fotos tuyas sin permiso de tus papás. Si alguien te escribe algo que te hace sentir mal, cuéntaselo a un adulto de confianza.'],
+q:[['¿De qué trataba el primer video de YouTube?','Un muchacho frente a elefantes de un zoológico','Un gato tocando el piano','Un partido de fútbol'],
+['¿Qué es un guion?','Un plan de lo que se va a decir','Una cámara especial','Un tipo de música'],
+['¿Qué se hace en la edición?','Cortar errores y poner música y letreros','Comprar la cámara','Escribir comentarios'],
+['¿Todo lo que se dice en internet es verdad?','No, hay que preguntar si algo parece raro','Sí, siempre','Solo si lo dice un youtuber'],
+['¿Qué NO debes compartir en internet?','Tu dirección y tu escuela','Tu color favorito','Un dibujo de un perro'],
+['¿Qué haces si alguien te escribe algo que te hace sentir mal?','Contárselo a un adulto de confianza','Guardarlo en secreto','Contestarle feo']]},
+{id:'disney',e:'🏰',t:'Walt Disney y el ratón que cambió todo',tema:'Películas',p:[
+'Walt Disney nació en 1901 en Estados Unidos. Desde niño le encantaba dibujar. Dibujaba a los animales de la granja de su familia y hasta vendía sus dibujos a los vecinos.',
+'De joven abrió una pequeña empresa de caricaturas, pero le fue mal y se quedó sin dinero. Muchos se habrían rendido. Walt tomó su maleta, se fue a California y empezó otra vez, junto con su hermano Roy.',
+'En 1928 presentó a un personaje nuevo: un ratón con orejas redondas llamado Mickey Mouse. Su primera caricatura famosa tenía algo que casi ninguna tenía entonces: sonido, música y silbidos que iban al mismo tiempo que los dibujos. ¡La voz de Mickey era la del mismo Walt!',
+'Luego tuvo una idea que todos pensaban que era una locura: hacer una película larguísima de dibujos animados. La llamaban «la locura de Disney». En 1937 se estrenó Blancanieves y los siete enanos, y fue un éxito enorme.',
+'En aquellos tiempos todo se dibujaba a mano. Para que un personaje se moviera un solo segundo, se necesitaban unos veinticuatro dibujos, uno un poquito diferente del otro. ¡Una película tenía cientos de miles de dibujos!',
+'Walt Disney decía que, si puedes soñarlo, puedes hacerlo. Su historia enseña que equivocarse no es el final: a veces es el comienzo de algo grande.'],
+q:[['¿Qué le gustaba hacer a Walt Disney desde niño?','Dibujar','Cantar ópera','Nadar'],
+['¿Qué pasó con su primera empresa?','Le fue mal y se quedó sin dinero','Se hizo famosa de inmediato','La vendió a un ratón'],
+['¿Qué tenía de especial la primera caricatura famosa de Mickey?','Tenía sonido al mismo tiempo que los dibujos','Era en 3D','Duraba tres horas'],
+['¿De quién era la voz de Mickey?','Del mismo Walt Disney','De su hermano Roy','De un ratón de verdad'],
+['¿Por qué decían «la locura de Disney»?','Nadie creía que una película larga de dibujos funcionaría','Porque Walt gritaba mucho','Porque se perdió el dinero'],
+['¿Cuántos dibujos se necesitaban para un segundo de movimiento?','Unos veinticuatro','Uno','Mil']]},
+{id:'luca',e:'🐟',t:'Luca: un verano en Italia',tema:'Películas',p:[
+'En la película Luca, de Pixar, un niño monstruo marino vive debajo del mar. Cuando sale del agua y se seca, se convierte en un niño humano. Con su amigo Alberto descubre un pueblito junto al mar llamado Portorosso, y los dos sueñan con tener una motoneta para recorrer el mundo.',
+'Portorosso no existe, pero se parece mucho a pueblos reales de Italia. Está inspirado en la Riviera italiana, una costa con casitas de colores pegadas a los cerros, barcos de pescadores y un mar azul muy brillante.',
+'El director de la película, Enrico Casarosa, creció en Génova, una ciudad de esa costa. De niño era muy tímido, hasta que conoció a un amigo valiente y aventurero que se llamaba… ¡Alberto! La película está inspirada en su amistad de verdad.',
+'En la película hay mucha comida italiana. Una de las más famosas es la pasta al pesto, una salsa verde hecha de albahaca, queso, piñones y aceite de oliva. El pesto nació justamente en Génova.',
+'Luca y Alberto también tienen una frase para cuando el miedo les dice que no pueden hacer algo: «¡Silencio, Bruno!». Bruno es el nombre que le ponen a esa vocecita de miedo. Callarla les ayuda a atreverse.',
+'La película enseña que los buenos amigos te ayudan a ser valiente, y que está bien ser diferente. ¿Tú tienes una vocecita como Bruno? La próxima vez que te diga «no puedes», ya sabes qué contestarle.'],
+q:[['¿Qué le pasa a Luca cuando se seca?','Se convierte en niño humano','Se vuelve invisible','Se queda dormido'],
+['¿Con qué sueñan Luca y Alberto?','Con tener una motoneta','Con ser astronautas','Con vivir en una montaña'],
+['¿En qué lugar de verdad está inspirado Portorosso?','En la Riviera italiana','En Cancún','En el Polo Norte'],
+['¿En quién se inspiró el director para crear a Alberto?','En un amigo de su infancia','En su perro','En un pescado'],
+['¿De qué color es la salsa pesto?','Verde','Roja','Blanca'],
+['¿Para qué dicen «¡Silencio, Bruno!»?','Para callar la vocecita de miedo','Para que un perro deje de ladrar','Para empezar a cantar']]},
+{id:'toystory',e:'🤠',t:'Toy Story: la primera película hecha en computadora',tema:'Películas',p:[
+'En 1995 se estrenó una película que cambió el cine para siempre: Toy Story. Cuenta la historia de los juguetes de un niño, que cobran vida cuando nadie los ve. Woody, un vaquero, y Buzz Lightyear, un guardián espacial, primero son rivales y al final se vuelven grandes amigos.',
+'Lo especial de Toy Story es que fue la primera película larga hecha completamente en computadora. Antes, las películas animadas se dibujaban a mano, hoja por hoja. Esta vez, los personajes se construyeron dentro de la computadora, como esculturas digitales.',
+'Hacerla tardó unos cuatro años. Las computadoras de entonces eran mucho más lentas que las de hoy. Algunas imágenes de la película tardaban horas en terminarse, y una película necesita veinticuatro imágenes por cada segundo. ¡Imagina cuántas horas de trabajo!',
+'Los animadores estudiaban juguetes de verdad. Se fijaban en cómo se doblaba el plástico, cómo caminaría un soldadito con la base pegada a los pies o cómo se movería un vaquero de trapo. También grababan sus propias caras para copiar los gestos.',
+'¿Y por qué escogieron juguetes? Porque en aquel tiempo era difícil hacer en computadora cosas suaves como el pelo o la ropa. Los juguetes de plástico, lisos y brillantes, eran perfectos.',
+'Toy Story nos deja un mensaje: la amistad vale más que ser el juguete favorito. Y la próxima vez que dejes tus juguetes en tu cuarto… ¿estás seguro de que se quedan quietos?'],
+q:[['¿Qué tiene de especial Toy Story?','Fue la primera película larga hecha toda en computadora','Fue la primera película a color','Fue la primera película con música'],
+['¿Cómo son Woody y Buzz al principio?','Rivales','Hermanos','Mejores amigos'],
+['¿Cuánto tiempo tardaron en hacerla?','Unos cuatro años','Una semana','Un día'],
+['¿Cuántas imágenes necesita cada segundo de película?','Veinticuatro','Una','Cien mil'],
+['¿Por qué escogieron juguetes?','El plástico liso era más fácil de hacer en computadora','Porque eran baratos','Porque no tenían otra idea'],
+['¿Qué estudiaban los animadores?','Juguetes de verdad','Libros de cocina','Mapas del mundo']]},
+{id:'universo',e:'🪐',t:'Nuestro vecindario en el universo',tema:'El espacio',p:[
+'Si pudieras alejarte de la Tierra en una nave, verías que vivimos en un vecindario llamado sistema solar. En el centro está el Sol, que es una estrella: una bola gigante de gas ardiendo. Es tan grande que dentro de él cabrían más de un millón de Tierras.',
+'Alrededor del Sol giran ocho planetas. En orden, del más cercano al más lejano, son: Mercurio, Venus, la Tierra, Marte, Júpiter, Saturno, Urano y Neptuno. Un truco para recordarlos es inventar una frase con sus primeras letras.',
+'Cada planeta es diferente. Venus es el más caliente, porque está cubierto de nubes que atrapan el calor. Marte se ve rojo porque su suelo tiene óxido, como un clavo viejo. Júpiter es el más grande: es tan enorme que todos los demás planetas juntos cabrían adentro.',
+'Saturno es famoso por sus anillos, que están hechos de pedazos de hielo y roca dando vueltas. Y la Tierra es el único planeta donde sabemos que hay vida: agua, plantas, animales… ¡y tú!',
+'La luz del Sol viaja rapidísimo, pero aun así tarda unos ocho minutos en llegar a la Tierra. Y el Sol es solo una de miles de millones de estrellas de nuestra galaxia, la Vía Láctea. En una noche sin luces, se ve como un camino blanco en el cielo.',
+'El universo es tan grande que nadie sabe dónde termina. Los científicos siguen mirando con telescopios y mandando naves. Quizá algún día tú descubras algo nuevo allá arriba.'],
+q:[['¿Qué es el Sol?','Una estrella','Un planeta','Una luna'],
+['¿Cuántos planetas giran alrededor del Sol?','Ocho','Tres','Cien'],
+['¿Cuál es el planeta más caliente?','Venus','Neptuno','La Tierra'],
+['¿Por qué Marte se ve rojo?','Su suelo tiene óxido','Está en llamas','Lo pintaron'],
+['¿De qué están hechos los anillos de Saturno?','De pedazos de hielo y roca','De oro','De nubes de algodón'],
+['¿Cómo se llama nuestra galaxia?','Vía Láctea','Sistema Solar','Galaxia Azul']]},
+{id:'azteca',e:'🏟️',t:'El estadio de los tres Mundiales',tema:'Fútbol',p:[
+'En la Ciudad de México hay un estadio gigante con una historia única en el mundo: el Estadio Azteca. Se inauguró en 1966 y caben en él más de ochenta mil personas. Cuando todos gritan «¡gol!» al mismo tiempo, se siente como si temblara.',
+'México organizó la Copa del Mundo de fútbol por primera vez en 1970. La final se jugó en el Azteca, y la ganó Brasil. En ese equipo jugaba Pelé, uno de los mejores futbolistas de la historia, que así ganó su tercer Mundial.',
+'En 1986, México volvió a organizar el Mundial. En el Azteca, el argentino Diego Maradona metió un gol increíble: tomó el balón en su lado de la cancha y regateó a cinco jugadores ingleses y al portero. A ese gol lo llamaron «el gol del siglo». Argentina ganó ese Mundial, también con la final en el Azteca.',
+'Así, el Azteca se convirtió en el primer estadio donde se jugaron dos finales de Copa del Mundo.',
+'Y en 2026, México, Estados Unidos y Canadá organizaron juntos el Mundial. El partido inaugural se jugó en el Azteca. Con eso, se volvió el primer estadio del mundo en recibir partidos de tres Mundiales diferentes.',
+'Los grandes futbolistas que han jugado ahí tienen algo en común: empezaron de niños, pateando un balón en la calle, en el parque o en el patio de la escuela, y practicando muchísimo. ¡Igual que tú!'],
+q:[['¿En qué ciudad está el Estadio Azteca?','En la Ciudad de México','En Monterrey','En Buenos Aires'],
+['¿Quién ganó la final de 1970?','Brasil','México','Inglaterra'],
+['¿Qué famoso jugador ganó su tercer Mundial en 1970?','Pelé','Maradona','Mateo'],
+['¿Por qué llamaron «el gol del siglo» al gol de Maradona?','Regateó a cinco jugadores y al portero','Lo metió de cabeza desde su portería','Fue el primer gol del estadio'],
+['¿Qué récord tiene el Azteca?','Tuvo partidos de tres Mundiales diferentes','Es el estadio más pequeño','Nunca ha tenido un partido'],
+['¿Cuántas personas caben en el Azteca?','Más de ochenta mil','Cien','Un millón']]}];
 const rdRead=s=>(S.rd||{})[s.id]!=null;
 const rdMins=s=>Math.max(1,Math.round(s.p.join(' ').split(/\s+/).length/90));
-function rdPick(){const R=dayRec();if(R.rdPick==null||!STORIES[R.rdPick]){const u=STORIES.findIndex(s=>!rdRead(s));R.rdPick=u>=0?u:dayNum()%STORIES.length}return R.rdPick}
-function rdChange(){const R=dayRec(),c=rdPick(),n=STORIES.length;let nx=-1;
-  for(let k=1;k<n;k++){const j=(c+k)%n;if(!rdRead(STORIES[j])){nx=j;break}}
-  R.rdPick=nx>=0?nx:(c+1)%n}
+function rdPick(){const R=dayRec();if(R.rdPick==null||!STORIES[R.rdPick]){
+  const c=STORIES.findIndex(x=>x.id===S.rdSel);
+  if(c>=0)R.rdPick=c;else{const U=STORIES.map((x,j)=>j).filter(j=>!rdRead(STORIES[j]));R.rdPick=U.length?U[Math.floor(Math.random()*U.length)]:dayNum()%STORIES.length}}
+  return R.rdPick}
 function renderRD(){
-  const i=rdPick(),s=STORIES[i],R=dayRec(),sc=(S.rd||{})[s.id];
+  const i=rdPick(),s=STORIES[i],R=dayRec(),sc=(S.rd||{})[s.id],D=STORIES.map((x,j)=>j).filter(j=>rdRead(STORIES[j])&&j!==i);
+  const item=j=>{const x=STORIES[j],v=(S.rd||{})[x.id],n=x.q.length;return `<button class="mode ${j===i?'next':''}" data-s="${j}"><span class="n em2">${x.e}</span><span><b>${x.t}</b><span>${x.tema}</span></span><span class="sc">${v!=null?`<i class="${v>=n*.8?'y':''}"></i>${v}/${n}`:''}</span></button>`};
   $('wRD').innerHTML=`<h2>Lectura de hoy</h2>
   <div class="rdcard"><span class="em">${s.e}</span><span><b>${s.t}</b><span class="note">${s.tema} · unos ${rdMins(s)} minutos${sc!=null?` · ya la leíste (${sc} de ${s.q.length})`:''}</span></span></div>
-  <div class="row"><button class="ghost" id="rdChg">Cambiar lectura</button><button class="big" id="rdRead">Leer</button></div>
-  <p class="note">${R.rd?'¡Ya hiciste la lectura de hoy! Puedes leer otra si quieres.':'Lee con calma. Al final hay ${s.q.length} preguntas.'}</p>
-  <h3 class="ph">O escoge la que quieras</h3>
-  <div class="modes">${STORIES.map((x,j)=>{const v=(S.rd||{})[x.id];return `<button class="mode ${j===i?'next':''}" data-s="${j}"><span class="n em2">${x.e}</span><span><b>${x.t}</b><span>${x.tema}</span></span><span class="sc">${v!=null?`<i class="${v>=4?'y':''}"></i>${v}/5`:''}</span></button>`}).join('')}</div>`}
+  <div class="row"><button class="big" id="rdRead">${R.rd?'Leer otra vez':'Leer'}</button></div>
+  <p class="note">${R.rd?'¡Ya hiciste la lectura de hoy! Mañana te toca una nueva. Si quieres, vuelve a leer alguna de las que ya leíste.':`Lee con calma. Al final hay ${s.q.length} preguntas.`}</p>
+  ${D.length?`<details class="rdold"><summary>Ya leídas (${D.length})</summary><p class="note">Puedes volver a leerlas cuando quieras.</p><div class="modes">${D.map(item).join('')}</div></details>`:''}`}
 $('wRD').addEventListener('click',e=>{
-  if(e.target.closest('#rdChg')){tone(660,.06);rdChange();renderRD();return}
   if(e.target.closest('#rdRead')){rdOpen(rdPick());return}
   const b=e.target.closest('[data-s]');if(b)rdOpen(+b.dataset.s)});
 let rdCur=0;
 let rdT0=0;
 function rdOpen(i){
-  rdCur=i;rdT0=Date.now();const s=STORIES[i];dayRec().rdPick=i;renderTop();
+  rdCur=i;rdT0=Date.now();const s=STORIES[i];renderTop();
   $('rdEm').textContent=s.e;$('rdT').textContent=s.t;$('rdInfo').textContent=`${s.tema} · unos ${rdMins(s)} minutos · lee con calma, sin prisa`;
   $('rdTxt').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');show('rd');tone(660,.06)}
 $('rdGo').addEventListener('click',()=>{
