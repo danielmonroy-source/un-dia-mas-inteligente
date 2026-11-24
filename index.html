@@ -1052,7 +1052,7 @@ function renderDaily(){
     ${row('t','1',R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden y luego en desorden'+(R.tTries?` · intentos: ${R.tTries}`:''))}
     ${row('c','2',R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc())}
     ${row('en','3',R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub)}
-    ${row('rd','4',!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de 5 preguntas bien`:'Unos 3 minutos y 5 preguntas')}</div>
+    ${row('rd','4',!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de ${R.rdN||5} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`)}</div>
     ${R.rd?'':'<button class="mini dchg" data-d="chg">Cambiar lectura</button>'}
     <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':'Completa las 4 partes y gana 50 puntos de premio.'}</p>${full?boleta(R):''}`;
   const sel=$('retoSel');
@@ -1289,8 +1289,8 @@ function qzFinish(){
     S.rdLog.unshift({d:today(),h:hhmm(),id:st.id,ok:QZ.first,n:N,miss:QZ.miss||[],secs:QZ.secs||0,peek:!!QZ.peek,try:tries});if(S.rdLog.length>60)S.rdLog.length=60;
     S.rd[st.id]=Math.max(S.rd[st.id]||0,QZ.first);
     if(!R.rd){R.rd=st.id;R.rdCal=r1(QZ.first/N*10);news.push('¡Terminaste la <b>lectura de hoy</b>!')}
-    R.rdOk=Math.max(R.rdOk||0,QZ.first);
-    news.push(QZ.first===N?'¡Contestaste las 5 preguntas bien! Entendiste todo.':`Contestaste bien <b>${QZ.first} de ${N}</b>. Si quieres, léela otra vez.`);
+    R.rdOk=Math.max(R.rdOk||0,QZ.first);if(R.rd===st.id)R.rdN=N;
+    news.push(QZ.first===N?`¡Contestaste las ${N} preguntas bien! Entendiste todo.`:`Contestaste bien <b>${QZ.first} de ${N}</b>. Si quieres, léela otra vez.`);
   }
   const bnq=retoBonus();if(bnq)news.push(bnq);
   news.push(...commonNews(b,QZ.lvl,QZ.maxc));save();renderTop();
@@ -1319,7 +1319,8 @@ q:[['¿Qué comía el argentinosaurio?','Hojas de los árboles','Carne','Peces']
 ['¿Qué son los fósiles?','Restos de animales que se volvieron piedra','Dinosaurios que están dormidos','Juguetes muy antiguos'],
 ['¿Cómo se llaman los científicos que buscan fósiles?','Paleontólogos','Astronautas','Veterinarios'],
 ['¿Dónde cayó el asteroide?','En México, en Yucatán','En la Luna','En el Polo Norte'],
-['¿Qué animales de hoy son parientes de los dinosaurios?','Las aves','Los perros','Los peces']]},
+['¿Qué animales de hoy son parientes de los dinosaurios?','Las aves','Los perros','Los peces'],
+['¿Cómo eran los brazos del tiranosaurio rex?','Tan cortitos que no alcanzaba a tocarse la boca','Largos como los de un mono','Tenía alas en lugar de brazos']]},
 {id:'luna',e:'🚀',t:'Un paseo por la Luna',tema:'El espacio',p:[
 'En julio de 1969, tres astronautas subieron a un cohete enorme. Sus nombres eran Neil Armstrong, Buzz Aldrin y Michael Collins. Iban a hacer algo que nadie había hecho jamás: llegar a la Luna.',
 'El viaje duró cuatro días. Dentro de la nave todo flotaba, porque en el espacio no se siente el peso. Los astronautas comían comida especial en bolsitas y dormían amarrados para no andar flotando por todos lados.',
@@ -1331,7 +1332,8 @@ q:[['¿Quién fue el primero en pisar la Luna?','Neil Armstrong','Michael Collin
 ['¿Por qué usaban trajes con oxígeno?','Porque en la Luna no hay aire','Porque hacía mucho calor','Para verse bonitos en las fotos'],
 ['¿Cómo caminaban en la Luna?','Daban saltos como canguros','Corrían muy rápido','Se arrastraban'],
 ['¿Por qué siguen ahí sus huellas?','No hay viento ni lluvia que las borren','Unos guardias las cuidan','Son de piedra'],
-['¿Cuánto duró el viaje a la Luna?','Cuatro días','Un año','Una hora']]},
+['¿Cuánto duró el viaje a la Luna?','Cuatro días','Un año','Una hora'],
+['¿Cómo se llamaba la nave pequeña en la que bajaron a la Luna?','Águila','Halcón','Estrella']]},
 {id:'pulpo',e:'🐙',t:'El pulpo, genio del mar',tema:'Animales del mar',p:[
 'Si hubiera un concurso de animales sorprendentes, el pulpo ganaría muchos premios. Vive en el mar, tiene ocho brazos y ningún hueso en el cuerpo. Por eso puede meterse por agujeros pequeñísimos, del tamaño de una moneda.',
 'Sus brazos están cubiertos de ventosas, que son como pequeñas copitas que se pegan a todo. Con ellas atrapa cangrejos y conchas, y también puede sentir el sabor de las cosas. ¡Imagina probar tu comida con los dedos!',
@@ -1343,7 +1345,8 @@ q:[['¿Cuántos corazones tiene el pulpo?','Tres','Uno','Ocho'],
 ['¿Por qué puede meterse por agujeros muy pequeños?','Porque no tiene huesos','Porque es muy rápido','Porque tiene ventosas'],
 ['¿Qué hace cuando un enemigo lo descubre?','Lanza una nube de tinta','Grita muy fuerte','Se hace bolita'],
 ['¿Para qué cambia de color?','Para esconderse','Para ir a fiestas','Porque tiene frío'],
-['¿Qué aprendieron algunos pulpos en los acuarios?','A abrir frascos con tapa','A hablar','A jugar fútbol']]},
+['¿Qué aprendieron algunos pulpos en los acuarios?','A abrir frascos con tapa','A hablar','A jugar fútbol'],
+['¿De qué color es la sangre del pulpo?','Azul','Roja','Verde']]},
 {id:'futbol',e:'⚽',t:'El partido bajo la lluvia',tema:'Fútbol',p:[
 'Mateo era el portero de su equipo, Los Halcones. Le encantaba el fútbol, pero tenía un problema: cada vez que le metían un gol, se enojaba tanto que quería salirse de la cancha.',
 'El sábado llegó la gran final contra Los Tiburones. El cielo estaba gris y, a los pocos minutos, empezó a llover. La pelota resbalaba y el lodo hacía que todos se cayeran.',
@@ -1355,7 +1358,8 @@ q:[['¿En qué posición jugaba Mateo?','Portero','Delantero','Árbitro'],
 ['¿Qué le enseñó la profe Lupita?','Respirar tres veces y pensar en la siguiente jugada','Gritarle al árbitro','Salirse de la cancha'],
 ['¿Cómo estaba el clima ese día?','Estaba lloviendo','Hacía mucho sol','Estaba nevando'],
 ['¿Quién empató el partido?','Sofía','Mateo','La profe Lupita'],
-['¿Cómo terminó el partido?','En empate, y compartieron el trofeo','Los Halcones perdieron','Los Halcones ganaron 5 a 0']]},
+['¿Cómo terminó el partido?','En empate, y compartieron el trofeo','Los Halcones perdieron','Los Halcones ganaron 5 a 0'],
+['¿Qué pasó con el penal del último minuto?','Mateo lo atrapó','Fue gol de Los Tiburones','El árbitro lo canceló']]},
 {id:'robot',e:'🤖',t:'Beto, el robot que no sabía reír',tema:'Robots',p:[
 'En un taller lleno de tuercas y cables vivía Beto, un robot de lata con ojos de foco. Beto sabía hacer muchas cosas: barría el piso, regaba las plantas y resolvía multiplicaciones en un segundo. Pero había algo que no sabía hacer: reírse.',
 'La inventora del taller era doña Clara. Todas las tardes, su nieta Luna llegaba de la escuela y le contaba chistes a Beto: «¿Qué le dijo un semáforo a otro? ¡No me mires, que me estoy cambiando!». Luna se doblaba de la risa, pero Beto solo parpadeaba. «Análisis completo: los semáforos no se cambian de ropa», decía con su voz de metal.',
@@ -1367,7 +1371,8 @@ q:[['¿Qué no sabía hacer Beto?','Reírse','Barrer el piso','Multiplicar'],
 ['¿Quién le contaba chistes a Beto?','Luna, la nieta de doña Clara','Doña Clara','Un semáforo'],
 ['¿Por qué estaba triste Luna aquella tarde?','Le había ido mal en un examen','Beto se descompuso','Perdió su nariz de payaso'],
 ['¿Qué hizo Beto para alegrarla?','Se puso la nariz de payaso y bailó','Le contó un chiste','Le hizo cosquillas'],
-['¿Qué nos enseña el cuento?','Hacer feliz a alguien también te hace feliz','Que los robots no sirven','Que no hay que contar chistes']]},
+['¿Qué nos enseña el cuento?','Hacer feliz a alguien también te hace feliz','Que los robots no sirven','Que no hay que contar chistes'],
+['¿Qué sonido hizo Beto cuando por fin se rió?','«¡Ji, ji, ji… bip!»','«Nariz roja detectada»','«¡Ja, ja, ja!» muy fuerte']]},
 {id:'volcan',e:'🌋',t:'El volcán que nació en una milpa',tema:'Volcanes',p:[
 'Un día de febrero de 1943, en Michoacán, un campesino llamado Dionisio Pulido estaba trabajando en su milpa, que es un terreno donde se siembra maíz. De pronto, sintió que la tierra temblaba bajo sus pies. Luego vio que en el suelo se abría una grieta y que de ella salía humo con olor a azufre, como a huevo podrido.',
 'Dionisio corrió al pueblo a avisar. Al día siguiente, en el lugar de la grieta ya había un cerro de piedras y ceniza. ¡Estaba naciendo un volcán! Le pusieron Paricutín, como el pueblo más cercano.',
@@ -1378,7 +1383,8 @@ q:[['¿Dónde nació el volcán Paricutín?','En una milpa de Michoacán','En me
 ['¿Qué es el magma?','Roca derretida dentro de la Tierra','Humo con olor a huevo','Un tipo de maíz'],
 ['¿Qué se ve todavía en medio de la lava?','La torre de una iglesia','Un coche rojo','La milpa de Dionisio'],
 ['¿Cuántos años estuvo activo el volcán?','Nueve años','Un día','Cien años'],
-['¿Por qué vinieron científicos de todo el mundo?','Era la primera vez que veían nacer un volcán desde el principio','Querían comprar maíz','Buscaban dinosaurios']]},
+['¿Por qué vinieron científicos de todo el mundo?','Era la primera vez que veían nacer un volcán desde el principio','Querían comprar maíz','Buscaban dinosaurios'],
+['¿Cómo se llamaba el campesino que vio nacer el volcán?','Dionisio Pulido','Juan Paricutín','Don Michoacán']]},
 {id:'tiburon',e:'🦈',t:'Tiburones: ¿villanos o héroes?',tema:'Animales del mar',p:[
 'En muchas películas, los tiburones aparecen como monstruos que atacan a todos. Pero la verdad es muy diferente. La mayoría de los tiburones no se interesa por las personas, y es mucho más probable que te pique una abeja a que te muerda un tiburón.',
 'Los tiburones existen desde hace muchísimo tiempo: ¡ya nadaban en el mar antes de que existieran los dinosaurios! Hay más de 500 tipos diferentes. Algunos son tan pequeños que caben en tu mano. Otros son gigantes, como el tiburón ballena, que es el pez más grande del mundo. Aunque es enorme, el tiburón ballena come animalitos diminutos llamados plancton, y es tan tranquilo que hay personas que nadan a su lado. En México se puede ver en el mar de Quintana Roo y de Baja California.',
@@ -1389,7 +1395,8 @@ q:[['¿Cuál es el pez más grande del mundo?','El tiburón ballena','El tiburó
 ['¿Qué come el tiburón ballena?','Plancton, unos animalitos diminutos','Personas','Barcos'],
 ['¿Qué pasa con los dientes de los tiburones?','Cuando se cae uno, sale otro nuevo','Nunca se les caen','No tienen dientes'],
 ['¿Por qué son importantes los tiburones?','Mantienen el mar sano','Limpian los barcos','Hacen las olas'],
-['¿Qué quiere decir que son «guardianes del océano»?','Que ayudan a cuidar el mar','Que muerden a todos','Que trabajan de policías']]},
+['¿Qué quiere decir que son «guardianes del océano»?','Que ayudan a cuidar el mar','Que muerden a todos','Que trabajan de policías'],
+['¿Desde cuándo existen los tiburones?','Desde antes que los dinosaurios','Desde hace diez años','Desde que se inventaron las películas']]},
 {id:'canela',e:'🐕',t:'Canela encuentra el camino',tema:'Mascotas',p:[
 'Canela era una perrita café con una oreja parada y otra caída. Vivía con Diego y su familia en una casa con un patio pequeño. A Canela le encantaba perseguir mariposas, aunque nunca atrapaba ninguna.',
 'Un domingo, la familia fue de día de campo al bosque. Canela corría feliz entre los árboles, olfateándolo todo. De repente vio una mariposa azul enorme y salió disparada tras ella. Corrió y corrió… hasta que la mariposa se fue volando muy alto. Canela miró a su alrededor. No veía a Diego. No veía el mantel ni la canasta. Estaba perdida.',
@@ -1401,7 +1408,8 @@ q:[['¿Por qué se perdió Canela?','Persiguió una mariposa','Se quedó dormida
 ['¿Qué usó Canela para encontrar el camino?','Su nariz','Un mapa','Sus orejas'],
 ['¿A qué olían los tenis de Diego?','A pasto y a chocolate','A flores','A pescado'],
 ['¿Por qué el papá dijo que se quedaran quietos?','Para que a Canela le fuera más fácil encontrarlos','Porque estaban cansados','Porque ya era hora de comer'],
-['¿Qué hace Canela ahora cuando ve una mariposa?','Voltea a ver dónde está su familia','Se esconde','Ladra muy fuerte']]},
+['¿Qué hace Canela ahora cuando ve una mariposa?','Voltea a ver dónde está su familia','Se esconde','Ladra muy fuerte'],
+['¿Cómo eran las orejas de Canela?','Una parada y otra caída','Las dos paradas','Las dos caídas']]},
 {id:'abejas',e:'🐝',t:'El gran equipo de las abejas',tema:'Insectos',p:[
 'En una colmena pueden vivir más de veinte mil abejas, ¡y todas trabajan en equipo! Cada una tiene una tarea. La reina es la mamá de todas y se dedica a poner huevos, hasta dos mil en un solo día. Las obreras hacen casi todo lo demás: limpian, cuidan a las crías, construyen panales de cera y vigilan la entrada para que no entren intrusos.',
 'Las abejas exploradoras salen a buscar flores. Cuando encuentran unas muy buenas, regresan a la colmena y hacen algo increíble: ¡bailan! Dan vueltas y menean la colita. Con ese baile les dicen a las demás hacia dónde volar y qué tan lejos están las flores.',
@@ -1412,7 +1420,8 @@ q:[['¿Qué hace la abeja reina?','Pone huevos','Busca flores','Vigila la entrad
 ['¿Para qué bailan las abejas exploradoras?','Para decir dónde están las flores','Para divertirse','Porque tienen frío'],
 ['¿Qué es el néctar?','Un juguito dulce de las flores','La cera del panal','Un tipo de abeja'],
 ['¿Cómo ayudan las abejas a las plantas?','Llevan polen de flor en flor','Las riegan con agua','Les quitan las hojas secas'],
-['¿Qué debes hacer si se acerca una abeja?','Quedarte tranquilo','Manotear','Correr gritando']]},
+['¿Qué debes hacer si se acerca una abeja?','Quedarte tranquilo','Manotear','Correr gritando'],
+['¿Cuánta miel hace una abeja en toda su vida?','Menos de una cucharadita','Un frasco lleno','Una cubeta']]},
 {id:'maya',e:'🏛️',t:'La serpiente de luz de Chichén Itzá',tema:'Historia de México',p:[
 'En Yucatán, en medio de la selva, hay una ciudad antigua llamada Chichén Itzá. La construyeron los mayas hace más de mil años. Los mayas eran grandes astrónomos: observaban el Sol, la Luna y las estrellas con tanto cuidado que hicieron calendarios muy exactos.',
 'La construcción más famosa de Chichén Itzá es una gran pirámide llamada El Castillo. Está dedicada a Kukulkán, una serpiente emplumada muy importante para los mayas. La pirámide tiene cuatro escaleras, una de cada lado, y cada escalera tiene 91 escalones. Si sumas los de las cuatro escaleras y le agregas el escalón de hasta arriba, te da 365… ¡los mismos días que tiene un año!',
@@ -1423,7 +1432,8 @@ q:[['¿Quiénes construyeron Chichén Itzá?','Los mayas','Los romanos','Los egi
 ['¿Cuántos escalones tiene la pirámide en total?','365','91','100'],
 ['¿Qué se ve en la pirámide en marzo y septiembre?','Una serpiente de luz y sombra','Un dragón de fuego','Una lluvia de estrellas'],
 ['¿A qué suena el eco cuando aplaudes?','Al canto de un pájaro','A un trueno','A un perro'],
-['¿Por qué decimos que los mayas eran grandes astrónomos?','Observaban el cielo e hicieron calendarios','Construían barcos','Jugaban fútbol']]}];
+['¿Por qué decimos que los mayas eran grandes astrónomos?','Observaban el cielo e hicieron calendarios','Construían barcos','Jugaban fútbol'],
+['¿A quién está dedicada la pirámide El Castillo?','A Kukulkán, la serpiente emplumada','Al quetzal','A la Luna']]}];
 const rdRead=s=>(S.rd||{})[s.id]!=null;
 const rdMins=s=>Math.max(1,Math.round(s.p.join(' ').split(/\s+/).length/90));
 function rdPick(){const R=dayRec();if(R.rdPick==null||!STORIES[R.rdPick]){const u=STORIES.findIndex(s=>!rdRead(s));R.rdPick=u>=0?u:dayNum()%STORIES.length}return R.rdPick}
@@ -1433,9 +1443,9 @@ function rdChange(){const R=dayRec(),c=rdPick(),n=STORIES.length;let nx=-1;
 function renderRD(){
   const i=rdPick(),s=STORIES[i],R=dayRec(),sc=(S.rd||{})[s.id];
   $('wRD').innerHTML=`<h2>Lectura de hoy</h2>
-  <div class="rdcard"><span class="em">${s.e}</span><span><b>${s.t}</b><span class="note">${s.tema} · unos ${rdMins(s)} minutos${sc!=null?` · ya la leíste (${sc} de 5)`:''}</span></span></div>
+  <div class="rdcard"><span class="em">${s.e}</span><span><b>${s.t}</b><span class="note">${s.tema} · unos ${rdMins(s)} minutos${sc!=null?` · ya la leíste (${sc} de ${s.q.length})`:''}</span></span></div>
   <div class="row"><button class="ghost" id="rdChg">Cambiar lectura</button><button class="big" id="rdRead">Leer</button></div>
-  <p class="note">${R.rd?'¡Ya hiciste la lectura de hoy! Puedes leer otra si quieres.':'Lee con calma. Al final hay 5 preguntas.'}</p>
+  <p class="note">${R.rd?'¡Ya hiciste la lectura de hoy! Puedes leer otra si quieres.':'Lee con calma. Al final hay ${s.q.length} preguntas.'}</p>
   <h3 class="ph">O escoge la que quieras</h3>
   <div class="modes">${STORIES.map((x,j)=>{const v=(S.rd||{})[x.id];return `<button class="mode ${j===i?'next':''}" data-s="${j}"><span class="n em2">${x.e}</span><span><b>${x.t}</b><span>${x.tema}</span></span><span class="sc">${v!=null?`<i class="${v>=4?'y':''}"></i>${v}/5`:''}</span></button>`}).join('')}</div>`}
 $('wRD').addEventListener('click',e=>{
@@ -1491,7 +1501,7 @@ function rdReport(){
   return `<h3 class="ph">Lectura: calificaciones</h3>
   <p class="note">Promedio (primer intento de cada lectura): <b class="cal ${avg>=8?'hi':avg>=6?'mid':'lo'}">${avg??'–'}</b> de 10 · ${F.length} ${F.length===1?'lectura':'lecturas'}</p>
   <table class="pt"><tr><th>Día</th><th>Lectura</th><th class="r">Calif.</th><th class="r">Leyó</th><th class="r">Volvió a ver</th></tr>${rows}</table>
-  <p class="note">Calificación sobre 10 (5 preguntas, 2 puntos cada una). "Leyó" es el tiempo que estuvo en la lectura antes de contestar; ⚠️ = menos de 1 minuto, quizá no la leyó completa. "Volvió a ver" = abrió la lectura mientras contestaba.</p>
+  <p class="note">Calificación sobre 10 (cada pregunta vale lo mismo). "Leyó" es el tiempo que estuvo en la lectura antes de contestar; ⚠️ = menos de 1 minuto, quizá no la leyó completa. "Volvió a ver" = abrió la lectura mientras contestaba.</p>
   ${miss?`<p class="note">Preguntas que falló en las últimas lecturas:</p>${miss}`:''}`}
 function renderXProg(){
   const D=S.daily||{},L=['D','L','M','M','J','V','S'];let rows='';
