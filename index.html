@@ -122,6 +122,12 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 @keyframes up{0%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-70px)}}
 #confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden}
 #confetti i{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:fall 2.2s linear forwards}
+#mark{position:fixed;left:50%;top:42%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;display:grid;place-items:center;font-size:104px;font-weight:800;line-height:1;color:#fff;pointer-events:none;z-index:60;opacity:0;transform:scale(.3)}
+#mark.ok{background:#20a35a;box-shadow:0 8px 30px rgba(32,163,90,.45)}#mark.no{background:#e63946;box-shadow:0 8px 30px rgba(230,57,70,.45)}
+#mark.go{animation:mk .95s ease-out}
+@keyframes mk{0%{opacity:0;transform:scale(.3)}20%{opacity:1;transform:scale(1.1)}35%{transform:scale(1)}75%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.9)}}
+.op.good::after{content:' ✓';font-weight:800}.op.bad::after{content:' ✗';font-weight:800}
+@media (prefers-reduced-motion:reduce){#mark.go{animation-duration:1.2s}}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 /* suma y resta */
 .worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
@@ -416,7 +422,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <button class="quit" id="home2">Volver al camino</button>
   </section>
 </div>
-<div class="pop" id="pop"></div>
+<div class="pop" id="pop"></div><div id="mark" aria-hidden="true"></div>
 <div class="modal" id="exitAsk" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="exitT">
   <b id="exitT">¿Seguro que quieres salir?</b>
   <p>Si sales ahora, se pierde lo que llevas de esta actividad.</p>
@@ -627,12 +633,13 @@ $('ans').addEventListener('click',e=>{const b=e.target.closest('.op');if(!b||G.l
   judge(ok,b)});
 document.addEventListener('keydown',e=>{if($('play').hidden||!G)return;
   if(/^[0-9]$/.test(e.key))typeKey(e.key);else if(e.key==='Backspace')typeKey('del');else if(e.key==='Enter')typeKey('ok')});
+function mark(ok){const m=document.getElementById('mark');if(!m)return;m.className='';m.textContent=ok?'✓':'✗';void m.offsetWidth;m.className=(ok?'ok':'no')+' go'}
 function judge(ok,btn){
   G.lock=true;const q=G.list[G.i],{t,n}=q,r=t*n,key=t+'x'+n;
   if(!ok&&G.mode==='reto'){ // en el reto: no avanza hasta acertar; ya no cuenta como acierto y se repite al final
     S.facts[key]=0;S.miss[key]=(S.miss[key]||0)+1;G.combo=0;
     if(!q.retry&&!q.wrong){G.res[q.k]='no';G.list.push(Object.assign({},q,{retry:true,wrong:0,hinted:false}))}
-    q.wrong=(q.wrong||0)+1;mood('m2','oops');tone(220,.25,'triangle');flame('m2',0);$('combo').hidden=true;dots();save();
+    q.wrong=(q.wrong||0)+1;mark(false);mood('m2','oops');tone(220,.25,'triangle');flame('m2',0);$('combo').hidden=true;dots();save();
     const el=$('q');
     if(q.wrong>=3){el.innerHTML=qText(q,true);el.classList.add('show');$('lab').textContent=`Es ${r}. Ahora escríbelo tú.`;
       G.to=setTimeout(()=>{G.lock=false;G.typed='';el.classList.remove('show');el.innerHTML=qText(q,false)},1800)}
@@ -645,7 +652,7 @@ function judge(ok,btn){
     const p=q.wrong?0:G.hint?5:10+Math.min(G.combo,10)*2;G.pts+=p;
     if(btn)btn.classList.add('good');
     if(q.type==='tec')$('q').innerHTML=qText(q,true);
-    mood('m2','happy');
+    mark(true);mood('m2','happy');
     if(p){const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go')}
     tone(520+G.combo*40,.1);tone(780+G.combo*40,.16,'sine',.08);
   }else{
@@ -655,7 +662,7 @@ function judge(ok,btn){
     [...$('ans').querySelectorAll('.op[data-v]')].forEach(o=>{const v=+o.dataset.v;
       if((q.type==='ch'&&v===r)||(q.type==='falta'&&v===q.n)||(q.type==='sino'&&(v===1)===(q.shown===r)))o.classList.add('good')});
     const el=$('q');el.innerHTML=qText(q,true);el.classList.add('show');
-    mood('m2','oops');tone(220,.25,'triangle');
+    mark(false);mood('m2','oops');tone(220,.25,'triangle');
     if(!q.retry){const c=Object.assign({},q,{retry:true});if(c.type==='sino')c.shown=Math.random()<.5?r:wrongNear(r,t,n);G.list.push(c)}
   }
   if(G.mode==='esc'&&!q.retry)G.lad.push(`${t} × ${n} = ${r}`);
@@ -897,7 +904,7 @@ function srKey(v){
     srSay('');
     if(C.op==='+'&&C.A[p]+C.B[p]+C.cE[p]>=10&&C.cT[p+1]==null&&p+1<wide(C))srSay('¡Bien! Pasaste de 9: no olvides lo que llevas.');
     return srDraw()}
-  C.wrong[p]++;C.clean=false;tone(220,.2,'triangle');mood('m4','oops');
+  C.wrong[p]++;C.clean=false;mark(false);tone(220,.2,'triangle');mood('m4','oops');
   const E=srS().err;let why='otro';
   if(C.op==='+'){const s=C.A[p]+C.B[p]+C.cE[p];
     if(p>=wide(C))srSay('En esta columna no hay números: solo baja lo que llevas.');
@@ -931,14 +938,14 @@ function srScore(ok,q,hint,partial){
 function srColDone(){
   SG.lock=true;const C=SG.C,q=SG.list[SG.i];
   srScore(C.clean,q,C.hint,4);srDraw(true);
-  if(C.clean){srSay(`¡Cuenta resuelta! ${C.a} ${sym(C.op)} ${C.b} = <b>${C.r}</b>`);tone(660,.1);tone(880,.18,'sine',.1);miniConfetti()}
+  if(C.clean){mark(true);srSay(`¡Cuenta resuelta! ${C.a} ${sym(C.op)} ${C.b} = <b>${C.r}</b>`);tone(660,.1);tone(880,.18,'sine',.1);miniConfetti()}
   else srSay(`Lista: ${C.a} ${sym(C.op)} ${C.b} = <b>${C.r}</b>. ¡La que sigue te sale!`);
   SG.to=setTimeout(srNext,C.clean?1500:2200);
 }
 function srPick(v,btn){
   const q=SG.list[SG.i],pr=q.pr,r=resOf(pr);SG.lock=true;
   const ok=q.type==='rap'?v===r:q.type==='falta'?v===pr.b:((v===1)===!q.bad);
-  btn.classList.add(ok?'good':'bad');
+  btn.classList.add(ok?'good':'bad');mark(ok);
   let why='otro';
   if(!ok){
     [...$('srans').querySelectorAll('.op[data-v]')].forEach(o=>{const x=+o.dataset.v;if((q.type==='rap'&&x===r)||(q.type==='falta'&&x===pr.b)||(q.type==='det'&&(x===1)===!q.bad))o.classList.add('good')});
@@ -1256,13 +1263,13 @@ function qzResolve(ok,b,q){QZ.lock=true;
   if(ok){
     if(!q.retry&&!q.wrong){QZ.first++;QZ.res[q.k]='ok'}
     QZ.combo=q.wrong?0:QZ.combo+1;QZ.maxc=Math.max(QZ.maxc,QZ.combo);const p=q.wrong?0:10+Math.min(QZ.combo,10)*2;QZ.pts+=p;
-    if(b)b.classList.add('good');mood('m5','happy');$('qzmsg').innerHTML=q.okMsg||['¡Muy bien!','¡Exacto!','¡Eso es!','¡Súper!'][Math.floor(Math.random()*4)];
+    if(b)b.classList.add('good');mark(true);mood('m5','happy');$('qzmsg').innerHTML=q.okMsg||['¡Muy bien!','¡Exacto!','¡Eso es!','¡Súper!'][Math.floor(Math.random()*4)];
     if(p){const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go')}
     tone(520+QZ.combo*40,.1);tone(780+QZ.combo*40,.16,'sine',.08);if(q.after)say(q.after);
   }else{
     if(!q.retry){QZ.res[q.k]='no';if(QZ.miss)QZ.miss.push(q.k)}QZ.combo=0;
     if(b){b.classList.add('bad');[...$('qzans').querySelectorAll('.op')].forEach(o=>{if(q.opts[+o.dataset.i].v===q.ans)o.classList.add('good')})}
-    mood('m5','oops');tone(220,.25,'triangle');
+    mark(false);mood('m5','oops');tone(220,.25,'triangle');
     $('qzmsg').innerHTML=q.noMsg||'La correcta es la verde.';
     if(q.after&&q.build)say(q.after);
     if(QZ.kind==='en'&&!q.retry)QZ.list.push(Object.assign({},q,{retry:true,opts:q.opts&&shuffle(q.opts.slice()),pos:0,miss:false}));
@@ -1274,13 +1281,13 @@ $('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[Q
   if(q.build){const c=e.target.closest('[data-b]');if(!c||c.disabled)return;
     if(c.dataset.w===q.build[q.pos]){q.pos++;c.disabled=true;$('bldOut').innerHTML=q.build.slice(0,q.pos).map(w=>`<span>${w}</span>`).join('');tone(600+q.pos*50,.06);
       if(q.pos>=q.build.length)qzResolve(!q.miss,null,q)}
-    else{q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${q.build[q.pos-1]||'…'}»?`}
+    else{q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');mark(false);tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${q.build[q.pos-1]||'…'}»?`}
     return}
   const b=e.target.closest('.op');if(!b||b.disabled)return;
   const ok=q.opts[+b.dataset.i].v===q.ans;
   if(!ok&&QZ.kind==='en'){ // no avanza hasta acertar; ya no cuenta como acierto y se repite al final
     if(!q.retry&&!q.wrong){QZ.res[q.k]='no';QZ.list.push(Object.assign({},q,{retry:true,wrong:0,opts:shuffle(q.opts.slice())}))}
-    q.wrong=(q.wrong||0)+1;QZ.combo=0;b.classList.add('bad');b.disabled=true;mood('m5','oops');tone(220,.25,'triangle');
+    q.wrong=(q.wrong||0)+1;QZ.combo=0;b.classList.add('bad');b.disabled=true;mark(false);mood('m5','oops');tone(220,.25,'triangle');
     $('qzmsg').innerHTML='No es esa. Intenta otra vez.';$('qzcombo').hidden=true;flame('m5',0);qzDots();save();return}
   qzResolve(ok,b,q)});
 $('qzquit').addEventListener('click',()=>{if(QZ)clearTimeout(QZ.to);if(QZ&&QZ.kind==='rd')rdOpen(QZ.si);else if(S.tab!=='libre')openEnx();else{show('home');renderHome()}});
