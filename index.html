@@ -209,6 +209,9 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .dots{flex-wrap:wrap}.dots.many{gap:4px}.dots.many i{width:9px}
 .phr hr{border:0;border-top:2px dashed var(--line);margin:10px 0}
 .peekw{display:block;margin-top:2px}
+.plock p{margin:4px 0}
+.papas input#pin,.papas input#newpin{width:auto;height:auto;flex:2;font:inherit;font-size:18px;min-height:52px;border-radius:14px;border:2px solid var(--line);background:light-dark(#fff,#2a2140);color:var(--ink);padding:0 12px}
+.papas .row .ghost{margin-top:0;min-height:52px}
 .hola{font-size:24px;font-weight:800;line-height:1.1;margin-bottom:6px}
 .papas input#nombre{width:auto;height:auto;flex:1;font:inherit;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px}
 .enk{display:flex;flex-wrap:wrap;gap:6px}
@@ -263,8 +266,14 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     </div>
     <div id="wEN" hidden></div>
     <div id="wRD" hidden></div>
-    <details class="papas">
+    <details class="papas" id="papas">
       <summary>Para papás</summary>
+      <div class="plock" id="plock">
+        <p>Esta parte es solo para papás.</p>
+        <div class="row"><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Contraseña" aria-label="Contraseña de papás"><button class="ghost" id="pinGo">Entrar</button></div>
+        <p class="note" id="pinMsg"></p>
+      </div>
+      <div id="pbody" hidden>
       <label><input type="checkbox" id="open"> Abrir todas las tablas sin seguir el orden</label>
       <label>Nombre: <input id="nombre" maxlength="20" autocomplete="off"></label>
       <label>Tabla del reto diario: <select id="retoSel"></select></label>
@@ -274,6 +283,10 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <div id="prog"></div>
       <div id="srprog"></div>
       <div id="xprog"></div>
+      <h3 class="ph">Contraseña de papás</h3>
+      <div class="row"><input id="newpin" type="password" inputmode="numeric" autocomplete="off" placeholder="Nueva contraseña" aria-label="Nueva contraseña"><button class="ghost" id="setpin">Cambiar</button></div>
+      <p class="note" id="setpinMsg"></p>
+      </div>
     </details>
   </section>
 
@@ -363,7 +376,7 @@ const MODES=[
 let S=null;
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S){try{const o=JSON.parse(localStorage.getItem('tablas-turbo-v1'));if(o)S={pts:o.pts,best:o.best,streak:o.streak,last:o.last,days:o.days,facts:o.facts,mute:o.mute}}catch(e){}}
-const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo'});
+const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo',pin:'2580'});
 S=Object.assign(DEF(),S||{});
 const save=()=>{S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
 /* ---- nube (Supabase) ---- */
@@ -469,7 +482,7 @@ $('snd').addEventListener('click',()=>{S.mute=!S.mute;save();renderTop();tone(70
 $('open').addEventListener('change',e=>{S.open=e.target.checked;save();renderHome()});
 let armed=false;
 $('reset').addEventListener('click',e=>{if(!armed){armed=true;e.target.textContent='¿Seguro? Toca otra vez para borrar';setTimeout(()=>{armed=false;e.target.textContent='Borrar todo el avance'},4000);return}
-  S=DEF();save();armed=false;e.target.textContent='Borrar todo el avance';renderHome()});
+  const keep={pin:S.pin,nombre:S.nombre};S=Object.assign(DEF(),keep);save();armed=false;e.target.textContent='Borrar todo el avance';renderHome()});
 $('rep').addEventListener('click',()=>start('mix',0));
 
 /* ---- juego ---- */
@@ -947,6 +960,17 @@ function renderDaily(){
 $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const k=b.dataset.d;tone(660,.06);
   if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
   else{S.world=k;save();renderHome();$('worlds').scrollIntoView({behavior:'smooth',block:'start'})}});
+/* candado de "Para papás" */
+let papasOK=false;
+const lockP=()=>{papasOK=false;$('plock').hidden=false;$('pbody').hidden=true;$('pin').value='';$('pinMsg').textContent=''};
+$('papas').addEventListener('toggle',()=>{if(!$('papas').open)lockP();else if(!papasOK)setTimeout(()=>$('pin').focus(),50)});
+function tryPin(){if($('pin').value===String(S.pin||'2580')){papasOK=true;$('plock').hidden=true;$('pbody').hidden=false;tone(700,.08)}
+  else{$('pinMsg').textContent='Contraseña incorrecta.';$('pin').value='';tone(220,.2,'triangle')}}
+$('pinGo').addEventListener('click',tryPin);
+$('pin').addEventListener('keydown',e=>{if(e.key==='Enter')tryPin()});
+$('setpin').addEventListener('click',()=>{const v=$('newpin').value.trim();
+  if(v.length<4){$('setpinMsg').textContent='Usa al menos 4 caracteres.';return}
+  S.pin=v;save();$('newpin').value='';$('setpinMsg').textContent='Contraseña cambiada. También aplica en los otros dispositivos.'});
 $('nombre').addEventListener('change',e=>{const v=e.target.value.trim();if(v){S.nombre=v;save()}renderHome()});
 $('retoSel').addEventListener('change',e=>{S.retoT=+e.target.value;const R=dayRec();if(!R.tOk)R.t=pickRetoT();save();renderHome()});
 /* 10 cuentas en columna: 5 sumas llevando y 5 restas pidiendo prestado */
