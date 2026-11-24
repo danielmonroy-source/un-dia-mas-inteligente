@@ -232,6 +232,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .br.tot{border-top:2px dashed var(--line);padding-top:8px;font-size:20px;font-weight:800}.br.tot .cal{font-size:24px}
 .redo{font-style:normal;font-weight:800;color:var(--pink)}
 .eng button:disabled{opacity:.5;cursor:default}
+.tw{overflow-x:auto;margin:0 -4px}.pt.hs{font-size:13px}.pt.hs td,.pt.hs th{padding:4px 3px}.pt.hs .cal{padding:0 4px}
 .hola{font-size:24px;font-weight:800;line-height:1.1;margin-bottom:6px}
 .papas input#nombre{width:auto;height:auto;flex:1;font:inherit;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px}
 .enk{display:flex;flex-wrap:wrap;gap:6px}
@@ -368,6 +369,11 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <button class="quit" id="srquit">Salir</button>
   </section>
 
+  <section id="enx" hidden>
+    <div id="enxBody"></div>
+    <button class="quit" id="enxBack">Volver al reto</button>
+  </section>
+
   <section id="rd" hidden>
     <div class="rdh"><span class="em" id="rdEm"></span><h2 id="rdT"></h2></div>
     <p class="note" id="rdInfo"></p>
@@ -420,7 +426,7 @@ try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S){try{const o=JSON.parse(localStorage.getItem('tablas-turbo-v1'));if(o)S={pts:o.pts,best:o.best,streak:o.streak,last:o.last,days:o.days,facts:o.facts,mute:o.mute}}catch(e){}}
 const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo',pin:'2580',colSum:'con2',colRes:'sin2'});
 S=Object.assign(DEF(),S||{});
-const save=()=>{S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
+const save=()=>{try{calSnap()}catch(e){}S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
 /* ---- nube (Supabase) ---- */
 const SB='https://rrnuxiadvqqwzrhpdwpl.supabase.co',SBK='sb_publishable_S3kfMHOQsui0EruQbm9QrA_I-D6GNMZ';
 let CODE='';
@@ -480,7 +486,7 @@ const flame=(id,c)=>mon(id).style.setProperty('--f',c<=0?0:Math.min(.5+c*.08,1.3
 
 let AC=null;
 const tone=(f,d=.12,type='sine',w=0)=>{if(S.mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+w,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}};
-const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
+const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz','enx'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
 
 function renderTop(){
   $('lv').textContent=Math.floor(S.pts/LV)+1;
@@ -532,7 +538,7 @@ const rstClose=()=>{$('rstBox').hidden=true;$('reset').hidden=false;$('rstPin').
 $('reset').addEventListener('click',()=>{$('rstBox').hidden=false;$('reset').hidden=true;$('rstPin').focus()});
 $('rstNo').addEventListener('click',rstClose);
 function doReset(){if($('rstPin').value!==String(S.pin||'2580')){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
-  const keep={pin:S.pin,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT};S=Object.assign(DEF(),keep);save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
+  const keep={pin:S.pin,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep);save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
 $('rstPin').addEventListener('keydown',e=>{if(e.key==='Enter')doReset()});
 $('rep').addEventListener('click',()=>start('mix',0));
@@ -1041,6 +1047,7 @@ $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(
   if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
   else if(k==='rd')rdOpen(rdPick());
   else if(k==='chg'){rdChange();renderDaily()}
+  else if(k==='en')openEnx();
   else{S.tab='libre';S.world=k;save();renderHome();window.scrollTo(0,0)}});
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.tab=b.dataset.t;save();tone(660,.06);renderHome()});
 const toReto=()=>{S.tab='reto';show('home');renderHome()};
@@ -1092,7 +1099,7 @@ try{pickVoice();speechSynthesis.addEventListener('voiceschanged',pickVoice)}catc
 /* voz del dispositivo; si no tiene voz en inglés (p. ej. dentro de otra app), usa una voz en línea */
 let AUD=null,ttsWorks=false;
 function sayNet(t,fail){try{if(AUD)AUD.pause();AUD=new Audio('https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&ttsspeed=0.8&q='+encodeURIComponent(t));AUD.onerror=fail;const pr=AUD.play();if(pr&&pr.catch)pr.catch(fail)}catch(e){fail()}}
-function sayFail(){const el=$('sayMsg');if(el)el.hidden=false;}
+function sayFail(){document.querySelectorAll('.sayMsg').forEach(el=>el.hidden=false)}
 function say(t){t=t.replace(/…/g,'').trim();if(!VOICE)pickVoice();
   const ss=window.speechSynthesis;
   if(!ss||!window.SpeechSynthesisUtterance||(!VOICE&&!ttsWorks)){sayNet(t,sayFail);return}
@@ -1167,19 +1174,23 @@ function enWords(){enS();const R=dayRec();let L=(R.enW||[]).filter(w=>WBY[w]&&!S
 const enToday=()=>{enS();const R=dayRec();if(R.ph==null)R.ph=(S.enIdx||0)%PHP.length;const RP=PHP[R.ph%PHP.length],nm=S.nombre||'Adolfo';
   return{W:enWords(),RP,PP:RP.map(P=>P[0].includes('…')?[P[0].replace('…',' '+nm+'.'),P[1].replace('…',' '+nm+'.'),P[2].replace('(y dices tu nombre)',nm),P[3]]:P)}};
 const enCount=()=>Object.keys(enS().enLearned).length+Object.keys(S.enKnown).filter(w=>!S.enLearned[w]).length;
-function renderEN(){
+function renderEN(el){el=el||$('wEN');
   const R=dayRec(),{W,PP}=enToday(),n=W.length;
-  $('wEN').innerHTML=`<h2>Inglés de hoy</h2>
+  el.innerHTML=`<h2>Inglés de hoy</h2>
   <div class="phr"><small>Frases del día</small>${PP.map(P=>`<div class="en">${P[0]} ${sayBtn(P[0])}</div><p><b>${P[1]}</b></p><p class="note">Suena como: «${P[2]}». Úsala ${P[3]}</p>`).join('<hr>')}</div>
   <h3 class="ph">Tus ${n} palabras</h3>
   <div class="words">${W.map(w=>`<button class="wd" data-say="${w.en}"><span class="em">${w.e}</span><span><b>${w.en}</b><span>${w.es}</span></span></button>`).join('')}</div>
   <p class="note">Toca cada palabra para escucharla y repítela en voz alta.</p>
-  <p class="note" id="sayMsg" hidden>No se escucha la voz: sube el volumen, quita el modo silencio y revisa que haya internet. En Chrome suele funcionar mejor.</p>
+  <p class="note sayMsg" hidden>No se escucha la voz: sube el volumen, quita el modo silencio y revisa que haya internet. En Chrome suele funcionar mejor.</p>
   <div class="modes" style="margin-top:12px">
    <button class="mode ${R.enWd?'ok':'next'}" data-en="w"><span class="n">1</span><span><b>Practicar palabras</b><span>Cada palabra 2 veces, una con audio · ${n*2} preguntas</span></span><span class="ck">${R.enWd?'✓':'›'}</span></button>
    <button class="mode ${R.enPd?'ok':R.enWd?'next':''}" data-en="p"><span class="n">2</span><span><b>Practicar frases</b><span>Qué significan, cuándo decirlas y ármalas · 6 preguntas</span></span><span class="ck">${R.enPd?'✓':'›'}</span></button></div>
   <p class="note">${R.en?`¡Inglés de hoy listo! Mañana llegan palabras y frases nuevas. `:''}Llevas <b>${enCount()}</b> palabras.</p>`}
-$('wEN').addEventListener('click',e=>{const b=e.target.closest('[data-en]');if(!b)return;b.dataset.en==='w'?enQuizW():enQuizP()});
+const enClick=e=>{const b=e.target.closest('[data-en]');if(!b)return;b.dataset.en==='w'?enQuizW():enQuizP()};
+$('wEN').addEventListener('click',enClick);$('enxBody').addEventListener('click',enClick);
+/* inglés del reto: pantalla propia, sin pasar a "Practicar libre" */
+function openEnx(){renderEN($('enxBody'));show('enx')}
+$('enxBack').addEventListener('click',()=>toReto());
 const listenQ=w=>`<span class="rq">Escucha: ¿qué palabra es?</span>${sayBtn(w.en)}<button class="mini peekw" data-pk="${w.en}">¿No se oye? Ver la palabra</button>`;
 /* cada palabra 2 veces: primero leyendo (inglés→español o español→inglés) y luego solo con audio */
 function enQuizW(){
@@ -1249,7 +1260,7 @@ $('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[Q
     q.wrong=(q.wrong||0)+1;QZ.combo=0;b.classList.add('bad');b.disabled=true;mood('m5','oops');tone(220,.25,'triangle');
     $('qzmsg').innerHTML='No es esa. Intenta otra vez.';$('qzcombo').hidden=true;flame('m5',0);qzDots();save();return}
   qzResolve(ok,b,q)});
-$('qzquit').addEventListener('click',()=>{if(QZ)clearTimeout(QZ.to);if(QZ&&QZ.kind==='rd')rdOpen(QZ.si);else{show('home');renderHome()}});
+$('qzquit').addEventListener('click',()=>{if(QZ)clearTimeout(QZ.to);if(QZ&&QZ.kind==='rd')rdOpen(QZ.si);else if(S.tab!=='libre')openEnx();else{show('home');renderHome()}});
 function qzFinish(){
   const b=bookRound(QZ.pts,QZ.maxc),R=dayRec(),news=[],N=QZ.n;
   if(QZ.kind==='en'){
@@ -1431,6 +1442,26 @@ $('qzpeek').addEventListener('toggle',()=>{if(QZ&&QZ.kind==='rd'&&$('qzpeek').op
 $('rdQuit').addEventListener('click',()=>{S.tab='libre';S.world='rd';show('home');renderHome()});
 
 /* ===== Para papás ===== */
+/* historial permanente de calificaciones por día */
+function calSnap(){const d=today(),R=(S.daily||{})[d];if(!R)return;const {c,avg}=dayCals(R);if(c.every(x=>x[1]==null))return;S.cal=S.cal||{};S.cal[d]={t:R.t,v:c.map(x=>x[1]),avg}}
+function calBackfill(){S.cal=S.cal||{};Object.entries(S.daily||{}).forEach(([d,R])=>{if(S.cal[d])return;const {c,avg}=dayCals(R);if(c.some(x=>x[1]!=null))S.cal[d]={t:R.t,v:c.map(x=>x[1]),avg}})}
+let histAll=false;
+const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function calHist(){calBackfill();const E=Object.entries(S.cal).sort((a,b)=>a[0]<b[0]?1:-1);
+  if(!E.length)return `<h3 class="ph">Historial de calificaciones</h3><p class="note">Todavía no hay calificaciones. Aparecen al hacer el reto del día.</p>`;
+  const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${v}</b>`,fd=d=>{const [y,m,dd]=d.split('-');return `${+dd}/${+m}/${y.slice(2)}`};
+  const months={};E.forEach(([d,x])=>{const k=d.slice(0,7);(months[k]=months[k]||[]).push(x)});
+  const avg=a=>a.length?r1(a.reduce((s,v)=>s+v,0)/a.length):null;
+  const mrows=Object.entries(months).map(([k,a])=>{const col=i=>avg(a.map(x=>x.v[i]).filter(v=>v!=null));const full=a.filter(x=>x.avg!=null);
+    return `<tr><td>${MES[+k.slice(5)-1]} ${k.slice(0,4)}</td><td class="r">${cv(col(0))}</td><td class="r">${cv(col(1))}</td><td class="r">${cv(col(2))}</td><td class="r">${cv(col(3))}</td><td class="r">${cv(avg(full.map(x=>x.avg)))}</td><td class="r">${full.length}</td></tr>`}).join('');
+  const list=histAll?E:E.slice(0,14);
+  const rows=list.map(([d,x])=>`<tr><td>${fd(d)}</td><td class="r">×${x.t} ${cv(x.v[0])}</td><td class="r">${cv(x.v[1])}</td><td class="r">${cv(x.v[2])}</td><td class="r">${cv(x.v[3])}</td><td class="r">${cv(x.avg)}</td></tr>`).join('');
+  return `<h3 class="ph">Historial de calificaciones</h3>
+  <p class="note">Promedio por mes (la última columna son los días con el reto completo):</p>
+  <div class="tw"><table class="pt hs"><tr><th>Mes</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th><th class="r">Prom.</th><th class="r">Días</th></tr>${mrows}</table></div>
+  <p class="note">Por día (${E.length} ${E.length===1?'día':'días'} guardados):</p>
+  <div class="tw"><table class="pt hs"><tr><th>Fecha</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th><th class="r">Prom.</th></tr>${rows}</table></div>
+  ${E.length>14?`<button class="mini" id="histMore">${histAll?'Ver solo los últimos 14 días':'Ver todos los días'}</button>`:''}`}
 const mmss=x=>`${Math.floor(x/60)}:${String(x%60).padStart(2,'0')}`;
 const calif=l=>Math.round(l.ok/l.n*100)/10;
 function rdReport(){
@@ -1454,7 +1485,7 @@ function renderXProg(){
     rows+=`<tr><td>${L[new Date(ms).getDay()]} ${new Date(ms).getDate()}</td><td class="r">${r&&(r.tOk||r.tTries)?`×${r.t} ${cv(r.tCal)}${r.tOk?'':' ('+r.tTries+')'}`:'–'}</td><td class="r">${cv(r&&r.colCal)}</td><td class="r">${cv(r&&r.enCal)}</td><td class="r">${cv(r&&r.rdCal)}</td><td class="r">${cv(dc&&dc.avg)}</td></tr>`}
   const done=STORIES.filter(rdRead);
   const Rt=dayRec(),parts=[['t','Tabla del '+Rt.t,Rt.tOk,Rt.tCal],['c','Cuentas',Rt.col,Rt.colCal],['en','Inglés',Rt.en,Rt.enCal],['rd','Lectura',!!Rt.rd,Rt.rdCal]];
-  $('xprog').innerHTML=`<h3 class="ph">Pedir que repita una actividad de hoy</h3>
+  $('xprog').innerHTML=`${calHist()}<h3 class="ph">Pedir que repita una actividad de hoy</h3>
   <p class="note">La actividad vuelve a quedar pendiente en su reto y se califica de nuevo.</p>
   <div class="eng">${parts.map(([k,n,ok,c])=>`<button data-redo="${k}" ${ok?'':'disabled'}><span>${n}</span><small>${ok?`Hecha (${c??'–'}) · tocar para repetir`:(Rt.redo||{})[k]?'Pendiente: pediste repetirla':'Todavía no la hace'}</small></button>`).join('')}</div>
   <h3 class="ph">Reto del día, inglés y lectura</h3>
@@ -1471,6 +1502,7 @@ function renderXProg(){
     return `<button data-kg="${i}" class="${all?'on':''}"><span>${g[0].e} ${EN_G[i]}</span><small>${all?'Ya las sabe ✓':k?`${k} sabidas`:l===g.length?'Aprendidas':l?`${l} de 10 aprendidas`:'Por aprender'}</small></button>`}).join('')}</div>
   <p class="note">Al marcar un grupo como sabido, sus palabras ya no salen. Tócalo otra vez para volver a incluirlo.</p>`}
 $('xprog').addEventListener('click',e=>{enS();const R=dayRec();
+  if(e.target.closest('#histMore')){histAll=!histAll;renderXProg();return}
   const rd=e.target.closest('[data-redo]');if(rd&&!rd.disabled){const k=rd.dataset.redo;R.redo=R.redo||{};R.redo[k]=true;R.prevCal=R.prevCal||{};
     if(k==='t'){R.prevCal.t=R.tCal;R.tOk=false;R.tCal=null;R.tTries=0}
     else if(k==='c'){R.prevCal.c=R.colCal;R.col=false;R.colCal=null;R.colOk=0}
