@@ -223,6 +223,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .daily .mode .ck{font-size:16px}
 .daily .mode:not(.ok) .ck{font-size:28px}
 .dchg{margin:8px 4px 0}
+.cal{padding:0 8px;border-radius:8px;color:#fff}.cal.hi{background:var(--teal)}.cal.mid{background:var(--gold)}.cal.lo{background:var(--pink)}
+.rmiss{margin:2px 0 8px;padding-inline-start:20px;font-size:14px}.rmiss span{display:block;color:var(--mute)}
 .hola{font-size:24px;font-weight:800;line-height:1.1;margin-bottom:6px}
 .papas input#nombre{width:auto;height:auto;flex:1;font:inherit;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px}
 .enk{display:flex;flex-wrap:wrap;gap:6px}
@@ -1163,7 +1165,7 @@ function qzResolve(ok,b,q){QZ.lock=true;
     const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');
     tone(520+QZ.combo*40,.1);tone(780+QZ.combo*40,.16,'sine',.08);if(q.after)say(q.after);
   }else{
-    if(!q.retry)QZ.res[q.k]='no';QZ.combo=0;
+    if(!q.retry){QZ.res[q.k]='no';if(QZ.miss)QZ.miss.push(q.k)}QZ.combo=0;
     if(b){b.classList.add('bad');[...$('qzans').querySelectorAll('.op')].forEach(o=>{if(q.opts[+o.dataset.i].v===q.ans)o.classList.add('good')})}
     mood('m5','oops');tone(220,.25,'triangle');
     $('qzmsg').innerHTML=q.noMsg||'La correcta es la verde.';
@@ -1189,7 +1191,10 @@ function qzFinish(){
     if(!R.en&&R.enWd&&R.enPd){R.en=true;S.enIdx=(S.enIdx||0)+1;enS();(R.enW||[]).forEach(w=>S.enLearned[w]=1);news.push('¡Terminaste el <b>inglés de hoy</b>! Mañana tendrás palabras y frases nuevas.')}
     else if(!R.en)news.push(QZ.part==='w'?'¡Palabras listas! Ahora sigue <b>Practicar frases</b>.':'¡Frases listas! Ahora sigue <b>Practicar palabras</b>.');
   }else{
-    const st=STORIES[QZ.si];S.rd=S.rd||{};S.rd[st.id]=Math.max(S.rd[st.id]||0,QZ.first);
+    const st=STORIES[QZ.si];S.rd=S.rd||{};S.rdLog=S.rdLog||[];
+    const tries=S.rdLog.filter(x=>x.id===st.id).length+1;
+    S.rdLog.unshift({d:today(),h:hhmm(),id:st.id,ok:QZ.first,n:N,miss:QZ.miss||[],secs:QZ.secs||0,peek:!!QZ.peek,try:tries});if(S.rdLog.length>60)S.rdLog.length=60;
+    S.rd[st.id]=Math.max(S.rd[st.id]||0,QZ.first);
     if(!R.rd){R.rd=st.id;news.push('¡Terminaste la <b>lectura de hoy</b>!')}
     R.rdOk=Math.max(R.rdOk||0,QZ.first);
     news.push(QZ.first===N?'¡Contestaste las 5 preguntas bien! Entendiste todo.':`Contestaste bien <b>${QZ.first} de ${N}</b>. Si quieres, léela otra vez.`);
@@ -1345,18 +1350,36 @@ $('wRD').addEventListener('click',e=>{
   if(e.target.closest('#rdRead')){rdOpen(rdPick());return}
   const b=e.target.closest('[data-s]');if(b)rdOpen(+b.dataset.s)});
 let rdCur=0;
+let rdT0=0;
 function rdOpen(i){
-  rdCur=i;const s=STORIES[i];dayRec().rdPick=i;renderTop();
+  rdCur=i;rdT0=Date.now();const s=STORIES[i];dayRec().rdPick=i;renderTop();
   $('rdEm').textContent=s.e;$('rdT').textContent=s.t;$('rdInfo').textContent=`${s.tema} · unos ${rdMins(s)} minutos · lee con calma, sin prisa`;
   $('rdTxt').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');show('rd');tone(660,.06)}
 $('rdGo').addEventListener('click',()=>{
   const s=STORIES[rdCur];
   const list=s.q.map((x,k)=>({k,lab:`Pregunta ${k+1} de ${s.q.length}`,q:`<span class="rq">${x[0]}</span>`,opts:shuffle([{h:x[1],v:1},{h:x[2],v:2},{h:x[3],v:3}]),ans:1,noMsg:`Era: <b>${x[1]}</b>`}));
   $('qzstory').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');
-  qzStart('rd',list,{si:rdCur})});
+  qzStart('rd',list,{si:rdCur,secs:Math.round((Date.now()-rdT0)/1000),peek:false,miss:[]})});
+$('qzpeek').addEventListener('toggle',()=>{if(QZ&&QZ.kind==='rd'&&$('qzpeek').open)QZ.peek=true});
 $('rdQuit').addEventListener('click',()=>{S.tab='libre';S.world='rd';show('home');renderHome()});
 
 /* ===== Para papás ===== */
+const mmss=x=>`${Math.floor(x/60)}:${String(x%60).padStart(2,'0')}`;
+const calif=l=>Math.round(l.ok/l.n*100)/10;
+function rdReport(){
+  const L=S.rdLog||[],F=L.filter(l=>l.try===1);
+  if(!L.length)return `<h3 class="ph">Lectura: calificaciones</h3><p class="note">Todavía no hay lecturas contestadas.</p>`;
+  const avg=F.length?Math.round(F.reduce((a,l)=>a+calif(l),0)/F.length*10)/10:null;
+  const fd=d=>{const [y,m,dd]=d.split('-');return `${+dd}/${+m}`};
+  const rows=L.slice(0,12).map(l=>{const st=STORIES.find(x=>x.id===l.id);const c=calif(l);
+    return `<tr><td>${fd(l.d)}</td><td>${st?st.t:l.id}${l.try>1?` <small>(intento ${l.try})</small>`:''}</td><td class="r"><b class="cal ${c>=8?'hi':c>=6?'mid':'lo'}">${c}</b></td><td class="r">${mmss(l.secs)}${l.secs<60?' ⚠️':''}</td><td class="r">${l.peek?'sí':'no'}</td></tr>`}).join('');
+  const miss=L.slice(0,5).filter(l=>l.miss.length).slice(0,3).map(l=>{const st=STORIES.find(x=>x.id===l.id);if(!st)return '';
+    return `<p class="note"><b>${st.t}</b> (${fd(l.d)}):</p><ul class="rmiss">${l.miss.map(k=>`<li>${st.q[k][0]} <span>Correcta: ${st.q[k][1]}</span></li>`).join('')}</ul>`}).join('');
+  return `<h3 class="ph">Lectura: calificaciones</h3>
+  <p class="note">Promedio (primer intento de cada lectura): <b class="cal ${avg>=8?'hi':avg>=6?'mid':'lo'}">${avg??'–'}</b> de 10 · ${F.length} ${F.length===1?'lectura':'lecturas'}</p>
+  <table class="pt"><tr><th>Día</th><th>Lectura</th><th class="r">Calif.</th><th class="r">Leyó</th><th class="r">Volvió a ver</th></tr>${rows}</table>
+  <p class="note">Calificación sobre 10 (5 preguntas, 2 puntos cada una). "Leyó" es el tiempo que estuvo en la lectura antes de contestar; ⚠️ = menos de 1 minuto, quizá no la leyó completa. "Volvió a ver" = abrió la lectura mientras contestaba.</p>
+  ${miss?`<p class="note">Preguntas que falló en las últimas lecturas:</p>${miss}`:''}`}
 function renderXProg(){
   const D=S.daily||{},L=['D','L','M','M','J','V','S'];let rows='';
   for(let i=6;i>=0;i--){const ms=Date.now()-i*864e5,d=dstr(ms),r=D[d];
@@ -1366,7 +1389,7 @@ function renderXProg(){
   <p class="note">Retos del día completos: <b>${S.retoDays||0}</b> · Palabras de inglés: <b>${enCount()}</b> de ${WALL.length}</p>
   <table class="pt"><tr><th>Día</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th></tr>${rows}</table>
   <p class="note">En "Tabla", el número entre paréntesis son los intentos de un día sin lograrlo. Cuentas: sin error de 10.</p>
-  <p class="note">Lecturas hechas (${done.length} de ${STORIES.length}):</p><div class="fails">${done.length?done.map(s=>`<span>${s.t} (${S.rd[s.id]}/5)</span>`).join(''):'<span>Todavía ninguna</span>'}</div>
+  ${rdReport()}
   <h3 class="ph">Inglés: cambiar palabras</h3>
   <p class="note">Toca una palabra de hoy que ya sepa y se cambia por la siguiente.</p>
   <div class="enk">${enToday().W.map(w=>`<button data-kw="${w.en}">${w.e} ${w.en} ✕</button>`).join('')}</div>
