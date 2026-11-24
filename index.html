@@ -298,6 +298,12 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <label><input type="checkbox" id="open"> Abrir todas las tablas sin seguir el orden</label>
       <label>Nombre: <input id="nombre" maxlength="20" autocomplete="off"></label>
       <label>Tabla del reto diario: <select id="retoSel"></select></label>
+      <label>Cuentas del reto: <select id="colSel">
+        <option value="sin">2 cifras, sin llevar ni pedir prestado</option>
+        <option value="mix">2 cifras, mitad sencillas y mitad llevando/prestando</option>
+        <option value="con">2 cifras, llevando y pidiendo prestado</option>
+        <option value="con3">3 cifras, llevando y pidiendo prestado</option>
+      </select></label>
       <button class="ghost" id="reset">Borrar todo el avance</button>
       <div id="rstBox" hidden>
         <p class="note">Esto borra todo el avance de Adolfo y no se puede deshacer. Escribe la contraseña de papás para confirmar.</p>
@@ -402,7 +408,7 @@ const MODES=[
 let S=null;
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S){try{const o=JSON.parse(localStorage.getItem('tablas-turbo-v1'));if(o)S={pts:o.pts,best:o.best,streak:o.streak,last:o.last,days:o.days,facts:o.facts,mute:o.mute}}catch(e){}}
-const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo',pin:'2580'});
+const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo',pin:'2580',colDiff:'sin'});
 S=Object.assign(DEF(),S||{});
 const save=()=>{S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
 /* ---- nube (Supabase) ---- */
@@ -510,7 +516,7 @@ const rstClose=()=>{$('rstBox').hidden=true;$('reset').hidden=false;$('rstPin').
 $('reset').addEventListener('click',()=>{$('rstBox').hidden=false;$('reset').hidden=true;$('rstPin').focus()});
 $('rstNo').addEventListener('click',rstClose);
 function doReset(){if($('rstPin').value!==String(S.pin||'2580')){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
-  const keep={pin:S.pin,nombre:S.nombre};S=Object.assign(DEF(),keep);save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
+  const keep={pin:S.pin,nombre:S.nombre,colDiff:S.colDiff,retoT:S.retoT};S=Object.assign(DEF(),keep);save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
 $('rstPin').addEventListener('keydown',e=>{if(e.key==='Enter')doReset()});
 $('rep').addEventListener('click',()=>start('mix',0));
@@ -997,14 +1003,14 @@ function renderDaily(){
     <div class="dbar"><i style="width:${n*25}%"></i></div>
     <div class="modes">
     ${row('t','1',R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden sin fallar y en desorden máximo 2 errores'+(R.tTries?` · intentos: ${R.tTries}`:''))}
-    ${row('c','2',R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:'Sumas llevando y restas pidiendo prestado')}
+    ${row('c','2',R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:COLD[S.colDiff||'sin'])}
     ${row('en','3',R.en,'Inglés: 15 palabras y 2 frases',enSub)}
     ${row('rd','4',!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de 5 preguntas bien`:'Unos 3 minutos y 5 preguntas')}</div>
     ${R.rd?'':'<button class="mini dchg" data-d="chg">Cambiar lectura</button>'}
     <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':'Completa las 4 partes y gana 50 puntos de premio.'}</p>${full?boleta(R):''}`;
   const sel=$('retoSel');
   sel.innerHTML=`<option value="0">Automática (una que no se sabe)</option>`+[2,3,4,5,6,7,8,9,10].map(t=>`<option value="${t}">×${t}</option>`).join('');
-  sel.value=String(S.retoT||0)}
+  sel.value=String(S.retoT||0);$('colSel').value=S.colDiff||'sin'}
 $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const k=b.dataset.d;tone(660,.06);
   if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
   else if(k==='rd')rdOpen(rdPick());
@@ -1026,10 +1032,14 @@ $('setpin').addEventListener('click',()=>{const v=$('newpin').value.trim();
 $('nombre').addEventListener('change',e=>{const v=e.target.value.trim();if(v){S.nombre=v;save()}renderHome()});
 $('retoSel').addEventListener('change',e=>{S.retoT=+e.target.value;const R=dayRec();if(!R.tOk)R.t=pickRetoT();save();renderHome()});
 /* 10 cuentas en columna: 5 sumas llevando y 5 restas pidiendo prestado */
+const COLD={sin:'5 sumas y 5 restas sencillas de 2 cifras',mix:'5 sumas y 5 restas, algunas llevando y prestando',con:'Sumas llevando y restas pidiendo prestado',con3:'3 cifras, llevando y pidiendo prestado'};
+$('colSel').addEventListener('change',e=>{S.colDiff=e.target.value;save();renderHome()});
 function srReto(){
   if(SG)clearTimeout(SG.to);
-  const big=srUnlocked(5),seen=new Set(),list=[];let g=0;
-  while(list.length<10&&g++<500){const i=list.length,op=i%2?'-':'+',pr=genOp({op,dg:big&&i>=6?3:2,k:'con'}),k=pr.a+pr.op+pr.b;
+  const lvl=S.colDiff||'sin',seen=new Set(),list=[];let g=0;
+  while(list.length<10&&g++<500){const i=list.length,op=i%2?'-':'+',
+      L=lvl==='con3'?{op,dg:3,k:'con'}:lvl==='con'?{op,dg:2,k:'con'}:lvl==='mix'?{op,dg:2,k:i<4?'sin':'con'}:{op,dg:2,k:'sin'},
+      pr=genOp(L),k=pr.a+pr.op+pr.b;
     if(seen.has(k))continue;seen.add(k);list.push({pr,k:i,type:'col'})}
   SG={lv:0,mode:'reto',M:{id:'reto',name:'Reto del día',q:10,need:8},list,i:0,first:0,combo:0,maxc:0,pts:0,res:[],lvl:Math.floor(S.pts/LV),unl:true,medBefore:false,lock:false,C:null,hint:false};
   show('srplay');flame('m4',0);mood('m4',null);$('srcombo').hidden=true;tone(523,.1);tone(784,.15,'sine',.1);srAsk()}
