@@ -230,6 +230,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .boleta .bt{font-size:19px}
 .br{display:flex;justify-content:space-between;align-items:center;gap:8px}.br .cal{font-size:20px;min-width:52px;text-align:center}
 .br.tot{border-top:2px dashed var(--line);padding-top:8px;font-size:20px;font-weight:800}.br.tot .cal{font-size:24px}
+.redo{font-style:normal;font-weight:800;color:var(--pink)}
+.eng button:disabled{opacity:.5;cursor:default}
 .hola{font-size:24px;font-weight:800;line-height:1.1;margin-bottom:6px}
 .papas input#nombre{width:auto;height:auto;flex:1;font:inherit;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px}
 .enk{display:flex;flex-wrap:wrap;gap:6px}
@@ -1005,7 +1007,8 @@ function renderDaily(){
   $('daily').hidden=tab!=='reto';$('libre').hidden=tab!=='libre';
   [...$('tabs').children].forEach(b=>{b.classList.toggle('on',b.dataset.t===tab);if(b.dataset.t==='reto')b.innerHTML=`⭐ Reto del día <small>${full?'✓':n+'/4'}</small>`});
   $('daily').className='daily'+(full?' full':'');
-  const row=(k,ic,ok,t,d)=>`<button class="mode ${ok?'ok':''}" data-d="${k}"><span class="n">${ok?'✓':ic}</span><span><b>${t}</b><span>${d}</span></span><span class="ck">${ok?'¡Listo!':'›'}</span></button>`;
+  const rq=R.redo||{};
+  const row=(k,ic,ok,t,d)=>`<button class="mode ${ok?'ok':''}" data-d="${k}"><span class="n">${ok?'✓':ic}</span><span><b>${t}</b><span>${!ok&&rq[k]?'<em class="redo">Papá pidió repetirla</em> ':''}${d}</span></span><span class="ck">${ok?'¡Listo!':'›'}</span></button>`;
   const enSub=R.en?'¡Listo! Palabras y frases':`Palabras ${R.enWd?'✓':'pendientes'} · Frases ${R.enPd?'✓':'pendientes'}`;
   $('daily').innerHTML=`<div class="dh">Reto de hoy <span>${full?'¡Completo! +50':n+' de 4'}</span></div>
     <div class="dbar"><i style="width:${n*25}%"></i></div>
@@ -1232,7 +1235,7 @@ function qzFinish(){
   if(QZ.kind==='en'){
     if(QZ.part==='w'){R.enWd=true;R.enOk=Math.max(R.enOk||0,QZ.first);if(R.enWf==null){R.enWf=QZ.first;R.enWn=N}}else{R.enPd=true;R.enPOk=Math.max(R.enPOk||0,QZ.first);if(R.enPf==null){R.enPf=QZ.first;R.enPn=N}}
     if(R.enCal==null&&R.enWf!=null&&R.enPf!=null)R.enCal=r1((R.enWf+R.enPf)/(R.enWn+R.enPn)*10);
-    if(!R.en&&R.enWd&&R.enPd){R.en=true;S.enIdx=(S.enIdx||0)+1;enS();(R.enW||[]).forEach(w=>S.enLearned[w]=1);news.push('¡Terminaste el <b>inglés de hoy</b>! Mañana tendrás palabras y frases nuevas.')}
+    if(!R.en&&R.enWd&&R.enPd){R.en=true;if(!R.enCounted){R.enCounted=true;S.enIdx=(S.enIdx||0)+1}enS();(R.enW||[]).forEach(w=>S.enLearned[w]=1);news.push('¡Terminaste el <b>inglés de hoy</b>! Mañana tendrás palabras y frases nuevas.')}
     else if(!R.en)news.push(QZ.part==='w'?'¡Palabras listas! Ahora sigue <b>Practicar frases</b>.':'¡Frases listas! Ahora sigue <b>Practicar palabras</b>.');
   }else{
     const st=STORIES[QZ.si];S.rd=S.rd||{};S.rdLog=S.rdLog||[];
@@ -1430,7 +1433,11 @@ function renderXProg(){
     const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${v}</b>`,dc=r?dayCals(r):null;
     rows+=`<tr><td>${L[new Date(ms).getDay()]} ${new Date(ms).getDate()}</td><td class="r">${r&&(r.tOk||r.tTries)?`×${r.t} ${cv(r.tCal)}${r.tOk?'':' ('+r.tTries+')'}`:'–'}</td><td class="r">${cv(r&&r.colCal)}</td><td class="r">${cv(r&&r.enCal)}</td><td class="r">${cv(r&&r.rdCal)}</td><td class="r">${cv(dc&&dc.avg)}</td></tr>`}
   const done=STORIES.filter(rdRead);
-  $('xprog').innerHTML=`<h3 class="ph">Reto del día, inglés y lectura</h3>
+  const Rt=dayRec(),parts=[['t','Tabla del '+Rt.t,Rt.tOk,Rt.tCal],['c','Cuentas',Rt.col,Rt.colCal],['en','Inglés',Rt.en,Rt.enCal],['rd','Lectura',!!Rt.rd,Rt.rdCal]];
+  $('xprog').innerHTML=`<h3 class="ph">Pedir que repita una actividad de hoy</h3>
+  <p class="note">La actividad vuelve a quedar pendiente en su reto y se califica de nuevo.</p>
+  <div class="eng">${parts.map(([k,n,ok,c])=>`<button data-redo="${k}" ${ok?'':'disabled'}><span>${n}</span><small>${ok?`Hecha (${c??'–'}) · tocar para repetir`:(Rt.redo||{})[k]?'Pendiente: pediste repetirla':'Todavía no la hace'}</small></button>`).join('')}</div>
+  <h3 class="ph">Reto del día, inglés y lectura</h3>
   <p class="note">Retos del día completos: <b>${S.retoDays||0}</b> · Palabras de inglés: <b>${enCount()}</b> de ${WALL.length}</p>
   <table class="pt"><tr><th>Día</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th><th class="r">Prom.</th></tr>${rows}</table>
   <p class="note">Calificaciones sobre 10, con el primer intento de cada parte del día. El promedio sale cuando completa las 4. En "Tabla", el número entre paréntesis son los intentos sin lograr el reto.</p>
@@ -1444,6 +1451,12 @@ function renderXProg(){
     return `<button data-kg="${i}" class="${all?'on':''}"><span>${g[0].e} ${EN_G[i]}</span><small>${all?'Ya las sabe ✓':k?`${k} sabidas`:l===g.length?'Aprendidas':l?`${l} de 10 aprendidas`:'Por aprender'}</small></button>`}).join('')}</div>
   <p class="note">Al marcar un grupo como sabido, sus palabras ya no salen. Tócalo otra vez para volver a incluirlo.</p>`}
 $('xprog').addEventListener('click',e=>{enS();const R=dayRec();
+  const rd=e.target.closest('[data-redo]');if(rd&&!rd.disabled){const k=rd.dataset.redo;R.redo=R.redo||{};R.redo[k]=true;R.prevCal=R.prevCal||{};
+    if(k==='t'){R.prevCal.t=R.tCal;R.tOk=false;R.tCal=null;R.tTries=0}
+    else if(k==='c'){R.prevCal.c=R.colCal;R.col=false;R.colCal=null;R.colOk=0}
+    else if(k==='en'){R.prevCal.en=R.enCal;R.en=false;R.enWd=R.enPd=false;R.enWf=R.enPf=R.enCal=null;R.enOk=R.enPOk=0}
+    else{R.prevCal.rd=R.rdCal;R.rd=null;R.rdCal=null;R.rdOk=0}
+    save();renderHome();return}
   const w=e.target.closest('[data-kw]');if(w){S.enKnown[w.dataset.kw]=1;save();renderHome();return}
   if(e.target.closest('#phNext')){R.ph=(R.ph==null?(S.enIdx||0):R.ph)+1;save();renderHome();return}
   const g=e.target.closest('[data-kg]');if(g){const G=WORDS[+g.dataset.kg],all=G.every(x=>S.enKnown[x.en]);G.forEach(x=>{if(all)delete S.enKnown[x.en];else S.enKnown[x.en]=1});
