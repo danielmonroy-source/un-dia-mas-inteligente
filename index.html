@@ -236,6 +236,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .modal{position:fixed;inset:0;background:rgba(10,20,40,.55);display:grid;place-items:center;padding:16px;z-index:10}
 .mbox{background:var(--card);color:var(--ink);border-radius:22px;padding:18px;max-width:380px;width:100%;text-align:center}
 .mbox b{font-size:24px;display:block}.mbox .ghost{background:var(--bg)}.mbox p{margin:8px 0 0;color:var(--mute)}
+#hintb:disabled{opacity:.5;cursor:default}
 .hola{font-size:24px;font-weight:800;line-height:1.1;margin-bottom:6px}
 .papas input#nombre{width:auto;height:auto;flex:1;font:inherit;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px}
 .enk{display:flex;flex-wrap:wrap;gap:6px}
@@ -572,7 +573,7 @@ function start(mode,t){
     const type=mode==='esc'||mode==='rev'?'ch':mode;
     list=ns.map((n,k)=>mk(t,n,type,k));
   }
-  G={mode,t,list,i:0,first:0,combo:0,maxc:0,pts:0,res:[],lad:[],lvl:Math.floor(S.pts/LV),lock:false,typed:'',hint:false,unl:t?unlocked(t+1):true,medBefore:t?best(t,mode)>=8:false};
+  G={hO:0,hD:0,mode,t,list,i:0,first:0,combo:0,maxc:0,pts:0,res:[],lad:[],lvl:Math.floor(S.pts/LV),lock:false,typed:'',hint:false,unl:t?unlocked(t+1):true,medBefore:t?best(t,mode)>=8:false};
   show('play');flame('m2',0);mood('m2',null);$('combo').hidden=true;tone(523,.1);tone(784,.15,'sine',.1);ask();
 }
 function chOpts(r,t,n){const s=new Set([r]);
@@ -597,11 +598,17 @@ function ask(){
   else if(q.type==='falta')h=`<div class="opts">${faltaOpts(q.n).map(v=>`<button class="op" data-v="${v}">${v}</button>`).join('')}</div>`;
   else if(q.type==='sino')h=`<div class="opts"><button class="op sm" data-v="1">Sí, está bien</button><button class="op sm" data-v="0">No, está mal</button></div>`;
   else h=`<div class="pad">${[1,2,3,4,5,6,7,8,9].map(d=>`<button class="op" data-k="${d}">${d}</button>`).join('')}<button class="op sm" data-k="del">Borrar</button><button class="op" data-k="0">0</button><button class="op okk sm" data-k="ok">Listo</button></div>`;
-  $('ans').innerHTML=h;$('hint').innerHTML='';$('hintb').hidden=false;
+  $('ans').innerHTML=h;$('hint').innerHTML='';$('hintb').hidden=false;hintLabel();
   $('ladder').innerHTML=G.mode==='esc'?G.lad.map(x=>`<span>${x}</span>`).join(''):'';
   dots();
 }
-$('hintb').addEventListener('click',()=>{if(G.lock)return;const q=G.list[G.i];G.hint=true;$('hintb').hidden=true;const {t,n}=q;let h='';
+/* en el reto: 3 pistas para la parte en orden y 3 para la parte en desorden */
+const hintLeft=()=>{if(!G||G.mode!=='reto')return 99;const q=G.list[G.i];return 3-(q&&q.k<10?G.hO:G.hD)};
+function hintLabel(){const b=$('hintb');if(!G||G.mode!=='reto'){b.textContent='Pista';b.disabled=false;return}
+  const l=hintLeft(),q=G.list[G.i];b.textContent=l>0?`Pista (te quedan ${l})`:'Ya usaste tus 3 pistas';b.disabled=l<=0||!!q.hinted}
+$('hintb').addEventListener('click',()=>{if(G.lock)return;const q=G.list[G.i];
+  if(G.mode==='reto'){if(hintLeft()<=0||q.hinted)return;q.hinted=true;if(q.k<10)G.hO++;else G.hD++}
+  G.hint=true;$('hintb').hidden=G.mode!=='reto';hintLabel();const {t,n}=q;let h='';
   if(q.type==='falta'){h=range().slice(0,n).map(k=>`<span>${t*k}</span>`).join('')+`<p>Cuenta de ${t} en ${t} hasta ${t*n}. ¿Cuántos saltos son?</p>`}
   else{h=range().slice(0,n-1).map(k=>`<span>${t*k}</span>`).join('')+`<span class="q2">?</span><p>Cuenta de ${t} en ${t}, ${n} veces</p>`}
   $('hint').innerHTML=h;tone(880,.08)});
@@ -621,12 +628,12 @@ function judge(ok,btn){
   G.lock=true;const q=G.list[G.i],{t,n}=q,r=t*n,key=t+'x'+n;
   if(!ok&&G.mode==='reto'){ // en el reto: no avanza hasta acertar; ya no cuenta como acierto y se repite al final
     S.facts[key]=0;S.miss[key]=(S.miss[key]||0)+1;G.combo=0;
-    if(!q.retry&&!q.wrong){G.res[q.k]='no';G.list.push(Object.assign({},q,{retry:true,wrong:0}))}
+    if(!q.retry&&!q.wrong){G.res[q.k]='no';G.list.push(Object.assign({},q,{retry:true,wrong:0,hinted:false}))}
     q.wrong=(q.wrong||0)+1;mood('m2','oops');tone(220,.25,'triangle');flame('m2',0);$('combo').hidden=true;dots();save();
     const el=$('q');
     if(q.wrong>=3){el.innerHTML=qText(q,true);el.classList.add('show');$('lab').textContent=`Es ${r}. Ahora escríbelo tú.`;
       G.to=setTimeout(()=>{G.lock=false;G.typed='';el.classList.remove('show');el.innerHTML=qText(q,false)},1800)}
-    else{$('lab').textContent=q.wrong===1?'Casi. Inténtalo otra vez':'Otra vez. Puedes usar la pista';G.typed='';el.innerHTML=qText(q,false);G.lock=false}
+    else{$('lab').textContent=q.wrong===1?'Casi. Inténtalo otra vez':(hintLeft()>0&&!q.hinted?'Otra vez. Puedes usar la pista':'Otra vez. Tú puedes');G.typed='';el.innerHTML=qText(q,false);G.lock=false}
     return}
   if(ok){
     S.facts[key]=Math.min(3,box(t,n)+1);
