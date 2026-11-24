@@ -210,7 +210,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .phr hr{border:0;border-top:2px dashed var(--line);margin:10px 0}
 .peekw{display:block;margin-top:2px}
 .plock p{margin:4px 0}
-.papas input#pin,.papas input#newpin{width:auto;height:auto;flex:2;font:inherit;font-size:18px;min-height:52px;border-radius:14px;border:2px solid var(--line);background:light-dark(#fff,#2a2140);color:var(--ink);padding:0 12px}
+.papas input#pin,.papas input#newpin,.papas input#rstPin{width:auto;height:auto;flex:2;font:inherit;font-size:18px;min-height:52px;border-radius:14px;border:2px solid var(--line);background:light-dark(#fff,#2a2140);color:var(--ink);padding:0 12px}
 .papas .row .ghost{margin-top:0;min-height:52px}
 .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px;background:var(--card);border-radius:20px;padding:6px}
 .tabs button{border:0;border-radius:16px;min-height:56px;font-weight:800;font-size:19px;cursor:pointer;background:none;line-height:1.1;padding:4px 6px}
@@ -299,6 +299,11 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <label>Nombre: <input id="nombre" maxlength="20" autocomplete="off"></label>
       <label>Tabla del reto diario: <select id="retoSel"></select></label>
       <button class="ghost" id="reset">Borrar todo el avance</button>
+      <div id="rstBox" hidden>
+        <p class="note">Esto borra todo el avance de Adolfo y no se puede deshacer. Escribe la contraseña de papás para confirmar.</p>
+        <div class="row"><input id="rstPin" type="password" inputmode="numeric" autocomplete="off" placeholder="Contraseña" aria-label="Contraseña para borrar"><button class="ghost" id="rstGo">Borrar</button><button class="ghost" id="rstNo">Cancelar</button></div>
+        <p class="note" id="rstMsg"></p>
+      </div>
       <p class="note" id="cloud"></p>
       <h3 class="ph">Cómo va</h3>
       <div id="prog"></div>
@@ -501,9 +506,13 @@ $('modes').addEventListener('click',e=>{const b=e.target.closest('.mode');if(b)s
 $('back').addEventListener('click',()=>{show('home');renderHome()});
 $('snd').addEventListener('click',()=>{S.mute=!S.mute;save();renderTop();tone(700,.1)});
 $('open').addEventListener('change',e=>{S.open=e.target.checked;save();renderHome()});
-let armed=false;
-$('reset').addEventListener('click',e=>{if(!armed){armed=true;e.target.textContent='¿Seguro? Toca otra vez para borrar';setTimeout(()=>{armed=false;e.target.textContent='Borrar todo el avance'},4000);return}
-  const keep={pin:S.pin,nombre:S.nombre};S=Object.assign(DEF(),keep);save();armed=false;e.target.textContent='Borrar todo el avance';renderHome()});
+const rstClose=()=>{$('rstBox').hidden=true;$('reset').hidden=false;$('rstPin').value='';$('rstMsg').textContent=''};
+$('reset').addEventListener('click',()=>{$('rstBox').hidden=false;$('reset').hidden=true;$('rstPin').focus()});
+$('rstNo').addEventListener('click',rstClose);
+function doReset(){if($('rstPin').value!==String(S.pin||'2580')){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
+  const keep={pin:S.pin,nombre:S.nombre};S=Object.assign(DEF(),keep);save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
+$('rstGo').addEventListener('click',doReset);
+$('rstPin').addEventListener('keydown',e=>{if(e.key==='Enter')doReset()});
 $('rep').addEventListener('click',()=>start('mix',0));
 
 /* ---- juego ---- */
