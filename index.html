@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Un día más inteligente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: juego infantil, alegre, sin prisas, sin texto de más
+   IDEA: un camino de niveles (tabla del 1 a la del 10) con 5 retos por tabla
+   PICTURE: el monstruo "Tablín" con una flama que crece con la racha
+   COLOUR and TYPE: amarillo sol, turquesa, rosa intenso; Baloo 2 redondeada
+   LAYOUT: una columna, botones enormes, todo a un toque */
+:root{color-scheme:light dark;--bg:light-dark(#ffd23f,#2a2140);--card:light-dark(#fff6d6,#372c55);--ink:light-dark(#1b1b3a,#fff6e0);--mute:light-dark(#5a4e1c,#c9bde6);--teal:#14a3a0;--pink:#ef476f;--gold:#ff9f1c;--line:light-dark(#e9b81c,#4a3d70);--selbg:light-dark(#d9f4f2,#21485a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 "Baloo 2",system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+.wrap{max-width:720px;margin:0 auto;padding:14px max(4vw,14px) 40px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:34px;line-height:1.05;margin:0;font-weight:800;flex:1}
+h2{font-size:26px;margin:16px 0 10px;line-height:1.1}
+.lvl{display:flex;align-items:center;gap:8px;font-weight:700}
+.lbar,.tm{display:block;background:var(--line);border-radius:99px;overflow:hidden}
+.lbar{width:90px;height:12px}.lbar i,.tm i{display:block;height:100%;background:var(--teal);border-radius:99px}
+.snd{background:var(--card);border:0;border-radius:12px;min-height:44px;padding:0 12px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+button{font:inherit;color:inherit}
+button:focus-visible{outline:4px solid var(--pink);outline-offset:2px}
+.hero{display:grid;grid-template-columns:140px minmax(0,1fr);gap:14px;align-items:center;margin-top:10px}
+.mon{width:100%;height:auto;overflow:visible}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--card);border-radius:18px;padding:10px 6px;text-align:center}
+.stat b{display:block;font-size:32px;line-height:1;font-weight:800}
+.stat span{font-size:13px;color:var(--mute);line-height:1.1;display:block;margin-top:4px}
+.stat.fire b{color:var(--pink)}
+.week{display:flex;gap:6px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.week span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--card);font-size:14px;font-weight:700;color:var(--mute)}
+.week span.on{background:var(--pink);color:#fff}.week span.hoy{box-shadow:0 0 0 3px var(--teal)}
+.week .goal{width:100%;height:auto;background:none;border-radius:0;display:block;font-weight:500}
+/* camino */
+.path{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.tb{position:relative;background:var(--card);border:3px solid transparent;border-radius:16px;padding:10px 4px;cursor:pointer;display:grid;gap:4px;justify-items:center;min-height:90px}
+.tb b{font-size:26px;line-height:1}
+.tb.next{border-color:var(--pink)}
+.tb.done{background:var(--selbg)}
+.tb:disabled{opacity:.5;cursor:default}
+.med{display:flex;gap:3px}.med i{width:9px;height:9px;border-radius:50%;background:light-dark(#e4dcc0,#5b4f80)}.med i.y{background:#e85d04}
+.reto{font-size:11px;font-weight:800;background:var(--pink);color:#fff;border-radius:99px;padding:0 7px;line-height:18px}
+.lock{width:20px;height:20px}
+.big,.ghost{font-weight:800;border:0;border-radius:20px;min-height:64px;cursor:pointer;font-size:22px;padding:0 14px}
+.big{flex:2;background:var(--pink);color:#fff;box-shadow:0 6px 0 #b8284d}
+.big:active{transform:translateY(4px);box-shadow:0 2px 0 #b8284d}
+.big:disabled{opacity:.5}
+.ghost{flex:1;background:var(--card);font-size:19px}
+.row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.repaso{width:100%;margin-top:14px;font-size:19px;padding:8px 14px;background:var(--teal);box-shadow:0 6px 0 #0b6f6d}
+.note{font-size:14px;color:var(--mute);margin-top:12px}
+.ph{font-size:20px;margin:14px 0 6px}.pt{width:100%;border-collapse:collapse;font-size:15px}.pt td,.pt th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:start}.pt .r{text-align:end;white-space:nowrap}.fails{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.fails span{background:var(--bg);border-radius:10px;padding:2px 10px;font-weight:700;font-size:15px}
+details.papas{margin-top:22px;background:var(--card);border-radius:16px;padding:8px 14px}
+details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height:36px}
+.papas label{display:flex;gap:10px;align-items:center;min-height:44px}
+.papas input{width:22px;height:22px}
+.papas .ghost{min-height:44px;font-size:16px;margin-top:6px}
+/* modos */
+.modes{display:grid;gap:10px}
+.mode{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;text-align:start;background:var(--card);border:3px solid transparent;border-radius:20px;padding:10px 14px;cursor:pointer;min-height:76px}
+.mode.next{border-color:var(--pink)}
+.mode .n{width:52px;height:52px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:24px;font-weight:800}
+.mode b{display:block;font-size:21px;line-height:1.1}.mode span{font-size:14px;color:var(--mute)}
+.mode .sc{font-weight:800;font-size:16px;white-space:nowrap;text-align:center}
+.mode .sc i{display:block;width:30px;height:30px;margin:0 auto 2px;border-radius:50%;background:light-dark(#e4dcc0,#5b4f80)}
+.mode .sc i.y{background:var(--gold);box-shadow:inset 0 -4px 0 #d97a00}
+.peek{margin-top:14px;background:var(--card);border-radius:16px;padding:8px 14px}
+.peek summary{cursor:pointer;font-weight:700;min-height:36px;line-height:36px}
+.peek div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 16px;font-size:20px;font-weight:700;padding-bottom:8px}
+/* juego */
+.dots{display:flex;gap:6px;justify-content:center;margin:6px 0}
+.dots i{width:22px;height:10px;border-radius:99px;background:var(--line)}
+.dots i.ok{background:var(--teal)}.dots i.no{background:var(--pink)}.dots i.now{background:var(--ink)}
+.stage{position:relative;width:130px;margin:0 auto}
+.combo{position:absolute;left:100%;top:30px;background:var(--pink);color:#fff;font-weight:800;border-radius:14px;padding:2px 10px;font-size:18px;white-space:nowrap}
+.lab{text-align:center;color:var(--mute);font-weight:700;font-size:16px;min-height:22px}
+.q{text-align:center;font-size:clamp(48px,13vw,84px);font-weight:800;line-height:1.05;margin:2px 0 14px;white-space:nowrap}
+.q.show{color:var(--pink)}
+.slot{display:inline-block;min-width:1.6em;border-bottom:6px solid var(--teal);color:var(--teal)}
+.q.show .slot{color:var(--pink);border-color:var(--pink)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.op{font-weight:800;font-size:clamp(32px,9vw,46px);min-height:84px;border:0;border-radius:22px;background:var(--card);cursor:pointer;box-shadow:0 6px 0 var(--line)}
+.op.sm{font-size:24px}
+.op:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.op.good{background:var(--teal);color:#fff;box-shadow:0 6px 0 #0b6f6d}
+.op.bad{background:var(--pink);color:#fff;box-shadow:0 6px 0 #b8284d}
+.pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:420px;margin:0 auto}
+.pad .op{min-height:68px;font-size:32px}
+.pad .okk{background:var(--teal);color:#fff;box-shadow:0 6px 0 #0b6f6d}
+.tools{display:flex;justify-content:center;gap:10px;margin-top:14px}
+.hintb{background:var(--card);border:0;border-radius:14px;min-height:44px;padding:0 18px;font-weight:700;cursor:pointer}
+.hint{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.hint span{background:var(--card);border-radius:10px;padding:2px 10px;font-weight:800;font-size:20px}
+.hint span.q2{background:var(--pink);color:#fff}
+.hint p{width:100%;text-align:center;margin:0;color:var(--mute);font-size:15px}
+.ladder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 16px;margin-top:14px;font-weight:700;font-size:18px;color:var(--mute)}
+.pop{position:fixed;left:50%;top:38%;transform:translate(-50%,0);font-size:44px;font-weight:800;color:var(--teal);pointer-events:none;opacity:0}
+.pop.go{animation:up .8s ease-out}
+.quit{display:block;margin:18px auto 0;background:none;border:0;color:var(--mute);font-size:16px;min-height:44px;cursor:pointer;text-decoration:underline}
+#end{text-align:center}
+#endT{font-size:42px;margin:4px 0 12px}
+.news{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:8px;text-align:start}
+.news li{background:var(--card);border-radius:16px;padding:10px 14px;font-weight:700}
+.news li b{color:var(--pink)}
+/* monstruo */
+.mon .m2,.mon .m3{display:none}
+.mon.happy .m1,.mon.oops .m1{display:none}.mon.happy .m2,.mon.oops .m3{display:inline}
+.mon.happy .bod{animation:hop .5s}.mon.oops .bod{animation:wob .5s}
+.flame{transform-origin:100px 58px;transform:scale(var(--f,0));transition:transform .3s}
+.flame path{animation:flick .4s infinite alternate}
+@keyframes hop{40%{transform:translateY(-16px)}}
+@keyframes wob{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes flick{to{transform:scaleY(1.08) translateY(-2px)}}
+@keyframes up{0%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-70px)}}
+#confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#confetti i{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:fall 2.2s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+/* suma y resta */
+.worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
+.worlds button{border:3px solid transparent;background:var(--card);border-radius:18px;min-height:60px;font-weight:800;font-size:20px;cursor:pointer;line-height:1.1;padding:4px 8px}
+.worlds button.on{border-color:var(--pink);background:var(--selbg)}
+.mode:disabled{opacity:.5;cursor:default}
+.mode .sc .med{justify-content:center;gap:4px}
+.mode .sc .med i{width:14px;height:14px;margin:0;box-shadow:none}
+.mode .sc .med i.y{background:var(--gold)}
+.stage.sm{width:84px}
+.srmsg{text-align:center;font-weight:700;font-size:18px;min-height:52px;margin:2px 0 8px;line-height:1.25;color:var(--ink)}
+.board{--cw:clamp(44px,13.5vw,70px);display:grid;grid-template-rows:calc(var(--cw)*.62) auto auto 6px auto;gap:4px 6px;justify-content:center;margin:4px auto 8px;font-weight:800;line-height:1}
+.board>*{position:relative;z-index:1}
+.board .colhl{grid-row:1/6;z-index:0;border-radius:14px;background:light-dark(#ffe9a3,#4a3d70);margin:-4px -3px}
+.board .colhl.bad{background:light-dark(#ffc2d1,#6b2a45)}
+.dg{font-size:calc(var(--cw)*.8);height:calc(var(--cw)*.95);display:flex;align-items:center;justify-content:center;border-radius:12px}
+.dg small{font-size:.45em;color:var(--pink);align-self:flex-start;margin-top:.1em}
+.dg.tap{cursor:pointer}
+.dg.tap:hover{background:light-dark(#fff3c4,#43365f)}
+.dg.lent::after{content:'';position:absolute;left:10%;right:10%;top:48%;height:5px;background:var(--pink);transform:rotate(-35deg);border-radius:3px}
+.sign{font-size:calc(var(--cw)*.75);display:flex;align-items:center;justify-content:center}
+.ln{grid-row:4;grid-column:1/-1;background:var(--ink);border-radius:3px}
+.ax{height:calc(var(--cw)*.62);display:grid;place-items:center;font-size:calc(var(--cw)*.42);color:var(--pink)}
+.ax.box{border:3px dashed var(--line);border-radius:10px;width:72%;justify-self:center;background:var(--card);cursor:pointer}
+.ax.box.st{cursor:default}
+.ax.box.ok{border-style:solid;border-color:var(--pink)}
+.ax.box.auto{opacity:.5}
+.ax.box.on{border-style:solid;border-color:var(--pink);box-shadow:0 0 0 4px light-dark(#ffd0dc,#6b2a45)}
+.rc{height:calc(var(--cw)*1.05);border:4px dashed var(--teal);border-radius:14px;display:grid;place-items:center;font-size:calc(var(--cw)*.75);color:var(--teal);background:var(--card)}
+.rc[data-f]{cursor:pointer}
+.rc.on{border-style:solid;border-color:var(--pink);box-shadow:0 0 0 4px light-dark(#ffd0dc,#6b2a45)}
+.rc.ok{border-style:solid;background:var(--teal);color:#fff}
+.rc.shown{border-style:solid;border-color:var(--pink);color:var(--pink)}
+.rc.st{border-style:solid;border-color:var(--line)}
+.rc.fill{color:var(--ink)}
+.bad{animation:wob .4s}
+.pulse{animation:pls .7s infinite alternate}
+@keyframes pls{to{box-shadow:0 0 0 6px var(--pink)}}
+.q.sm{font-size:clamp(30px,8vw,56px)}
+.pad.p5{grid-template-columns:repeat(5,minmax(0,1fr));max-width:540px;gap:8px}
+.pad.p5 .op{min-height:58px;font-size:30px}
+.op:disabled{opacity:.3}
+.daily{margin-top:14px;background:var(--card);border-radius:22px;padding:12px;border:3px solid var(--pink)}
+.daily.full{border-color:var(--teal)}
+.dh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:23px;font-weight:800;margin:0 4px 8px}
+.dh span{font-size:16px;background:var(--pink);color:#fff;border-radius:99px;padding:0 12px;white-space:nowrap}
+.daily.full .dh span{background:var(--teal)}
+.daily .modes{gap:8px}
+.daily .mode,.dx button{background:light-dark(#fff,#2a2140)}
+.mode.ok,.dx button.ok{background:var(--selbg)}
+.mode .ck{font-size:28px;font-weight:800;color:var(--teal);padding:0 4px}
+.dx{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.dx button{border:0;border-radius:16px;min-height:52px;font-weight:700;font-size:17px;cursor:pointer;padding:4px 8px}
+.papas select{font:inherit;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 8px}
+/* inglés */
+.phr{background:var(--card);border-radius:20px;padding:14px 16px;border:3px solid var(--teal)}
+.phr small{font-weight:800;color:var(--teal);font-size:14px;text-transform:uppercase;letter-spacing:.05em}
+.phr .en{font-size:30px;font-weight:800;line-height:1.1;margin:4px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.phr p{margin:2px 0}
+.say{border:0;background:var(--teal);color:#fff;border-radius:14px;min-width:52px;min-height:48px;font-size:22px;cursor:pointer;box-shadow:0 4px 0 #0b6f6d}
+.say:active{transform:translateY(3px);box-shadow:0 1px 0 #0b6f6d}
+.words{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.wd{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;text-align:start;background:var(--card);border:0;border-radius:16px;padding:8px 10px;cursor:pointer;min-height:64px}
+.wd:active{background:var(--selbg)}
+.wd .em{font-size:34px;line-height:1;text-align:center}
+.wd b{display:block;font-size:20px;line-height:1.1;overflow-wrap:anywhere}.wd span span{font-size:14px;color:var(--mute)}
+/* preguntas */
+.qp{text-align:center;font-weight:800;font-size:30px;line-height:1.15;margin:4px 0 12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.qp .em{font-size:76px;line-height:1}
+.qp .rq{font-size:24px;font-weight:700}
+.opts1{display:grid;gap:10px}
+.op.tx{font-size:20px;text-align:start;padding:10px 16px;min-height:64px;line-height:1.2}
+.op .em{font-size:30px;margin-inline-end:6px;vertical-align:middle}
+.op.sm .em{display:block;margin:0 auto}
+/* lectura */
+.rdcard{background:var(--card);border-radius:22px;padding:14px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;align-items:center}
+.rdcard .em{font-size:60px;text-align:center;line-height:1}
+.rdcard b{font-size:23px;display:block;line-height:1.1}
+.rdcard .note{margin:4px 0 0;display:block}
+.mode .n.em2{background:var(--selbg);font-size:28px}
+.rdh{display:flex;align-items:center;gap:10px}.rdh .em{font-size:52px;line-height:1}.rdh h2{margin:8px 0}
+.story{background:var(--card);border-radius:20px;padding:16px 18px;font-size:21px;line-height:1.65;margin-bottom:16px}
+.story p{margin:0 0 14px}.story p:last-child{margin:0}
+.peek .story{display:block;font-size:18px;font-weight:500;padding:4px 0 8px;margin:0;background:none}
+#rdGo{width:100%}
+.dots{flex-wrap:wrap}.dots.many{gap:4px}.dots.many i{width:9px}
+.phr hr{border:0;border-top:2px dashed var(--line);margin:10px 0}
+.peekw{display:block;margin-top:2px}
+.hola{font-size:24px;font-weight:800;line-height:1.1;margin-bottom:6px}
+.papas input#nombre{width:auto;height:auto;flex:1;font:inherit;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px}
+.enk{display:flex;flex-wrap:wrap;gap:6px}
+.enk button,.mini{border:0;background:var(--bg);border-radius:10px;padding:4px 10px;font-weight:700;font-size:15px;cursor:pointer;min-height:36px}
+.mini{background:var(--teal);color:#fff}
+.bld{min-height:56px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;border-bottom:4px solid var(--teal);margin:0 auto 14px;max-width:520px;padding:4px}
+.bld span{font-size:24px;font-weight:800;color:var(--teal)}
+.bldw{justify-content:center;gap:10px}
+.bldw button{font-size:24px;min-height:56px;padding:4px 16px;background:var(--card);box-shadow:0 4px 0 var(--line);border-radius:14px}
+.bldw button:disabled{opacity:.25}
+.eng{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.eng button{border:2px solid transparent;background:var(--bg);border-radius:12px;padding:6px 8px;text-align:start;cursor:pointer;font-weight:700;font-size:14px;line-height:1.2}
+.eng button small{display:block;font-weight:500;color:var(--mute);font-size:12px}
+.eng button.on{border-color:var(--teal);background:var(--selbg)}
+@media(max-width:600px){.week{gap:4px}.week span{width:28px;height:28px;font-size:13px}.hero{grid-template-columns:100px minmax(0,1fr)}.stat b{font-size:26px}h1{font-size:30px}.stage{width:110px}.combo{font-size:16px}.tb b{font-size:22px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Un día más inteligente</h1>
+    <div class="lvl">Nivel <b id="lv">1</b><span class="lbar"><i id="lvb" style="width:0"></i></span></div>
+    <button class="snd" id="snd">Sonido: sí</button>
+  </header>
+
+  <section id="home">
+    <div class="hero">
+      <div class="stage" id="m1"></div>
+      <div>
+        <div class="hola" id="hola"></div>
+        <div class="stats">
+          <div class="stat fire"><b id="sDays">0</b><span>días seguidos</span></div>
+          <div class="stat"><b id="sPts">0</b><span>puntos</span></div>
+          <div class="stat"><b id="sMed">0</b><span>medallas de 50</span></div>
+        </div>
+        <div class="week" id="week"></div>
+      </div>
+    </div>
+    <div class="daily" id="daily"></div>
+    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button></div>
+    <div id="wX">
+    <h2>Tu camino</h2>
+    <div class="path" id="path"></div>
+    <p class="note">Cada tabla tiene 5 retos. Con 3 medallas se abre la siguiente tabla. Una medalla se gana con 8 o más de 10 a la primera.</p>
+    <button class="big repaso" id="rep">Repaso de las difíciles</button>
+    </div>
+    <div id="wSR" hidden>
+      <h2>Tu camino</h2>
+      <div class="modes" id="srpath"></div>
+      <p class="note">Cada nivel tiene 4 retos. Con 3 medallas se abre el siguiente nivel.</p>
+    </div>
+    <div id="wEN" hidden></div>
+    <div id="wRD" hidden></div>
+    <details class="papas">
+      <summary>Para papás</summary>
+      <label><input type="checkbox" id="open"> Abrir todas las tablas sin seguir el orden</label>
+      <label>Nombre: <input id="nombre" maxlength="20" autocomplete="off"></label>
+      <label>Tabla del reto diario: <select id="retoSel"></select></label>
+      <button class="ghost" id="reset">Borrar todo el avance</button>
+      <p class="note" id="cloud"></p>
+      <h3 class="ph">Cómo va</h3>
+      <div id="prog"></div>
+      <div id="srprog"></div>
+      <div id="xprog"></div>
+    </details>
+  </section>
+
+  <section id="tabla" hidden>
+    <h2 id="tT">Tabla del 7</h2>
+    <div class="modes" id="modes"></div>
+    <details class="peek"><summary>Ver la tabla completa</summary><div id="peek"></div></details>
+    <div class="row"><button class="ghost" id="back">Volver al camino</button></div>
+  </section>
+
+  <section id="play" hidden>
+    <div class="dots" id="dots"></div>
+    <div class="stage"><div id="m2"></div><div class="combo" id="combo" hidden></div></div>
+    <div class="lab" id="lab"></div>
+    <div class="q" id="q"></div>
+    <div id="ans"></div>
+    <div class="tools"><button class="hintb" id="hintb">Pista</button></div>
+    <div class="hint" id="hint"></div>
+    <div class="ladder" id="ladder"></div>
+    <button class="quit" id="quit">Salir</button>
+  </section>
+
+  <section id="srlvl" hidden>
+    <h2 id="srT">Nivel 1</h2>
+    <div class="modes" id="srmodes"></div>
+    <div class="row"><button class="ghost" id="srback">Volver al camino</button></div>
+  </section>
+
+  <section id="srplay" hidden>
+    <div class="dots" id="srdots"></div>
+    <div class="stage sm"><div id="m4"></div><div class="combo" id="srcombo" hidden></div></div>
+    <div class="lab" id="srlab"></div>
+    <div id="srq"></div>
+    <div class="srmsg" id="srmsg" aria-live="polite"></div>
+    <div id="srans"></div>
+    <div class="tools"><button class="hintb" id="srhint">Pista</button></div>
+    <button class="quit" id="srquit">Salir</button>
+  </section>
+
+  <section id="rd" hidden>
+    <div class="rdh"><span class="em" id="rdEm"></span><h2 id="rdT"></h2></div>
+    <p class="note" id="rdInfo"></p>
+    <div class="story" id="rdTxt"></div>
+    <button class="big" id="rdGo">¡Terminé de leer! Ir a las preguntas</button>
+    <button class="quit" id="rdQuit">Elegir otra lectura</button>
+  </section>
+
+  <section id="qz" hidden>
+    <div class="dots" id="qzdots"></div>
+    <div class="stage sm"><div id="m5"></div><div class="combo" id="qzcombo" hidden></div></div>
+    <div class="lab" id="qzlab"></div>
+    <div id="qzq"></div>
+    <div id="qzans"></div>
+    <div class="srmsg" id="qzmsg" aria-live="polite"></div>
+    <details class="peek" id="qzpeek" hidden><summary>Volver a ver la lectura</summary><div class="story" id="qzstory"></div></details>
+    <button class="quit" id="qzquit">Salir</button>
+  </section>
+
+  <section id="end" hidden>
+    <div class="stage" id="m3"></div>
+    <h2 id="endT">¡Muy bien!</h2>
+    <div class="stats">
+      <div class="stat"><b id="eOk">0</b><span id="eOkL">a la primera de 10</span></div>
+      <div class="stat"><b id="ePts">0</b><span>puntos</span></div>
+      <div class="stat fire"><b id="eCombo">0</b><span>racha en la ronda</span></div>
+    </div>
+    <ul class="news" id="news"></ul>
+    <div class="row">
+      <button class="ghost" id="again">Otra vez</button>
+      <button class="big" id="nextb">Siguiente</button>
+    </div>
+    <button class="quit" id="home2">Volver al camino</button>
+  </section>
+</div>
+<div class="pop" id="pop"></div>
+<div id="confetti"></div>
+
+<script>
+{
+const K='tablas-turbo-v2',LV=150,HARD=[4,6,7,8,9];
+const MODES=[
+  {id:'esc',name:'Escalera',d:'En orden, del 1 al 10'},
+  {id:'rev',name:'Revuelta',d:'Las mismas, en desorden'},
+  {id:'tec',name:'Teclado',d:'Escribe tú el resultado'},
+  {id:'falta',name:'¿Qué falta?',d:'Encuentra el número escondido'},
+  {id:'sino',name:'¿Sí o no?',d:'¿Está bien o está mal?'}];
+let S=null;
+try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
+if(!S){try{const o=JSON.parse(localStorage.getItem('tablas-turbo-v1'));if(o)S={pts:o.pts,best:o.best,streak:o.streak,last:o.last,days:o.days,facts:o.facts,mute:o.mute}}catch(e){}}
+const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo'});
+S=Object.assign(DEF(),S||{});
+const save=()=>{S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
+/* ---- nube (Supabase) ---- */
+const SB='https://rrnuxiadvqqwzrhpdwpl.supabase.co',SBK='sb_publishable_S3kfMHOQsui0EruQbm9QrA_I-D6GNMZ';
+let CODE='';
+try{const p=new URLSearchParams(location.search).get('p');if(p&&/^[a-f0-9]{24,64}$/.test(p)){localStorage.setItem('tt-codigo',p);history.replaceState(null,'',location.pathname)}CODE=localStorage.getItem('tt-codigo')||''}catch(e){}
+let pushT=null,cloudMsg=CODE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
+const rpc=async(fn,body)=>{const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json()};
+const setCloud=m=>{cloudMsg=m;const el=document.getElementById('cloud');if(el)el.textContent=m};
+const hhmm=()=>new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+function schedulePush(){if(!CODE)return;clearTimeout(pushT);pushT=setTimeout(push,1500)}
+async function push(){if(!CODE)return;try{await rpc('tt_guardar',{p_codigo:CODE,p_datos:S});setCloud('Guardado en la nube a las '+hhmm())}catch(e){setCloud('Sin conexión: se guarda en este dispositivo y se sube después.')}}
+async function pull(){if(!CODE)return;try{const r=await rpc('tt_cargar',{p_codigo:CODE});
+  if(!r){setCloud('El código de jugador no es válido.');return}
+  const remote=r.datos||{};
+  if((remote.ts||0)>(S.ts||0)){S=Object.assign(DEF(),remote);try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}if(!$('home').hidden)renderHome();setCloud('Avance cargado de la nube a las '+hhmm())}
+  else if((S.ts||0)>(remote.ts||0))push();
+  else setCloud('Al día con la nube ('+hhmm()+')');
+}catch(e){setCloud('Sin conexión: se guarda en este dispositivo y se sube después.')}}
+addEventListener('online',()=>push());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&$('play').hidden&&$('srplay').hidden&&$('qz').hidden)pull()});
+const $=id=>document.getElementById(id);
+const dstr=ms=>{const x=new Date(ms);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+const today=()=>dstr(Date.now()),yday=()=>dstr(Date.now()-864e5);
+const box=(t,n)=>S.facts[t+'x'+n]||0;
+const best=(t,m)=>S.med[t+'-'+m]||0;
+const medals=t=>MODES.filter(m=>best(t,m.id)>=8).length;
+const unlocked=t=>S.open||t===1||medals(t-1)>=3;
+const curStreak=()=>(S.last===today()||S.last===yday())?S.streak:0;
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const range=()=>[1,2,3,4,5,6,7,8,9,10];
+
+const monster=`<svg class="mon" viewBox="0 0 200 200" aria-hidden="true">
+<ellipse cx="100" cy="190" rx="56" ry="8" fill="rgba(0,0,0,.15)"/>
+<g class="bod">
+<g class="flame"><path d="M100 4C128 28 130 52 100 58C70 52 74 30 90 18C90 32 97 38 103 32C108 24 102 12 100 4Z" fill="#ff6b35"/><path d="M100 26C112 38 112 52 100 55C88 52 90 42 96 36C97 42 101 42 102 38C104 34 101 30 100 26Z" fill="#ffd23f"/></g>
+<path d="M38 124Q38 54 100 54Q162 54 162 124L162 176Q147 164 131 178Q116 164 100 178Q84 164 69 178Q53 164 38 176Z" fill="#14a3a0"/>
+<path d="M38 124Q38 54 100 54Q70 70 62 124L62 172Q50 166 38 176Z" fill="#0f8885"/>
+<ellipse cx="78" cy="78" rx="16" ry="8" fill="#fff" opacity=".3"/>
+<circle cx="80" cy="108" r="15" fill="#fff"/><circle cx="120" cy="108" r="15" fill="#fff"/>
+<circle cx="83" cy="111" r="7" fill="#1b1b3a"/><circle cx="117" cy="111" r="7" fill="#1b1b3a"/>
+<circle cx="85" cy="108" r="2.5" fill="#fff"/><circle cx="119" cy="108" r="2.5" fill="#fff"/>
+<circle cx="64" cy="132" r="7" fill="#ef476f" opacity=".6"/><circle cx="136" cy="132" r="7" fill="#ef476f" opacity=".6"/>
+<path class="m1" d="M84 134Q100 150 116 134" stroke="#1b1b3a" stroke-width="5" fill="none" stroke-linecap="round"/>
+<path class="m2" d="M78 130Q100 166 122 130Z" fill="#1b1b3a"/>
+<ellipse class="m3" cx="100" cy="142" rx="8" ry="10" fill="#1b1b3a"/>
+</g></svg>`;
+const lockSvg='<svg class="lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="12" rx="3" fill="currentColor"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2.5" fill="none"/></svg>';
+['m1','m2','m3','m4','m5'].forEach(id=>$(id).innerHTML=monster);
+const mon=id=>$(id).querySelector('.mon');
+const mood=(id,m)=>{const el=mon(id);el.classList.remove('happy','oops');void el.getBoundingClientRect();if(m)el.classList.add(m)};
+const flame=(id,c)=>mon(id).style.setProperty('--f',c<=0?0:Math.min(.5+c*.08,1.3));
+
+let AC=null;
+const tone=(f,d=.12,type='sine',w=0)=>{if(S.mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+w,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}};
+const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
+
+function renderTop(){
+  $('lv').textContent=Math.floor(S.pts/LV)+1;
+  $('lvb').style.width=(S.pts%LV)/LV*100+'%';
+  $('snd').textContent='Sonido: '+(S.mute?'no':'sí');
+}
+function renderHome(){
+  renderTop();
+  $('hola').textContent=`¡Hola, ${S.nombre||'Adolfo'}!`;$('nombre').value=S.nombre||'';
+  $('sDays').textContent=curStreak();$('sPts').textContent=S.pts;
+  let tot=0;range().forEach(t=>tot+=medals(t));$('sMed').textContent=tot;
+  const L=['D','L','M','M','J','V','S'];let w='';
+  for(let i=6;i>=0;i--){const ms=Date.now()-i*864e5,d=dstr(ms);w+=`<span class="${S.days[d]?'on':''} ${i===0?'hoy':''}">${L[new Date(ms).getDay()]}</span>`}
+  $('week').innerHTML=w+`<span class="goal">Meta de hoy: <b>${Math.min(S.days[today()]||0,3)}/3</b> rondas</span>`;
+  const nextT=range().find(t=>unlocked(t)&&medals(t)<3);
+  $('path').innerHTML=range().map(t=>{const u=unlocked(t),m=medals(t);
+    return `<button class="tb ${t===nextT?'next':''} ${m>=3?'done':''}" data-t="${t}" ${u?'':'disabled'}><b>×${t}</b>${u?`<span class="med">${MODES.map((x,i)=>`<i class="${best(t,x.id)>=8?'y':''}"></i>`).join('')}</span>`:lockSvg}${HARD.includes(t)?'<span class="reto">reto</span>':''}</button>`}).join('');
+  const hu=HARD.filter(unlocked);
+  $('rep').disabled=!hu.length;
+  $('rep').textContent=hu.length?`Repaso de las difíciles (${hu.map(t=>'×'+t).join(' ')})`:'Repaso de las difíciles: se abre al llegar a la tabla del 4';
+  $('open').checked=S.open;
+  $('cloud').textContent=cloudMsg;
+  const tsum=t=>range().reduce((a,n)=>a+box(t,n),0);
+  let rounds=0;for(let i=0;i<7;i++)rounds+=S.days[dstr(Date.now()-i*864e5)]||0;
+  const fails=Object.entries(S.miss||{}).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  $('prog').innerHTML=`<p class="note">Rondas en los últimos 7 días: <b>${rounds}</b> · Racha: <b>${curStreak()} ${curStreak()===1?'día':'días'}</b></p>
+  <table class="pt"><tr><th>Tabla</th><th class="r">Medallas</th><th class="r">Dominio</th></tr>${range().map(t=>`<tr><td>×${t}</td><td class="r">${medals(t)}/5</td><td class="r">${Math.round(tsum(t)/30*100)}%</td></tr>`).join('')}</table>
+  <p class="note">Las que más ha fallado:</p><div class="fails">${fails.length?fails.map(([k,c])=>`<span>${k.replace('x',' × ')} (${c})</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
+  flame('m1',curStreak()?3:0);
+  const wd=['sr','en','rd'].includes(S.world)?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';
+  [...$('worlds').children].forEach(b=>b.classList.toggle('on',b.dataset.w===wd));
+  renderSR();renderDaily();renderEN();renderRD();renderXProg();
+}
+let curT=1;
+function openTable(t){
+  curT=t;renderTop();$('tT').textContent='Tabla del '+t;
+  const nx=MODES.find(m=>best(t,m.id)<8);
+  $('modes').innerHTML=MODES.map((m,i)=>{const b=best(t,m.id);
+    return `<button class="mode ${nx&&nx.id===m.id?'next':''}" data-m="${m.id}"><span class="n">${i+1}</span><span><b>${m.name}</b><span>${m.d}</span></span><span class="sc"><i class="${b>=8?'y':''}"></i>${b?b+'/10':''}</span></button>`}).join('');
+  $('peek').innerHTML=range().map(n=>`<span>${t} × ${n} = ${t*n}</span>`).join('');
+  show('tabla');
+}
+$('path').addEventListener('click',e=>{const b=e.target.closest('.tb');if(b&&!b.disabled){tone(660,.06);openTable(+b.dataset.t)}});
+$('modes').addEventListener('click',e=>{const b=e.target.closest('.mode');if(b)start(b.dataset.m,curT)});
+$('back').addEventListener('click',()=>{show('home');renderHome()});
+$('snd').addEventListener('click',()=>{S.mute=!S.mute;save();renderTop();tone(700,.1)});
+$('open').addEventListener('change',e=>{S.open=e.target.checked;save();renderHome()});
+let armed=false;
+$('reset').addEventListener('click',e=>{if(!armed){armed=true;e.target.textContent='¿Seguro? Toca otra vez para borrar';setTimeout(()=>{armed=false;e.target.textContent='Borrar todo el avance'},4000);return}
+  S=DEF();save();armed=false;e.target.textContent='Borrar todo el avance';renderHome()});
+$('rep').addEventListener('click',()=>start('mix',0));
+
+/* ---- juego ---- */
+let G=null;
+const wrongNear=(r,t,n)=>shuffle([r+t,r-t,r+1,r-1,r+2,r+10,r-10].filter(x=>x>0&&x!==r))[0];
+function mk(t,n,type,k){const q={t,n,type,k,flip:type==='ch'&&G0flip&&Math.random()<.5};if(type==='sino')q.shown=Math.random()<.5?t*n:wrongNear(t*n,t,n);return q}
+let G0flip=false;
+function start(mode,t){
+  if(G)clearTimeout(G.to);
+  let list;
+  if(mode==='mix'){
+    G0flip=true;const hu=HARD.filter(unlocked),pool=[];
+    hu.forEach(a=>range().forEach(n=>pool.push({t:a,n,w:4-box(a,n)})));
+    list=[];let last='';
+    for(let k=0;k<10;k++){let f,tries=0;do{let r=Math.random()*pool.reduce((s,p)=>s+p.w,0);f=pool.find(p=>(r-=p.w)<=0)||pool[0];tries++}while(f.t+'x'+f.n===last&&tries<20);
+      last=f.t+'x'+f.n;list.push(mk(f.t,f.n,['ch','tec','falta','sino'][Math.floor(Math.random()*4)],k))}
+  }else if(mode==='reto'){
+    G0flip=false;list=[...range(),...shuffle(range())].map((n,k)=>mk(t,n,'tec',k));
+  }else{
+    G0flip=mode==='rev';const ns=mode==='esc'?range():shuffle(range());
+    const type=mode==='esc'||mode==='rev'?'ch':mode;
+    list=ns.map((n,k)=>mk(t,n,type,k));
+  }
+  G={mode,t,list,i:0,first:0,combo:0,maxc:0,pts:0,res:[],lad:[],lvl:Math.floor(S.pts/LV),lock:false,typed:'',hint:false,unl:t?unlocked(t+1):true,medBefore:t?best(t,mode)>=8:false};
+  show('play');flame('m2',0);mood('m2',null);$('combo').hidden=true;tone(523,.1);tone(784,.15,'sine',.1);ask();
+}
+function chOpts(r,t,n){const s=new Set([r]);
+  shuffle([(t+1)*n,(t-1)*n,t*(n+1),t*(n-1),r+1,r-1,r+10,r-10]).forEach(x=>{if(x>0&&s.size<4)s.add(x)});
+  while(s.size<4)s.add(r+1+Math.floor(Math.random()*12));return shuffle([...s])}
+function faltaOpts(n){const s=new Set([n]);shuffle([n-1,n+1,n-2,n+2,n+3,n-3]).forEach(x=>{if(x>=1&&x<=10&&s.size<4)s.add(x)});return shuffle([...s])}
+function dots(){$('dots').innerHTML=Array.from({length:G.mode==='reto'?20:10},(_,i)=>`<i class="${G.res[i]||(G.list[G.i]&&G.list[G.i].k===i&&!G.list[G.i].retry?'now':'')}"></i>`).join('')}
+function qText(q,reveal){const {t,n,type}=q,r=t*n;
+  if(type==='falta')return `${t} × <span class="slot">${reveal?n:'?'}</span> = ${r}`;
+  if(type==='sino')return reveal?`${t} × ${n} = ${r}`:`${t} × ${n} = ${q.shown}`;
+  const a=q.flip?n:t,b=q.flip?t:n;
+  if(type==='tec')return `${a} × ${b} = <span class="slot">${reveal?r:(G.typed||'&nbsp;')}</span>`;
+  return reveal?`${a} × ${b} = ${r}`:`${a} × ${b}`;
+}
+function ask(){
+  const q=G.list[G.i];G.lock=false;G.typed='';G.hint=false;
+  const el=$('q');el.classList.remove('show');el.innerHTML=qText(q,false);
+  const labs={ch:'¿Cuánto es?',tec:'Escribe el resultado',falta:'¿Qué número falta?',sino:'¿Está bien?'};
+  $('lab').textContent=(q.retry?'Otra vez: ':'')+(G.mode==='reto'&&!q.retry?(q.k<10?'En orden · ':'En desorden · '):'')+labs[q.type];
+  const r=q.t*q.n;let h='';
+  if(q.type==='ch')h=`<div class="opts">${chOpts(r,q.t,q.n).map(v=>`<button class="op" data-v="${v}">${v}</button>`).join('')}</div>`;
+  else if(q.type==='falta')h=`<div class="opts">${faltaOpts(q.n).map(v=>`<button class="op" data-v="${v}">${v}</button>`).join('')}</div>`;
+  else if(q.type==='sino')h=`<div class="opts"><button class="op sm" data-v="1">Sí, está bien</button><button class="op sm" data-v="0">No, está mal</button></div>`;
+  else h=`<div class="pad">${[1,2,3,4,5,6,7,8,9].map(d=>`<button class="op" data-k="${d}">${d}</button>`).join('')}<button class="op sm" data-k="del">Borrar</button><button class="op" data-k="0">0</button><button class="op okk sm" data-k="ok">Listo</button></div>`;
+  $('ans').innerHTML=h;$('hint').innerHTML='';$('hintb').hidden=false;
+  $('ladder').innerHTML=G.mode==='esc'?G.lad.map(x=>`<span>${x}</span>`).join(''):'';
+  dots();
+}
+$('hintb').addEventListener('click',()=>{if(G.lock)return;const q=G.list[G.i];G.hint=true;$('hintb').hidden=true;const {t,n}=q;let h='';
+  if(q.type==='falta'){h=range().slice(0,n).map(k=>`<span>${t*k}</span>`).join('')+`<p>Cuenta de ${t} en ${t} hasta ${t*n}. ¿Cuántos saltos son?</p>`}
+  else{h=range().slice(0,n-1).map(k=>`<span>${t*k}</span>`).join('')+`<span class="q2">?</span><p>Cuenta de ${t} en ${t}, ${n} veces</p>`}
+  $('hint').innerHTML=h;tone(880,.08)});
+function typeKey(k){const q=G.list[G.i];if(G.lock||q.type!=='tec')return;
+  if(k==='del')G.typed=G.typed.slice(0,-1);
+  else if(k==='ok'){if(G.typed)judge(+G.typed===q.t*q.n,null);return}
+  else if(G.typed.length<3)G.typed+=k;
+  $('q').innerHTML=qText(q,false);tone(600,.04)}
+$('ans').addEventListener('click',e=>{const b=e.target.closest('.op');if(!b||G.lock)return;const q=G.list[G.i];
+  if(b.dataset.k!==undefined){typeKey(b.dataset.k);return}
+  const v=+b.dataset.v,r=q.t*q.n;
+  const ok=q.type==='ch'?v===r:q.type==='falta'?v===q.n:((v===1)===(q.shown===r));
+  judge(ok,b)});
+document.addEventListener('keydown',e=>{if($('play').hidden||!G)return;
+  if(/^[0-9]$/.test(e.key))typeKey(e.key);else if(e.key==='Backspace')typeKey('del');else if(e.key==='Enter')typeKey('ok')});
+function judge(ok,btn){
+  G.lock=true;const q=G.list[G.i],{t,n}=q,r=t*n,key=t+'x'+n;
+  if(ok){
+    S.facts[key]=Math.min(3,box(t,n)+1);
+    if(!q.retry){G.first++;G.res[q.k]='ok'}
+    G.combo++;G.maxc=Math.max(G.maxc,G.combo);
+    const p=G.hint?5:10+Math.min(G.combo,10)*2;G.pts+=p;
+    if(btn)btn.classList.add('good');
+    if(q.type==='tec')$('q').innerHTML=qText(q,true);
+    mood('m2','happy');
+    const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');
+    tone(520+G.combo*40,.1);tone(780+G.combo*40,.16,'sine',.08);
+  }else{
+    S.facts[key]=0;S.miss[key]=(S.miss[key]||0)+1;G.combo=0;
+    if(!q.retry)G.res[q.k]='no';
+    if(btn)btn.classList.add('bad');
+    [...$('ans').querySelectorAll('.op[data-v]')].forEach(o=>{const v=+o.dataset.v;
+      if((q.type==='ch'&&v===r)||(q.type==='falta'&&v===q.n)||(q.type==='sino'&&(v===1)===(q.shown===r)))o.classList.add('good')});
+    const el=$('q');el.innerHTML=qText(q,true);el.classList.add('show');
+    mood('m2','oops');tone(220,.25,'triangle');
+    if(!q.retry){const c=Object.assign({},q,{retry:true});if(c.type==='sino')c.shown=Math.random()<.5?r:wrongNear(r,t,n);G.list.push(c)}
+  }
+  if(G.mode==='esc'&&!q.retry)G.lad.push(`${t} × ${n} = ${r}`);
+  $('hintb').hidden=true;
+  const c=$('combo');c.hidden=G.combo<2;c.textContent='racha ×'+G.combo;flame('m2',G.combo);
+  G.i++;dots();save();
+  G.to=setTimeout(()=>G.i>=G.list.length?finish():ask(),ok?750:2200);
+}
+let nextAct=null;
+let againAct=null;
+function bookRound(pts,maxc){
+  const d=today(),firstToday=S.last!==d;
+  if(firstToday){S.streak=S.last===yday()?S.streak+1:1;S.last=d}
+  S.days[d]=(S.days[d]||0)+1;
+  const ks=Object.keys(S.days).sort();while(ks.length>60)delete S.days[ks.shift()];
+  S.pts+=pts;const newBest=maxc>S.best;if(newBest)S.best=maxc;
+  return{d,firstToday,newBest}}
+function commonNews(b,lvlBefore,maxc){const news=[];
+  if(b.firstToday)news.push(S.streak>1?`¡Racha de <b>${S.streak} días</b> seguidos! Vuelve mañana para que crezca.`:`¡Empezaste tu racha! Juega mañana para llevarla a <b>2 días</b>.`);
+  if(S.days[b.d]===3)news.push('¡Cumpliste la <b>meta de hoy</b>: 3 rondas!');
+  if(b.newBest)news.push(`Nuevo récord: <b>${maxc} aciertos</b> seguidos`);
+  const lv=Math.floor(S.pts/LV);if(lv>lvlBefore)news.push(`¡Subiste al <b>nivel ${lv+1}</b>!`);
+  return news}
+function finish(){
+  const bk=bookRound(G.pts,G.maxc),d=bk.d;
+  const {mode,t}=G,pass=G.first>=8,isP=mode!=='mix'&&mode!=='reto',rnews=[];
+  if(isP)S.med[t+'-'+mode]=Math.max(best(t,mode),G.first);
+  const okO=G.res.slice(0,10).filter(x=>x==='ok').length,okD=G.res.slice(10,20).filter(x=>x==='ok').length,retoOk=okO===10&&okD>=8;
+  if(mode==='reto'){const R=dayRec();R.tTries++;
+    if(retoOk&&!R.tOk){R.tOk=true;S.rk=S.rk||{};S.rk[t]=(S.rk[t]||0)+1;rnews.push(`¡Reto cumplido con la <b>tabla del ${t}</b>! En orden sin fallar y en desorden ${okD} de 10`)}
+    else if(!retoOk&&!R.tOk)rnews.push(`En orden: <b>${okO} de 10</b> (necesitas 10). En desorden: <b>${okD} de 10</b> (necesitas 8). ¡Tú puedes!`);
+    const bn=retoBonus();if(bn)rnews.push(bn)}
+  save();renderTop();
+  $('endT').textContent=mode==='reto'?(retoOk?'¡Reto cumplido!':'¡Casi! Otra vez'):G.first===10?'¡Perfecto!':pass?(mode==='mix'?'¡Excelente!':'¡Medalla ganada!'):G.first>=5?'¡Muy bien!':'¡Sigue así!';
+  $('eOk').textContent=G.first;$('eOkL').textContent='a la primera de '+(mode==='reto'?20:10);againAct=()=>start(G.mode,G.t);$('ePts').textContent=G.pts;$('eCombo').textContent=G.maxc;
+  const news=rnews;
+  if(isP&&pass&&!G.medBefore)news.push(`Medalla de <b>${MODES.find(m=>m.id===mode).name}</b> en la tabla del ${t}`);
+  if(isP&&!pass)news.push(`Te faltaron <b>${8-G.first}</b> a la primera para la medalla. ¡Casi!`);
+  if(t&&t<10&&!G.unl&&unlocked(t+1))news.push(`¡Se abrió la <b>tabla del ${t+1}</b>!`);
+  news.push(...commonNews(bk,G.lvl,G.maxc));
+  $('news').innerHTML=news.map(x=>`<li>${x}</li>`).join('');
+  // siguiente paso
+  if(mode==='reto'){$('again').hidden=true;if(retoOk){nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Al reto del día'}else{nextAct=()=>start('reto',t);$('nextb').textContent='Intentar de nuevo'}}
+  else if(mode==='mix'){nextAct=()=>start('mix',0);$('nextb').textContent='Otro repaso';$('again').hidden=true}
+  else if(!pass){nextAct=()=>start(mode,t);$('nextb').textContent='Intentar de nuevo';$('again').hidden=true}
+  else{$('again').hidden=false;
+    const nm=MODES.find(m=>best(t,m.id)<8);
+    if(nm){nextAct=()=>start(nm.id,t);$('nextb').textContent=nm.name}
+    else if(t<10&&unlocked(t+1)){nextAct=()=>openTable(t+1);$('nextb').textContent='Tabla del '+(t+1)}
+    else{nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Al camino'}}
+  show('end');mood('m3',G.first>=5?'happy':null);flame('m3',G.maxc);
+  [0,.12,.24].forEach((w,i)=>tone([523,659,784][i],.2,'sine',w));
+  if(G.first>=7)confetti();
+}
+function confetti(){
+  const c=$('confetti'),cols=['#ef476f','#14a3a0','#ff9f1c','#fff','#7b5cff'];
+  c.innerHTML=Array.from({length:40},()=>`<i style="left:${Math.random()*100}%;background:${cols[Math.floor(Math.random()*5)]};animation-delay:${Math.random()*.6}s"></i>`).join('');
+  setTimeout(()=>c.innerHTML='',3000);
+}
+$('nextb').addEventListener('click',()=>nextAct&&nextAct());
+$('again').addEventListener('click',()=>againAct&&againAct());
+$('home2').addEventListener('click',()=>{show('home');renderHome()});
+$('quit').addEventListener('click',()=>{if(G)clearTimeout(G.to);if(G&&G.t&&G.mode!=='reto')openTable(G.t);else{show('home');renderHome()}});
+/* ===== Suma y resta ===== */
+const SRL=[
+  {n:1,op:'+',dg:2,k:'sin',ic:'+',name:'Sumas sin llevar'},
+  {n:2,op:'-',dg:2,k:'sin',ic:'−',name:'Restas sin pedir prestado'},
+  {n:3,op:'+',dg:2,k:'con',ic:'+',name:'Sumas llevando'},
+  {n:4,op:'-',dg:2,k:'con',ic:'−',name:'Restas pidiendo prestado'},
+  {n:5,op:'±',dg:3,k:'mix',ic:'±',name:'Sumas y restas de 3 cifras'},
+  {n:6,op:'±',dg:3,k:'con',ic:'±',name:'3 cifras llevando y prestando'},
+  {n:7,op:'±',dg:4,k:'mix',ic:'★',name:'Gran reto: 4 cifras'}];
+const SRM=[
+  {id:'col',name:'En columna',d:'Como en el cuaderno, cifra por cifra',q:5,need:4},
+  {id:'rap',name:'Rápidas',d:'Escoge el resultado correcto',q:8,need:6},
+  {id:'falta',name:'¿Qué falta?',d:'Encuentra el número escondido',q:8,need:6},
+  {id:'det',name:'Detective',d:'¿La cuenta está bien o tiene un error?',q:8,need:6}];
+const srS=()=>{S.sr=S.sr||{};S.sr.med=S.sr.med||{};S.sr.err=S.sr.err||{};S.sr.fails=S.sr.fails||[];return S.sr};
+const srBest=(lv,m)=>srS().med[lv+'-'+m]||0;
+const srMedals=lv=>SRM.filter(m=>srBest(lv,m.id)>=m.need).length;
+const srUnlocked=lv=>lv<=SRL.length&&(S.open||lv===1||srMedals(lv-1)>=3);
+const sym=op=>op==='+'?'+':'−';
+const len=x=>String(x).length;
+const digs=(x,n)=>Array.from({length:n},(_,p)=>Math.floor(x/10**p)%10);
+const rnd=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
+const resOf=pr=>pr.op==='+'?pr.a+pr.b:pr.a-pr.b;
+/* llevadas dentro de las columnas (sin contar la que sale a una cifra nueva) */
+function carriesOf(a,b){const n=Math.max(len(a),len(b)),A=digs(a,n),B=digs(b,n);let c=0,k=0;for(let p=0;p<n-1;p++){c=A[p]+B[p]+c>=10?1:0;k+=c}return k}
+function borrowsOf(a,b){const n=len(a),A=digs(a,n),B=digs(b,n);let br=0,k=0;for(let p=0;p<n;p++){if(A[p]-br<B[p]){k++;br=1}else br=0}return k}
+/* errores típicos: olvidar llevar / restar el chico del grande */
+function noCarry(a,b){const n=Math.max(len(a),len(b)),A=digs(a,n),B=digs(b,n);let s=0;for(let p=0;p<n;p++)s+=(p<n-1?(A[p]+B[p])%10:A[p]+B[p])*10**p;return s}
+function smallFromBig(a,b){const n=len(a),A=digs(a,n),B=digs(b,n);return A.reduce((s,d,p)=>s+Math.abs(d-B[p])*10**p,0)}
+const typical=pr=>pr.op==='+'?(carriesOf(pr.a,pr.b)?noCarry(pr.a,pr.b):null):(borrowsOf(pr.a,pr.b)?smallFromBig(pr.a,pr.b):null);
+function genOp(L){
+  for(let t=0;t<800;t++){
+    const op=L.op==='±'?(Math.random()<.5?'+':'-'):L.op,lo=10**(L.dg-1),hi=10**L.dg-1;
+    let a=rnd(lo,hi),b;
+    if(op==='+'){b=rnd(lo,hi);const c=carriesOf(a,b);if((L.k==='sin'&&(c||len(a+b)>L.dg))||(L.k==='con'&&!c))continue;return{op,a,b}}
+    if(L.dg>=3&&Math.random()<.3)a-=(Math.floor(a/10)%10)*10; // a veces un 0 en medio (503 − 178)
+    b=rnd(L.dg>=3?10**(L.dg-2):lo,hi);
+    if(b>=a||len(a-b)<len(a))continue;
+    const k=borrowsOf(a,b);if((L.k==='sin'&&k)||(L.k==='con'&&!k))continue;
+    return{op,a,b}}
+  return{op:'+',a:23,b:45}}
+
+/* estado de una cuenta en columna; p = posición (0 = unidades) */
+function mkCol(pr){
+  const {op,a,b}=pr,r=resOf(pr),n=op==='+'?len(r):len(a);
+  const C={op,a,b,r,n,la:len(a),lb:len(b),A:digs(a,n),B:digs(b,n),R:digs(r,n),
+    typed:Array(n).fill(null),wrong:Array(n).fill(0),shown:Array(n).fill(false),cur:0,clean:true,hint:false,
+    cT:Array(n).fill(null),cE:Array(n).fill(0),cAuto:Array(n).fill(false),
+    recv:Array(n).fill(false),lent:Array(n).fill(false),box:Array(n).fill(null),pend:-1,
+    focus:{k:'r',p:0},pulse:'',flash:''};
+  C.val=C.A.slice();
+  if(op==='+'){let c=0;for(let p=0;p<n;p++){C.cE[p]=c;c=C.A[p]+C.B[p]+c>=10?1:0}}
+  return C}
+const wide=C=>Math.max(C.la,C.lb);
+function needsFrom(C,q){if(q<0||C.typed[q]!==null||C.recv[q])return false;return C.val[q]<C.B[q]||(C.val[q]===0&&!C.lent[q]&&needsFrom(C,q-1))}
+function autoBorrow(C,q){const p=q+1;if(C.val[p]===0&&!C.recv[p])autoBorrow(C,p);C.lent[p]=true;C.box[p]=C.val[p]-1;C.val[p]-=1;C.recv[q]=true;C.val[q]+=10;if(C.pend===p)C.pend=-1}
+
+function boardHTML(o){
+  const col=p=>o.n+1-p;let h=`<div class="board" style="grid-template-columns:repeat(${o.n+1},var(--cw))">`;
+  (o.hl||[]).forEach(([p,c])=>h+=`<i class="colhl ${c}" style="grid-column:${col(p)}"></i>`);
+  for(let p=0;p<o.n;p++){
+    const ax=o.aux[p],t=o.top[p],r=o.res[p];
+    if(ax)h+=`<span class="ax ${ax.cls}" ${ax.f?`data-f="${ax.f}"`:''} style="grid-column:${col(p)};grid-row:1">${ax.v??''}</span>`;
+    if(t)h+=`<span class="dg ${t.cls||''}" ${t.tap?`data-l="${p}"`:''} style="grid-column:${col(p)};grid-row:2">${t.ten?'<small>1</small>':''}${t.t}</span>`;
+    h+=`<span class="dg" style="grid-column:${col(p)};grid-row:3">${o.bot[p]??''}</span>`;
+    if(r)h+=`<span class="rc ${r.cls}" ${r.f?`data-f="${r.f}"`:''} style="grid-column:${col(p)};grid-row:5">${r.v??''}</span>`;
+  }
+  return h+`<span class="sign" style="grid-column:1;grid-row:3">${sym(o.op)}</span><span class="ln"></span></div>`}
+function colSpec(C,done){
+  const o={n:C.n,op:C.op,top:[],bot:[],aux:[],res:[],hl:done?[]:[[C.cur,'now']]};
+  for(let p=0;p<C.n;p++){
+    const tap=C.op==='-'&&p>=1&&!done;
+    o.top[p]=p<C.la?{t:C.A[p],ten:C.recv[p],tap,cls:(C.lent[p]?'lent ':'')+(tap?'tap ':'')+(C.pulse==='t'+p?'pulse':'')}:null;
+    o.bot[p]=p<C.lb?C.B[p]:'';
+    const fo=k=>!done&&C.focus.k===k&&C.focus.p===p;
+    if(C.op==='+'){if(p>=1&&p<wide(C))o.aux[p]={v:C.cT[p],f:done?'':'c'+p,cls:'box'+(C.cT[p]!=null?(C.cAuto[p]?' auto':' ok'):'')+(fo('c')?' on':'')+(C.pulse==='c'+p?' pulse':'')+(C.flash==='c'+p?' bad':'')}}
+    else if(C.lent[p])o.aux[p]={v:C.box[p],cls:'box st'+(C.box[p]!=null?' ok':'')+(fo('b')?' on':'')+(C.flash==='b'+p?' bad':'')};
+    o.res[p]={v:C.typed[p],f:(!done&&p===C.cur)?'r'+p:'',cls:(C.typed[p]!=null?(C.shown[p]?'shown':'ok'):'')+(fo('r')?' on':'')+(C.flash==='r'+p?' bad':'')};
+  }
+  return o}
+function staticSpec(pr,rv,marks,hl){
+  const C=mkCol(pr);
+  if(marks){if(C.op==='+'){for(let p=1;p<wide(C);p++)if(C.cE[p])C.cT[p]=1}else for(let p=0;p<C.n;p++)if(C.val[p]<C.B[p])autoBorrow(C,p)}
+  const o={n:C.n,op:C.op,top:[],bot:[],aux:[],res:[],hl:hl||[]},RV=rv==null?null:digs(rv,Math.max(C.n,len(rv)));
+  if(RV&&RV.length>C.n){o.n=RV.length}
+  for(let p=0;p<o.n;p++){
+    o.top[p]=p<C.la?{t:C.A[p],ten:C.recv[p],cls:C.lent[p]?'lent':''}:null;
+    o.bot[p]=p<C.lb?C.B[p]:'';
+    if(C.op==='+'&&p>=1&&p<wide(C))o.aux[p]={v:C.cT[p],cls:'box st'+(C.cT[p]?' ok':'')};
+    else if(C.lent[p])o.aux[p]={v:C.box[p],cls:'box st ok'};
+    o.res[p]={v:RV&&p<len(rv)?RV[p]:'',cls:'st'+(RV?' fill':'')};
+  }
+  return o}
+
+let SG=null,srCur=1;
+const srSay=t=>$('srmsg').innerHTML=t;
+function srOpen(lv){
+  srCur=lv;const L=SRL[lv-1];renderTop();$('srT').textContent=`Nivel ${lv}: ${L.name}`;
+  const nx=SRM.find(m=>srBest(lv,m.id)<m.need);
+  $('srmodes').innerHTML=SRM.map((m,i)=>{const b=srBest(lv,m.id);
+    return `<button class="mode ${nx&&nx.id===m.id?'next':''}" data-m="${m.id}"><span class="n">${i+1}</span><span><b>${m.name}</b><span>${m.d} · ${m.q} cuentas</span></span><span class="sc"><i class="${b>=m.need?'y':''}"></i>${b?b+'/'+m.q:''}</span></button>`}).join('');
+  show('srlvl');
+}
+function srStart(lv,mode){
+  if(SG)clearTimeout(SG.to);
+  const L=SRL[lv-1],M=SRM.find(m=>m.id===mode),seen=new Set(),list=[];
+  let guard=0;
+  const GL=mode==='falta'&&L.dg>2?Object.assign({},L,{dg:L.dg-1}):L; // ¿Qué falta? con una cifra menos: se hace de cabeza
+  while(list.length<M.q&&guard++<400){const pr=genOp(GL),k=pr.a+pr.op+pr.b;if(seen.has(k))continue;seen.add(k);
+    const q={pr,k:list.length,type:mode};
+    if(mode==='det'){q.bad=Math.random()<.5;if(q.bad){const r=resOf(pr),t=typical(pr);
+      if(t!=null&&t!==r)q.shownR=t;else{let w;do{w=r+(Math.random()<.5?-1:1)*10**rnd(0,len(r)-1)}while(w<=0||len(w)!==len(r));q.shownR=w}}}
+    list.push(q)}
+  SG={lv,mode,M,list,i:0,first:0,combo:0,maxc:0,pts:0,res:[],lvl:Math.floor(S.pts/LV),unl:srUnlocked(lv+1),medBefore:srBest(lv,mode)>=M.need,lock:false,C:null,hint:false};
+  show('srplay');flame('m4',0);mood('m4',null);$('srcombo').hidden=true;tone(523,.1);tone(784,.15,'sine',.1);srAsk();
+}
+function srDots(){$('srdots').innerHTML=Array.from({length:SG.M.q},(_,i)=>`<i class="${SG.res[i]||(SG.list[SG.i]&&SG.list[SG.i].k===i&&!SG.list[SG.i].retry?'now':'')}"></i>`).join('')}
+const PAD='<div class="pad p5">'+[1,2,3,4,5,6,7,8,9,0].map(d=>`<button class="op" data-k="${d}">${d}</button>`).join('')+'</div>';
+function srAsk(){
+  const q=SG.list[SG.i],pr=q.pr,r=resOf(pr);SG.lock=false;SG.hint=false;srSay('');
+  $('srhint').hidden=q.type==='det';
+  const again=q.retry?'Otra vez: ':'';
+  if(q.type==='col'){
+    SG.C=mkCol(pr);
+    $('srlab').textContent=again+(pr.op==='+'?'Suma de derecha a izquierda':'Resta de derecha a izquierda');
+    $('srans').innerHTML=PAD;srDraw();
+    srSay(pr.op==='-'&&borrowsOf(pr.a,pr.b)&&SG.lv<=4?'Si arriba no alcanza, toca el número de la izquierda para pedirle prestado.':'Empieza por las unidades (la columna que brilla).');
+  }else if(q.type==='rap'){
+    $('srlab').textContent=again+'¿Cuánto da?';
+    $('srq').innerHTML=boardHTML(staticSpec(pr,null,false));
+    const s=new Set([r]),t=typical(pr);if(t!=null&&t!==r&&t>0)s.add(t);
+    shuffle([r+10,r-10,r+1,r-1,r+100,r-100].filter(x=>x>0&&len(x)>=len(r)-1)).forEach(x=>{if(s.size<4)s.add(x)});
+    $('srans').innerHTML=`<div class="opts">${shuffle([...s]).map(v=>`<button class="op" data-v="${v}">${v}</button>`).join('')}</div>`;
+  }else if(q.type==='falta'){
+    $('srlab').textContent=again+'¿Qué número falta?';
+    $('srq').innerHTML=`<div class="q sm">${pr.a} ${sym(pr.op)} <span class="slot">?</span> = ${r}</div>`;
+    const b=pr.b,s=new Set([b]);shuffle([b+10,b-10,b+1,b-1,b+100,b-100].filter(x=>x>0)).forEach(x=>{if(s.size<4)s.add(x)});
+    $('srans').innerHTML=`<div class="opts">${shuffle([...s]).map(v=>`<button class="op" data-v="${v}">${v}</button>`).join('')}</div>`;
+  }else{
+    $('srlab').textContent=again+'Detective: ¿está bien hecha?';
+    $('srq').innerHTML=boardHTML(staticSpec(pr,q.bad?q.shownR:r,!q.bad));
+    $('srans').innerHTML=`<div class="opts"><button class="op sm" data-v="1">Está bien</button><button class="op sm" data-v="0">Tiene un error</button></div>`;
+  }
+  srDots();
+}
+function srDraw(done){$('srq').innerHTML=boardHTML(colSpec(SG.C,done))}
+function srFlash(f){const C=SG.C;C.flash=f;srDraw();setTimeout(()=>{if(SG&&SG.C===C&&C.flash===f){C.flash='';}},450)}
+function srLend(p){
+  if(!SG||SG.lock)return;const C=SG.C;if(!C||C.op!=='-'||C.pend>=0||C.lent[p])return;
+  const q=p-1;
+  if(C.typed[q]!==null){srSay('Esa columna ya está lista.');return}
+  if(C.recv[q]||!needsFrom(C,q)){srSay('Aquí no hace falta pedir prestado: arriba alcanza.');tone(300,.12,'triangle');return}
+  if(C.val[p]===0){C.pulse='t'+(p+1);srSay('Ese 0 no tiene nada que prestar. Primero que él le pida prestado al de su izquierda.');tone(300,.12,'triangle');srDraw();return}
+  C.lent[p]=true;C.pend=p;C.focus={k:'b',p};C.pulse='';tone(660,.08);
+  srSay(`Lo tachamos. Escribe arriba cuánto le queda al ${C.val[p]}.`);srDraw();
+}
+function srKey(v){
+  if(!SG||SG.lock)return;const q=SG.list[SG.i];if(q.type!=='col')return;
+  const C=SG.C,f=C.focus;
+  if(f.k==='b'){
+    const e=C.val[f.p]-1;
+    if(v===e){C.box[f.p]=v;C.val[f.p]-=1;C.recv[f.p-1]=true;C.val[f.p-1]+=10;C.pend=-1;C.focus={k:'r',p:C.cur};tone(700,.08);
+      srSay(f.p-1===C.cur?`¡Eso! Ahora arriba tienes ${C.val[f.p-1]}.`:'¡Eso! Ahora sí puede prestar.')}
+    else{tone(240,.15,'triangle');srSay(`Al ${C.val[f.p]} le quitas 1. ¿Cuánto queda?`);return srFlash('b'+f.p)}
+    return srDraw()}
+  if(f.k==='c'){
+    const e=C.cE[f.p];
+    if(v===0&&!e){C.cT[f.p]=null;C.focus={k:'r',p:C.cur}}
+    else if(v===e){C.cT[f.p]=v;C.cAuto[f.p]=false;C.pulse='';C.focus={k:'r',p:C.cur};tone(700,.08);srSay('¡Eso! Ese 1 también se suma en su columna.')}
+    else{tone(240,.15,'triangle');srSay(e?'De una columna solo se lleva 1.':'Aquí no se lleva nada: la columna de la derecha no pasó de 9.');return srFlash('c'+f.p)}
+    return srDraw()}
+  const p=C.cur,e=C.R[p];
+  if(v===e){
+    C.typed[p]=v;if(C.op==='+'&&C.cE[p]&&C.cT[p]==null&&p<wide(C)){C.cT[p]=1;C.cAuto[p]=true}
+    C.pulse='';C.cur++;C.focus={k:'r',p:C.cur};tone(560+p*90,.09);mood('m4','happy');
+    if(C.cur>=C.n)return srColDone();
+    srSay('');
+    if(C.op==='+'&&C.A[p]+C.B[p]+C.cE[p]>=10&&C.cT[p+1]==null&&p+1<wide(C))srSay('¡Bien! Pasaste de 9: no olvides lo que llevas.');
+    return srDraw()}
+  C.wrong[p]++;C.clean=false;tone(220,.2,'triangle');mood('m4','oops');
+  const E=srS().err;let why='otro';
+  if(C.op==='+'){const s=C.A[p]+C.B[p]+C.cE[p];
+    if(p>=wide(C))srSay('En esta columna no hay números: solo baja lo que llevas.');
+    else if(C.cE[p]&&v===(C.A[p]+C.B[p])%10){why='llevar';C.pulse='c'+p;C.focus={k:'c',p};srSay('¿Te llevaste algo? Escribe el 1 en la cajita de arriba.')}
+    else if(s>=10&&v===Math.floor(s/10))srSay('Abajo solo va la cifra de las unidades. El 1 se lleva arriba de la siguiente columna.');
+    else srSay('¡Casi! Vuelve a sumar esta columna.')}
+  else{
+    if(C.val[p]<C.B[p]){why='prestar';C.pulse='t'+(p+1);srSay(`Arriba hay ${C.val[p]} y abajo ${C.B[p]}: no alcanza. Toca el número de la izquierda para pedirle prestado.`)}
+    else srSay(`¡Casi! ¿Cuánto es ${C.val[p]} − ${C.B[p]}?`)}
+  E[why]=(E[why]||0)+1;
+  if(C.wrong[p]>=2){
+    if(C.op==='-'&&C.val[p]<C.B[p])autoBorrow(C,p);
+    if(C.op==='+'&&C.cE[p]&&C.cT[p]==null&&p<wide(C)){C.cT[p]=1;C.cAuto[p]=false}
+    const ex=C.op==='+'?(p>=wide(C)?'baja el 1 que llevabas':`${C.A[p]} + ${C.B[p]}${C.cE[p]?' + 1':''} = ${C.A[p]+C.B[p]+C.cE[p]}`):`${C.val[p]} − ${C.B[p]} = ${e}`;
+    C.typed[p]=e;C.shown[p]=true;C.pulse='';C.cur++;C.focus={k:'r',p:C.cur};
+    srSay(`Aquí va el <b>${e}</b> (${ex}). ¡Sigue!`);
+    if(C.cur>=C.n){SG.lock=true;srDraw();return setTimeout(srColDone,1600)}
+  }
+  srFlash('r'+p);
+}
+function srScore(ok,q,hint,partial){
+  if(ok){if(!q.retry){SG.first++;SG.res[q.k]='ok'}SG.combo++;SG.maxc=Math.max(SG.maxc,SG.combo);mood('m4','happy')}
+  else{if(!q.retry)SG.res[q.k]='no';SG.combo=0;mood('m4','oops');
+    const f=srS().fails,t=`${q.pr.a} ${sym(q.pr.op)} ${q.pr.b}`;f.unshift(t);if(f.length>12)f.length=12}
+  const p=ok?(hint?5:10+Math.min(SG.combo,10)*2):(partial||0);SG.pts+=p;
+  if(p){const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go')}
+  const c=$('srcombo');c.hidden=SG.combo<2;c.textContent='racha ×'+SG.combo;flame('m4',SG.combo);
+  srDots();save();
+}
+function srColDone(){
+  SG.lock=true;const C=SG.C,q=SG.list[SG.i];
+  srScore(C.clean,q,C.hint,4);srDraw(true);
+  if(C.clean){srSay(`¡Cuenta resuelta! ${C.a} ${sym(C.op)} ${C.b} = <b>${C.r}</b>`);tone(660,.1);tone(880,.18,'sine',.1);miniConfetti()}
+  else srSay(`Lista: ${C.a} ${sym(C.op)} ${C.b} = <b>${C.r}</b>. ¡La que sigue te sale!`);
+  SG.to=setTimeout(srNext,C.clean?1500:2200);
+}
+function srPick(v,btn){
+  const q=SG.list[SG.i],pr=q.pr,r=resOf(pr);SG.lock=true;
+  const ok=q.type==='rap'?v===r:q.type==='falta'?v===pr.b:((v===1)===!q.bad);
+  btn.classList.add(ok?'good':'bad');
+  let why='otro';
+  if(!ok){
+    [...$('srans').querySelectorAll('.op[data-v]')].forEach(o=>{const x=+o.dataset.v;if((q.type==='rap'&&x===r)||(q.type==='falta'&&x===pr.b)||(q.type==='det'&&(x===1)===!q.bad))o.classList.add('good')});
+    const E=srS().err,t=typical(pr);why=q.type==='rap'&&t===v?(pr.op==='+'?'llevar':'prestar'):'otro';E[why]=(E[why]||0)+1;
+    if(!q.retry)SG.list.push(Object.assign({},q,{retry:true}));
+  }
+  if(ok)tone(520+SG.combo*40,.1),tone(780+SG.combo*40,.16,'sine',.08);else tone(220,.25,'triangle');
+  let wait=ok?900:2400;
+  if(q.type==='rap'){$('srq').innerHTML=boardHTML(staticSpec(pr,r,true));srSay(ok?'¡Exacto!':(why==='llevar'?'¡Ojo! Se te olvidó lo que se lleva.':why==='prestar'?'¡Ojo! Cuando arriba no alcanza, hay que pedir prestado.':`Era <b>${r}</b>.`))}
+  else if(q.type==='falta'){$('srq').innerHTML=`<div class="q sm">${pr.a} ${sym(pr.op)} <span class="slot">${pr.b}</span> = ${r}</div>`;srSay(ok?'¡Lo encontraste!':`Faltaba el <b>${pr.b}</b>.`)}
+  else{
+    if(q.bad){const n=Math.max(len(r),len(q.shownR)),A=digs(r,n),B=digs(q.shownR,n),hl=[];for(let p=0;p<n;p++)if(A[p]!==B[p])hl.push([p,'bad']);
+      $('srq').innerHTML=boardHTML(staticSpec(pr,r,true,hl));
+      const t=typical(pr);srSay((ok?'¡Bien visto! ':'Tenía un error. ')+(q.shownR===t?(pr.op==='+'?'Se le olvidó llevar.':'Restó el chico del grande en vez de pedir prestado.'):'Se equivocó en una columna.')+` Da <b>${r}</b>.`);wait=2600}
+    else srSay(ok?'¡Sí! Estaba bien hecha.':`Estaba bien: da <b>${r}</b>.`)}
+  srScore(ok,q,SG.hint);
+  SG.to=setTimeout(srNext,wait);
+}
+function srNext(){SG.i++;SG.i>=SG.list.length?srFinish():srAsk()}
+function srFinish(){
+  const {lv,mode,M}=SG,pass=SG.first>=M.need,b=bookRound(SG.pts,SG.maxc);
+  if(mode==='reto')return srRetoEnd(b);
+  srS().med[lv+'-'+mode]=Math.max(srBest(lv,mode),SG.first);
+  save();renderTop();
+  $('endT').textContent=SG.first===M.q?'¡Perfecto!':pass?'¡Medalla ganada!':SG.first>=M.q/2?'¡Muy bien!':'¡Sigue así!';
+  $('eOk').textContent=SG.first;$('eOkL').textContent='a la primera de '+M.q;$('ePts').textContent=SG.pts;$('eCombo').textContent=SG.maxc;
+  const news=[];
+  if(pass&&!SG.medBefore)news.push(`Medalla de <b>${M.name}</b> en el nivel ${lv}`);
+  if(!pass)news.push(`Te faltaron <b>${M.need-SG.first}</b> a la primera para la medalla. ¡Casi!`);
+  if(lv<SRL.length&&!SG.unl&&srUnlocked(lv+1))news.push(`¡Se abrió el <b>nivel ${lv+1}</b>: ${SRL[lv].name}!`);
+  news.push(...commonNews(b,SG.lvl,SG.maxc));
+  $('news').innerHTML=news.map(x=>`<li>${x}</li>`).join('');
+  againAct=()=>srStart(lv,mode);
+  if(!pass){nextAct=againAct;$('nextb').textContent='Intentar de nuevo';$('again').hidden=true}
+  else{$('again').hidden=false;const nm=SRM.find(m=>srBest(lv,m.id)<m.need);
+    if(nm){nextAct=()=>srStart(lv,nm.id);$('nextb').textContent=nm.name}
+    else if(srUnlocked(lv+1)){nextAct=()=>srOpen(lv+1);$('nextb').textContent='Nivel '+(lv+1)}
+    else{nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Al camino'}}
+  show('end');mood('m3',SG.first>=M.q/2?'happy':null);flame('m3',SG.maxc);
+  [0,.12,.24].forEach((w,i)=>tone([523,659,784][i],.2,'sine',w));
+  if(pass)confetti();
+}
+function miniConfetti(){const c=$('confetti'),cols=['#ef476f','#14a3a0','#ff9f1c','#7b5cff'];
+  c.innerHTML=Array.from({length:16},()=>`<i style="left:${20+Math.random()*60}%;background:${cols[Math.floor(Math.random()*4)]};animation-delay:${Math.random()*.3}s"></i>`).join('');setTimeout(()=>c.innerHTML='',2600)}
+function renderSR(){
+  const nextL=SRL.find(L=>srUnlocked(L.n)&&srMedals(L.n)<3);
+  $('srpath').innerHTML=SRL.map(L=>{const u=srUnlocked(L.n);
+    return `<button class="mode ${nextL===L?'next':''}" data-l="${L.n}" ${u?'':'disabled'}><span class="n">${L.ic}</span><span><b>${L.name}</b><span>Nivel ${L.n}</span></span><span class="sc">${u?`<span class="med">${SRM.map(m=>`<i class="${srBest(L.n,m.id)>=m.need?'y':''}"></i>`).join('')}</span>`:lockSvg}</span></button>`}).join('');
+  const E=srS().err,F=srS().fails;
+  $('srprog').innerHTML=`<h3 class="ph">Suma y resta</h3><table class="pt"><tr><th>Nivel</th><th class="r">Medallas</th></tr>${SRL.map(L=>`<tr><td>${L.n}. ${L.name}</td><td class="r">${srMedals(L.n)}/4</td></tr>`).join('')}</table>
+  <p class="note">Errores: olvidó llevar <b>${E.llevar||0}</b> · olvidó pedir prestado <b>${E.prestar||0}</b> · otros <b>${E.otro||0}</b></p>
+  <p class="note">Últimas cuentas que le costaron:</p><div class="fails">${F.length?F.slice(0,10).map(x=>`<span>${x}</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
+}
+$('worlds').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.world=b.dataset.w;save();tone(660,.06);renderHome()});
+$('srpath').addEventListener('click',e=>{const b=e.target.closest('.mode');if(b&&!b.disabled){tone(660,.06);srOpen(+b.dataset.l)}});
+$('srmodes').addEventListener('click',e=>{const b=e.target.closest('.mode');if(b){srStart(srCur,b.dataset.m)}});
+$('srback').addEventListener('click',()=>{show('home');renderHome()});
+$('srquit').addEventListener('click',()=>{if(SG)clearTimeout(SG.to);if(SG&&SG.lv)srOpen(SG.lv);else{show('home');renderHome()}});
+$('srq').addEventListener('click',e=>{if(!SG||SG.lock||!SG.C)return;const C=SG.C;
+  const l=e.target.closest('[data-l]');if(l){srLend(+l.dataset.l);return}
+  const f=e.target.closest('[data-f]');if(!f||!f.dataset.f||C.pend>=0)return;
+  const k=f.dataset.f[0],p=+f.dataset.f.slice(1);C.focus={k,p};if(C.pulse==='c'+p)C.pulse='';srDraw()});
+$('srans').addEventListener('click',e=>{const b=e.target.closest('.op');if(!b||b.disabled||!SG||SG.lock)return;
+  if(b.dataset.k!==undefined)srKey(+b.dataset.k);else srPick(+b.dataset.v,b)});
+$('srhint').addEventListener('click',()=>{if(!SG||SG.lock)return;const q=SG.list[SG.i];tone(880,.08);
+  if(q.type==='col'){const C=SG.C,p=C.cur;C.hint=true;
+    if(C.pend>=0)return srSay(`Al ${C.val[C.pend]} le quitas 1.`);
+    if(C.op==='+')srSay(p>=wide(C)?'Aquí solo baja el 1 que llevas.':`Suma esta columna: ${C.A[p]} + ${C.B[p]}${C.cE[p]?' + 1 que llevas':''}. Si pasa de 9, abajo va solo la cifra de las unidades.`);
+    else srSay(C.val[p]<C.B[p]?`Arriba ${C.val[p]}, abajo ${C.B[p]}: no alcanza. Toca el número de la izquierda para pedirle prestado.`:`Resta esta columna: ${C.val[p]} − ${C.B[p]}.`);
+    return}
+  SG.hint=true;$('srhint').hidden=true;
+  const ok=q.type==='rap'?resOf(q.pr):q.pr.b;
+  shuffle([...$('srans').querySelectorAll('.op[data-v]')].filter(o=>+o.dataset.v!==ok)).slice(0,2).forEach(o=>o.disabled=true);
+  srSay('Quité dos que no son.')});
+document.addEventListener('keydown',e=>{if($('srplay').hidden||!SG)return;if(/^[0-9]$/.test(e.key))srKey(+e.key)});
+
+/* ===== Reto del día ===== */
+const tsumT=t=>range().reduce((a,n)=>a+box(t,n),0);
+const dayNum=()=>{const x=new Date();return Math.floor(Date.UTC(x.getFullYear(),x.getMonth(),x.getDate())/864e5)};
+/* la tabla del reto: una que todavía no se sabe (primero las abiertas y las difíciles, sin repetir la de ayer) */
+function pickRetoT(){
+  if(S.retoT>=2&&S.retoT<=10)return S.retoT;
+  const rk=S.rk||{},all=[2,3,4,5,6,7,8,9,10],known=t=>tsumT(t)>=27||(rk[t]||0)>=2;
+  let c=all.filter(t=>!known(t));if(!c.length)c=all;
+  c.sort((a,b)=>(unlocked(b)-unlocked(a))||(HARD.includes(b)-HARD.includes(a))||(tsumT(a)-tsumT(b))||(a-b));
+  const y=(S.daily||{})[yday()],prev=y&&y.t;
+  return c.find(t=>t!==prev)||c[0]}
+function dayRec(){const d=today();S.daily=S.daily||{};let R=S.daily[d];
+  if(!R){R=S.daily[d]={t:pickRetoT(),tOk:false,tTries:0,col:false,colOk:0,en:false,enOk:0,enSet:S.enIdx||0,rd:null,rdOk:0,rdPick:null,bonus:false};
+    const ks=Object.keys(S.daily).sort();while(ks.length>60)delete S.daily[ks.shift()]}
+  return R}
+function retoBonus(){const R=dayRec();if(R.tOk&&R.col&&!R.bonus){R.bonus=true;S.pts+=50;S.retoDays=(S.retoDays||0)+1;return '¡<b>Reto del día completo</b>! Te ganaste <b>50 puntos</b> de premio'}return null}
+function renderDaily(){
+  const R=dayRec(),n=(R.tOk?1:0)+(R.col?1:0),full=n===2;
+  $('daily').className='daily'+(full?' full':'');
+  const row=(k,ic,ok,t,d)=>`<button class="mode ${ok?'ok':''}" data-d="${k}"><span class="n">${ic}</span><span><b>${t}</b><span>${d}</span></span><span class="ck">${ok?'✓':'›'}</span></button>`;
+  $('daily').innerHTML=`<div class="dh">Reto del día <span>${full?'¡Completo! +50':n+' de 2'}</span></div><div class="modes">
+    ${row('t','×',R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden sin fallar y en desorden máximo 2 errores'+(R.tTries?` · intentos: ${R.tTries}`:''))}
+    ${row('c','±',R.col,'10 cuentas en columna',R.col?`¡Listas! ${R.colOk} de 10 sin error`:'Sumas llevando y restas pidiendo prestado')}</div>
+    <div class="dx"><button data-d="en" class="${R.en?'ok':''}">${R.en?'✓ ':''}Inglés de hoy</button><button data-d="rd" class="${R.rd?'ok':''}">${R.rd?'✓ ':''}Lectura de hoy</button></div>`;
+  const sel=$('retoSel');
+  sel.innerHTML=`<option value="0">Automática (una que no se sabe)</option>`+[2,3,4,5,6,7,8,9,10].map(t=>`<option value="${t}">×${t}</option>`).join('');
+  sel.value=String(S.retoT||0)}
+$('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const k=b.dataset.d;tone(660,.06);
+  if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
+  else{S.world=k;save();renderHome();$('worlds').scrollIntoView({behavior:'smooth',block:'start'})}});
+$('nombre').addEventListener('change',e=>{const v=e.target.value.trim();if(v){S.nombre=v;save()}renderHome()});
+$('retoSel').addEventListener('change',e=>{S.retoT=+e.target.value;const R=dayRec();if(!R.tOk)R.t=pickRetoT();save();renderHome()});
+/* 10 cuentas en columna: 5 sumas llevando y 5 restas pidiendo prestado */
+function srReto(){
+  if(SG)clearTimeout(SG.to);
+  const big=srUnlocked(5),seen=new Set(),list=[];let g=0;
+  while(list.length<10&&g++<500){const i=list.length,op=i%2?'-':'+',pr=genOp({op,dg:big&&i>=6?3:2,k:'con'}),k=pr.a+pr.op+pr.b;
+    if(seen.has(k))continue;seen.add(k);list.push({pr,k:i,type:'col'})}
+  SG={lv:0,mode:'reto',M:{id:'reto',name:'Reto del día',q:10,need:8},list,i:0,first:0,combo:0,maxc:0,pts:0,res:[],lvl:Math.floor(S.pts/LV),unl:true,medBefore:false,lock:false,C:null,hint:false};
+  show('srplay');flame('m4',0);mood('m4',null);$('srcombo').hidden=true;tone(523,.1);tone(784,.15,'sine',.1);srAsk()}
+function srRetoEnd(b){
+  const R=dayRec(),first=!R.col,news=[];R.col=true;R.colOk=Math.max(R.colOk||0,SG.first);
+  if(first)news.push('¡Hiciste las <b>10 cuentas</b> del reto de hoy!');
+  news.push(`<b>${SG.first} de 10</b> te salieron sin ningún error.`);
+  const bn=retoBonus();if(bn)news.push(bn);
+  news.push(...commonNews(b,SG.lvl,SG.maxc));save();renderTop();
+  $('endT').textContent=SG.first===10?'¡Perfecto!':'¡Cuentas listas!';
+  $('eOk').textContent=SG.first;$('eOkL').textContent='sin error de 10';$('ePts').textContent=SG.pts;$('eCombo').textContent=SG.maxc;
+  $('news').innerHTML=news.map(x=>`<li>${x}</li>`).join('');
+  againAct=srReto;$('again').hidden=false;nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Al reto del día';
+  show('end');mood('m3','happy');flame('m3',SG.maxc);
+  [0,.12,.24].forEach((w,i)=>tone([523,659,784][i],.2,'sine',w));confetti()}
+
+/* ===== Voz en inglés ===== */
+let VOICE=null;
+const pickVoice=()=>{try{const vs=speechSynthesis.getVoices();VOICE=vs.find(v=>/^en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}catch(e){}};
+try{pickVoice();speechSynthesis.addEventListener('voiceschanged',pickVoice)}catch(e){}
+/* voz del dispositivo; si no tiene voz en inglés (p. ej. dentro de otra app), usa una voz en línea */
+let AUD=null,ttsWorks=false;
+function sayNet(t,fail){try{if(AUD)AUD.pause();AUD=new Audio('https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&ttsspeed=0.8&q='+encodeURIComponent(t));AUD.onerror=fail;const pr=AUD.play();if(pr&&pr.catch)pr.catch(fail)}catch(e){fail()}}
+function sayFail(){const el=$('sayMsg');if(el)el.hidden=false;}
+function say(t){t=t.replace(/…/g,'').trim();if(!VOICE)pickVoice();
+  const ss=window.speechSynthesis;
+  if(!ss||!window.SpeechSynthesisUtterance||(!VOICE&&!ttsWorks)){sayNet(t,sayFail);return}
+  try{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=.8;let ok=false;
+    u.onstart=()=>{ok=true;ttsWorks=true};u.onerror=()=>{if(!ok)sayNet(t,sayFail)};
+    if(ss.speaking||ss.pending)ss.cancel();ss.speak(u);
+    setTimeout(()=>{if(!ok&&!ttsWorks)sayNet(t,sayFail)},1200)}catch(e){sayNet(t,sayFail)}}
+const sayBtn=t=>`<button class="say" data-say="${t}" aria-label="Escuchar">🔊</button>`;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-say]');if(b)say(b.dataset.say)});
+
+/* ===== Inglés: 15 palabras por día (emoji|inglés|español) ===== */
+const WORDS=`
+🐶|dog|perro;🐱|cat|gato;🐦|bird|pájaro;🐟|fish|pez;🐴|horse|caballo;🐮|cow|vaca;🐷|pig|cerdo;🐭|mouse|ratón;🐰|rabbit|conejo;🐸|frog|rana
+🔴|red|rojo;🔵|blue|azul;🟢|green|verde;🟡|yellow|amarillo;🟠|orange|naranja;🟣|purple|morado;⚫|black|negro;⚪|white|blanco;🟤|brown|café;💗|pink|rosa
+😃|hi|hola;👋|bye|adiós;🙏|please|por favor;💝|thank you|gracias;😔|sorry|perdón;❓|what|qué;📍|where|dónde;⏰|when|cuándo;🤔|why|por qué;👤|who|quién
+👩|mom|mamá;👨|dad|papá;👦|brother|hermano;👧|sister|hermana;👵|grandma|abuela;👴|grandpa|abuelo;👶|baby|bebé;👨‍👩‍👧|family|familia;🧑‍🤝‍🧑|friend|amigo;🐾|pet|mascota
+👀|eyes|ojos;👃|nose|nariz;👄|mouth|boca;👂|ear|oreja;✋|hand|mano;🦶|foot|pie;🦵|leg|pierna;💪|arm|brazo;🦷|tooth|diente;💇|hair|pelo
+🍎|apple|manzana;🍌|banana|plátano;🍞|bread|pan;🥛|milk|leche;🧀|cheese|queso;🥚|egg|huevo;🍗|chicken|pollo;🍚|rice|arroz;💧|water|agua;🍪|cookie|galleta
+🏠|house|casa;🚪|door|puerta;🪟|window|ventana;🛏️|bed|cama;🪑|chair|silla;🛋️|sofa|sillón;🛁|bathtub|tina;🍳|kitchen|cocina;📺|TV|tele;💡|lamp|lámpara
+🏫|school|escuela;📚|book|libro;✏️|pencil|lápiz;✂️|scissors|tijeras;🎒|backpack|mochila;👩‍🏫|teacher|maestra;📏|ruler|regla;🖍️|crayon|crayola;📓|notebook|cuaderno;🗑️|trash can|bote de basura
+👕|T-shirt|playera;👖|pants|pantalón;👞|shoes|zapatos;🧦|socks|calcetines;🧢|cap|gorra;🧥|jacket|chamarra;👗|dress|vestido;🩳|shorts|shorts;🧤|gloves|guantes;👓|glasses|lentes
+☀️|sun|sol;🌧️|rain|lluvia;☁️|cloud|nube;❄️|snow|nieve;💨|wind|viento;🌈|rainbow|arcoíris;⚡|lightning|rayo;🥵|hot|calor;🥶|cold|frío;🌙|moon|luna
+🏃|run|correr;🤸|jump|saltar;🏊|swim|nadar;😴|sleep|dormir;🍽️|eat|comer;🥤|drink|beber;📖|read|leer;✍️|write|escribir;🎨|paint|pintar;🎤|sing|cantar
+😀|happy|feliz;😢|sad|triste;😠|angry|enojado;😨|scared|asustado;🥱|tired|cansado;😋|hungry|con hambre;😮|surprised|sorprendido;😎|cool|genial;🤒|sick|enfermo;😌|calm|tranquilo
+🏞️|park|parque;🏖️|beach|playa;🏥|hospital|hospital;🛒|store|tienda;🏙️|city|ciudad;⛰️|mountain|montaña;🌳|tree|árbol;🌊|sea|mar;🏟️|stadium|estadio;🌲|forest|bosque
+🚗|car|coche;🚌|bus|camión;🚲|bike|bici;✈️|plane|avión;🚂|train|tren;🚢|ship|barco;🚁|helicopter|helicóptero;🚀|rocket|cohete;🏍️|motorcycle|moto;🚒|fire truck|camión de bomberos
+1️⃣|one|uno;2️⃣|two|dos;3️⃣|three|tres;4️⃣|four|cuatro;5️⃣|five|cinco;6️⃣|six|seis;7️⃣|seven|siete;8️⃣|eight|ocho;9️⃣|nine|nueve;🔟|ten|diez
+⚽|ball|pelota;🥅|goal|gol;🏆|trophy|trofeo;🎮|video game|videojuego;🧸|teddy bear|osito de peluche;🪁|kite|papalote;🎲|dice|dados;🧩|puzzle|rompecabezas;🎈|balloon|globo;🏀|basketball|básquetbol
+🦁|lion|león;🐯|tiger|tigre;🐘|elephant|elefante;🐒|monkey|mono;🦒|giraffe|jirafa;🐻|bear|oso;🐍|snake|serpiente;🦈|shark|tiburón;🐢|turtle|tortuga;🦖|dinosaur|dinosaurio
+🍓|strawberry|fresa;🍇|grapes|uvas;🍉|watermelon|sandía;🍋|lemon|limón;🥕|carrot|zanahoria;🍅|tomato|jitomate;🥑|avocado|aguacate;🌽|corn|elote;🥔|potato|papa;🍍|pineapple|piña
+💃|dance|bailar;🕹️|play|jugar;🚶|walk|caminar;🔍|look|mirar;🎧|listen|escuchar;🗣️|talk|hablar;🧹|clean|limpiar;👩‍🍳|cook|cocinar;🤗|hug|abrazar;🤝|help|ayudar
+🦣|big|grande;🐜|small|pequeño;🐆|fast|rápido;🐌|slow|lento;🆕|new|nuevo;🏚️|old|viejo;🦸|strong|fuerte;🍬|sweet|dulce;🔊|loud|ruidoso;🤫|quiet|callado
+🌅|morning|mañana;🌇|afternoon|tarde;🌃|night|noche;📅|day|día;🗓️|week|semana;📆|month|mes;🕐|clock|reloj;🎂|birthday|cumpleaños;🎄|Christmas|Navidad;🧳|vacation|vacaciones
+🥄|spoon|cuchara;🍴|fork|tenedor;🔪|knife|cuchillo;🍽️|plate|plato;🥤|cup|vaso;🧊|ice|hielo;🍦|ice cream|helado;🍰|cake|pastel;🍬|candy|dulce;🍯|honey|miel
+🌸|flower|flor;🍃|leaf|hoja;🪨|rock|piedra;🌍|Earth|Tierra;⭐|star|estrella;🔥|fire|fuego;🏝️|island|isla;🌋|volcano|volcán;🏜️|desert|desierto;🌱|plant|planta
+👨‍⚕️|doctor|doctor;🧑‍🚒|firefighter|bombero;👮|police officer|policía;👨‍🚀|astronaut|astronauta;👩‍🌾|farmer|granjero;🧑‍🔧|mechanic|mecánico;🧑‍🎨|artist|artista;🧑‍✈️|pilot|piloto;👩‍🔬|scientist|científica;🧑‍🍳|chef|cocinero
+🐝|bee|abeja;🦋|butterfly|mariposa;🐜|ant|hormiga;🕷️|spider|araña;🐌|snail|caracol;🐙|octopus|pulpo;🐳|whale|ballena;🦀|crab|cangrejo;🐬|dolphin|delfín;🦉|owl|búho
+`.trim().split('\n').map(l=>l.split(';').map(x=>{const [e,en,es]=x.split('|');return{e,en,es}}));
+/* frases del día en parejas relacionadas: [inglés, español, suena como, cuándo usarla] */
+const PHP=[
+ [['Hi! How are you?','¡Hola! ¿Cómo estás?','jái, jáu ar iú','para saludar a alguien.'],["I'm fine, thank you.",'Estoy bien, gracias.','áim fáin, zénk iú','cuando te preguntan cómo estás.']],
+ [["What's your name?",'¿Cómo te llamas?','uáts iór néim','para conocer a alguien nuevo.'],['My name is…','Me llamo…','mái néim is (y dices tu nombre)','para presentarte.']],
+ [['Nice to meet you.','Mucho gusto.','náis tu mít iú','cuando conoces a alguien.'],['Nice to meet you too.','Mucho gusto también.','náis tu mít iú tú','cuando alguien te dice «mucho gusto».']],
+ [["Let's play!",'¡Vamos a jugar!','lets pléi','para invitar a tus amigos a jugar.'],['Can I play too?','¿Puedo jugar también?','ken ái pléi tú','cuando quieres entrar a un juego.']],
+ [['My turn!','¡Me toca!','mái tern','cuando es tu turno en un juego.'],['Your turn!','¡Te toca!','iór tern','cuando le toca a otro en un juego.']],
+ [['Good job!','¡Buen trabajo!','gud yob','para felicitar a alguien.'],["That's awesome!",'¡Qué padre!','dats ósom','cuando algo te parece increíble.']],
+ [["I don't understand.",'No entiendo.','ái dóunt anderstánd','cuando algo no te queda claro.'],['Can you help me, please?','¿Me ayudas, por favor?','ken iú jelp mi, plis','cuando necesitas ayuda.']],
+ [["I'm hungry.",'Tengo hambre.','áim jángri','cuando ya quieres comer.'],["Let's eat!",'¡Vamos a comer!','lets ít','cuando la comida está lista.']],
+ [["I'm thirsty.",'Tengo sed.','áim zérsti','cuando quieres tomar algo.'],['Can I have some water, please?','¿Me das agua, por favor?','ken ái jav sam uóter, plis','para pedir agua con educación.']],
+ [['Excuse me.','Con permiso.','ekskiús mi','para pasar o pedir algo con educación.'],['Where is the bathroom?','¿Dónde está el baño?','uér is de bázrum','cuando necesitas ir al baño.']],
+ [["I'm sorry.",'Lo siento.','áim sóri','cuando te equivocas o lastimas a alguien sin querer.'],["That's OK.",'Está bien, no pasa nada.','dats ou kéi','cuando alguien te pide perdón.']],
+ [['Thank you very much!','¡Muchas gracias!','zénk iú véri mach','cuando alguien te ayuda o te regala algo.'],["You're welcome.",'De nada.','iór uélcom','cuando alguien te da las gracias.']],
+ [['See you tomorrow!','¡Nos vemos mañana!','si iú tumórou','para despedirte de tus amigos.'],['Have a nice day!','¡Que tengas un buen día!','jav a náis déi','para despedirte con cariño.']],
+ [['Watch out!','¡Cuidado!','uátch áut','para avisar de un peligro.'],['Be careful!','¡Ten cuidado!','bi kérful','para pedirle a alguien que se cuide.']],
+ [['I like it!','¡Me gusta!','ái láik it','cuando algo te gusta.'],["I don't like it.",'No me gusta.','ái dóunt láik it','cuando algo no te gusta.']],
+ [['How old are you?','¿Cuántos años tienes?','jáu óld ar iú','para preguntar la edad.'],["I'm eight years old.",'Tengo ocho años.','áim éit yírs óld','para decir tu edad.']],
+ [['Good morning!','¡Buenos días!','gud mórning','para saludar en la mañana.'],['Good night!','¡Buenas noches!','gud náit','antes de irte a dormir.']],
+ [['Happy birthday!','¡Feliz cumpleaños!','jápi bérzdei','en el cumpleaños de alguien.'],['Make a wish!','¡Pide un deseo!','méik a uish','antes de soplar las velas del pastel.']]];
+const PHR=PHP.flat();
+const EN_G=['Animales de la granja','Colores','Palabras útiles','Familia','Cuerpo','Comida','Casa','Escuela','Ropa','Clima','Acciones','Sentimientos','Lugares','Transporte','Números','Juegos','Animales salvajes','Frutas y verduras','Más acciones','Cómo son las cosas','El tiempo','En la mesa','Naturaleza','Oficios','Bichos y mar'];
+const WALL=WORDS.flat(),WBY={};WALL.forEach(w=>WBY[w.en]=w);
+const enS=()=>{S.enKnown=S.enKnown||{};S.enLearned=S.enLearned||{};
+  if(S.enIdx&&!S.enDone){WORDS.slice(0,S.enIdx).flat().forEach(w=>S.enLearned[w.en]=1);S.enDone=1} // avance de la primera versión
+  return S};
+const enOut=w=>S.enKnown[w]||S.enLearned[w];
+const EN_N=15; /* palabras por día; se quedan fijas en el día; si papá marca una como sabida, se cambia por la siguiente */
+function enWords(){enS();const R=dayRec();let L=(R.enW||[]).filter(w=>WBY[w]&&!S.enKnown[w]);
+  if(!R.enW)L=[];
+  for(const w of WALL){if(L.length>=EN_N)break;if(!enOut(w.en)&&!L.includes(w.en))L.push(w.en)}
+  if(L.length<EN_N){const rest=shuffle(WALL.filter(w=>!S.enKnown[w.en]&&!L.includes(w.en)));while(L.length<EN_N&&rest.length)L.push(rest.pop().en)}
+  R.enW=L;return L.map(w=>WBY[w])}
+const enToday=()=>{enS();const R=dayRec();if(R.ph==null)R.ph=(S.enIdx||0)%PHP.length;const RP=PHP[R.ph%PHP.length],nm=S.nombre||'Adolfo';
+  return{W:enWords(),RP,PP:RP.map(P=>P[0].includes('…')?[P[0].replace('…',' '+nm+'.'),P[1].replace('…',' '+nm+'.'),P[2].replace('(y dices tu nombre)',nm),P[3]]:P)}};
+const enCount=()=>Object.keys(enS().enLearned).length+Object.keys(S.enKnown).filter(w=>!S.enLearned[w]).length;
+function renderEN(){
+  const R=dayRec(),{W,PP}=enToday(),n=W.length;
+  $('wEN').innerHTML=`<h2>Inglés de hoy</h2>
+  <div class="phr"><small>Frases del día</small>${PP.map(P=>`<div class="en">${P[0]} ${sayBtn(P[0])}</div><p><b>${P[1]}</b></p><p class="note">Suena como: «${P[2]}». Úsala ${P[3]}</p>`).join('<hr>')}</div>
+  <h3 class="ph">Tus ${n} palabras</h3>
+  <div class="words">${W.map(w=>`<button class="wd" data-say="${w.en}"><span class="em">${w.e}</span><span><b>${w.en}</b><span>${w.es}</span></span></button>`).join('')}</div>
+  <p class="note">Toca cada palabra para escucharla y repítela en voz alta.</p>
+  <p class="note" id="sayMsg" hidden>No se escucha la voz: sube el volumen, quita el modo silencio y revisa que haya internet. En Chrome suele funcionar mejor.</p>
+  <div class="modes" style="margin-top:12px">
+   <button class="mode ${R.enWd?'ok':'next'}" data-en="w"><span class="n">1</span><span><b>Practicar palabras</b><span>Cada palabra 2 veces, una con audio · ${n*2} preguntas</span></span><span class="ck">${R.enWd?'✓':'›'}</span></button>
+   <button class="mode ${R.enPd?'ok':R.enWd?'next':''}" data-en="p"><span class="n">2</span><span><b>Practicar frases</b><span>Qué significan, cuándo decirlas y ármalas · 6 preguntas</span></span><span class="ck">${R.enPd?'✓':'›'}</span></button></div>
+  <p class="note">${R.en?`¡Inglés de hoy listo! Mañana llegan palabras y frases nuevas. `:''}Llevas <b>${enCount()}</b> palabras.</p>`}
+$('wEN').addEventListener('click',e=>{const b=e.target.closest('[data-en]');if(!b)return;b.dataset.en==='w'?enQuizW():enQuizP()});
+const listenQ=w=>`<span class="rq">Escucha: ¿qué palabra es?</span>${sayBtn(w.en)}<button class="mini peekw" data-pk="${w.en}">¿No se oye? Ver la palabra</button>`;
+/* cada palabra 2 veces: primero leyendo (inglés→español o español→inglés) y luego solo con audio */
+function enQuizW(){
+  const {W}=enToday(),opts=w=>shuffle([w,...shuffle(W.filter(x=>x!==w)).slice(0,3)]);
+  const r1=shuffle(W.slice()),r2=shuffle(W.slice());
+  if(r2[0]===r1[r1.length-1])r2.push(r2.shift());
+  const list=r1.map((w,k)=>k%2?
+      {k,lab:'¿Cómo se dice en inglés?',q:`<span class="em">${w.e}</span><span>${w.es}</span>`,opts:opts(w).map(o=>({h:o.en,v:o.en})),ans:w.en,after:w.en}:
+      {k,lab:'¿Qué significa?',q:`<span>${w.en}</span>${sayBtn(w.en)}`,opts:opts(w).map(o=>({h:`<span class="em">${o.e}</span>${o.es}`,v:o.en})),ans:w.en,auto:w.en})
+    .concat(r2.map((w,i)=>({k:W.length+i,lab:'Con audio',q:listenQ(w),opts:opts(w).map(o=>({h:`<span class="em">${o.e}</span>${o.es}`,v:o.en})),ans:w.en,auto:w.en,noMsg:`Era <b>${w.en}</b> (${w.es}).`})));
+  qzStart('en',list,{part:'w'})}
+/* frases: qué significa (con audio), qué dices en tal situación y ármala, para las dos frases */
+function enQuizP(){
+  const {PP,RP}=enToday(),list=[],others=P=>shuffle(PHR.filter(x=>!RP.includes(x))).slice(0,2);
+  PP.forEach(P=>list.push({lab:'Frase: ¿qué significa?',q:`<span>${P[0]}</span>${sayBtn(P[0])}`,opts:shuffle([P,...others(P)]).map(o=>({h:o[1],v:o[0]})),ans:P[0],auto:P[0],tx:true,noMsg:`Significa: <b>${P[1]}</b>`}));
+  PP.forEach(P=>list.push({lab:'Frase: ¿qué dices?',q:`<span class="rq">¿Qué dices ${P[3].replace(/\.$/,'')}?</span>`,opts:shuffle([P,...PP.filter(x=>x!==P),...others(P).slice(0,1)]).map(o=>({h:o[0],v:o[0]})),ans:P[0],after:P[0],tx:true,noMsg:`Se dice: <b>${P[0]}</b>`}));
+  PP.forEach(P=>list.push({lab:'Frase: ármala',q:`<span class="rq">Toca las palabras en orden para decir:</span><span>${P[1]}</span>`,build:P[0].replace(/…/g,'').trim().split(/\s+/),after:P[0],okMsg:`¡Perfecto! Ahora dila en voz alta: <b>${P[0]}</b>`,noMsg:`Bien armada: <b>${P[0]}</b>. Dila en voz alta.`}));
+  list.forEach((q,k)=>q.k=k);
+  qzStart('en',list,{part:'p'})}
+$('qzq').addEventListener('click',e=>{const b=e.target.closest('[data-pk]');if(b){b.outerHTML=`<span>${b.dataset.pk}</span>`}});
+
+/* ===== Preguntas (inglés y lectura) ===== */
+let QZ=null;
+function qzStart(kind,list,extra){
+  if(QZ)clearTimeout(QZ.to);
+  QZ=Object.assign({kind,list,n:list.length,i:0,first:0,combo:0,maxc:0,pts:0,res:[],lvl:Math.floor(S.pts/LV),lock:false},extra);
+  $('qzpeek').hidden=kind!=='rd';$('qzpeek').open=false;
+  show('qz');flame('m5',0);mood('m5',null);$('qzcombo').hidden=true;tone(523,.1);tone(784,.15,'sine',.1);qzAsk()}
+function qzDots(){$('qzdots').classList.toggle('many',QZ.n>16);$('qzdots').innerHTML=Array.from({length:QZ.n},(_,i)=>`<i class="${QZ.res[i]||(QZ.list[QZ.i]&&QZ.list[QZ.i].k===i&&!QZ.list[QZ.i].retry?'now':'')}"></i>`).join('')}
+function qzAsk(){
+  const q=QZ.list[QZ.i];QZ.lock=false;
+  $('qzlab').textContent=(q.retry?'Otra vez: ':'')+q.lab;
+  $('qzq').innerHTML=`<div class="qp">${q.q}</div>`;$('qzmsg').innerHTML='';
+  const tx=q.tx||QZ.kind==='rd';
+  if(q.build){q.pos=0;q.miss=false;$('qzans').innerHTML=`<div class="bld" id="bldOut"></div><div class="enk bldw">${shuffle(q.build.map((w,i)=>`<button data-b="${i}" data-w="${w}">${w}</button>`)).join('')}</div>`;qzDots();return}
+  $('qzans').innerHTML=`<div class="${tx?'opts1':'opts'}">${q.opts.map((o,i)=>`<button class="op ${tx?'tx':'sm'}" data-i="${i}">${o.h}</button>`).join('')}</div>`;
+  if(q.auto)say(q.auto);
+  qzDots()}
+function qzResolve(ok,b,q){QZ.lock=true;
+  if(ok){
+    if(!q.retry){QZ.first++;QZ.res[q.k]='ok'}
+    QZ.combo++;QZ.maxc=Math.max(QZ.maxc,QZ.combo);const p=10+Math.min(QZ.combo,10)*2;QZ.pts+=p;
+    if(b)b.classList.add('good');mood('m5','happy');$('qzmsg').innerHTML=q.okMsg||['¡Muy bien!','¡Exacto!','¡Eso es!','¡Súper!'][Math.floor(Math.random()*4)];
+    const pop=$('pop');pop.textContent='+'+p;pop.classList.remove('go');void pop.offsetWidth;pop.classList.add('go');
+    tone(520+QZ.combo*40,.1);tone(780+QZ.combo*40,.16,'sine',.08);if(q.after)say(q.after);
+  }else{
+    if(!q.retry)QZ.res[q.k]='no';QZ.combo=0;
+    if(b){b.classList.add('bad');[...$('qzans').querySelectorAll('.op')].forEach(o=>{if(q.opts[+o.dataset.i].v===q.ans)o.classList.add('good')})}
+    mood('m5','oops');tone(220,.25,'triangle');
+    $('qzmsg').innerHTML=q.noMsg||'La correcta es la verde.';
+    if(q.after&&q.build)say(q.after);
+    if(QZ.kind==='en'&&!q.retry)QZ.list.push(Object.assign({},q,{retry:true,opts:q.opts&&shuffle(q.opts.slice()),pos:0,miss:false}));
+  }
+  const c=$('qzcombo');c.hidden=QZ.combo<2;c.textContent='racha ×'+QZ.combo;flame('m5',QZ.combo);
+  QZ.i++;qzDots();save();
+  QZ.to=setTimeout(()=>QZ.i>=QZ.list.length?qzFinish():qzAsk(),ok?(q.build?1800:1100):2600)}
+$('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[QZ.i];
+  if(q.build){const c=e.target.closest('[data-b]');if(!c||c.disabled)return;
+    if(c.dataset.w===q.build[q.pos]){q.pos++;c.disabled=true;$('bldOut').innerHTML=q.build.slice(0,q.pos).map(w=>`<span>${w}</span>`).join('');tone(600+q.pos*50,.06);
+      if(q.pos>=q.build.length)qzResolve(!q.miss,null,q)}
+    else{q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${q.build[q.pos-1]||'…'}»?`}
+    return}
+  const b=e.target.closest('.op');if(!b)return;
+  qzResolve(q.opts[+b.dataset.i].v===q.ans,b,q)});
+$('qzquit').addEventListener('click',()=>{if(QZ)clearTimeout(QZ.to);if(QZ&&QZ.kind==='rd')rdOpen(QZ.si);else{show('home');renderHome()}});
+function qzFinish(){
+  const b=bookRound(QZ.pts,QZ.maxc),R=dayRec(),news=[],N=QZ.n;
+  if(QZ.kind==='en'){
+    if(QZ.part==='w'){R.enWd=true;R.enOk=Math.max(R.enOk||0,QZ.first)}else{R.enPd=true;R.enPOk=Math.max(R.enPOk||0,QZ.first)}
+    if(!R.en&&R.enWd&&R.enPd){R.en=true;S.enIdx=(S.enIdx||0)+1;enS();(R.enW||[]).forEach(w=>S.enLearned[w]=1);news.push('¡Terminaste el <b>inglés de hoy</b>! Mañana tendrás palabras y frases nuevas.')}
+    else if(!R.en)news.push(QZ.part==='w'?'¡Palabras listas! Ahora sigue <b>Practicar frases</b>.':'¡Frases listas! Ahora sigue <b>Practicar palabras</b>.');
+  }else{
+    const st=STORIES[QZ.si];S.rd=S.rd||{};S.rd[st.id]=Math.max(S.rd[st.id]||0,QZ.first);
+    if(!R.rd){R.rd=st.id;news.push('¡Terminaste la <b>lectura de hoy</b>!')}
+    R.rdOk=Math.max(R.rdOk||0,QZ.first);
+    news.push(QZ.first===N?'¡Contestaste las 5 preguntas bien! Entendiste todo.':`Contestaste bien <b>${QZ.first} de ${N}</b>. Si quieres, léela otra vez.`);
+  }
+  news.push(...commonNews(b,QZ.lvl,QZ.maxc));save();renderTop();
+  $('endT').textContent=QZ.first===N?'¡Perfecto!':QZ.first>=N*.6?'¡Muy bien!':'¡Sigue así!';
+  $('eOk').textContent=QZ.first;$('eOkL').textContent='a la primera de '+N;$('ePts').textContent=QZ.pts;$('eCombo').textContent=QZ.maxc;
+  $('news').innerHTML=news.map(x=>`<li>${x}</li>`).join('');
+  $('again').hidden=false;
+  if(QZ.kind==='en'){const pt=QZ.part,Rd=dayRec();againAct=pt==='w'?enQuizW:enQuizP;
+    if(!Rd.en){nextAct=pt==='w'?enQuizP:enQuizW;$('nextb').textContent=pt==='w'?'Practicar frases':'Practicar palabras'}
+    else{nextAct=()=>{S.world='en';show('home');renderHome()};$('nextb').textContent='Ver mis palabras'}}
+  else{const si=QZ.si;againAct=()=>rdOpen(si);nextAct=()=>{S.world='rd';show('home');renderHome()};$('nextb').textContent='Otra lectura'}
+  show('end');mood('m3',QZ.first>=N*.6?'happy':null);flame('m3',QZ.maxc);
+  [0,.12,.24].forEach((w,i)=>tone([523,659,784][i],.2,'sine',w));
+  if(QZ.first>=N*.8)confetti()}
+
+/* ===== Lectura ===== */
+const STORIES=[
+{id:'dino',e:'🦖',t:'Gigantes que caminaron por la Tierra',tema:'Dinosaurios',p:[
+'Hace muchísimo tiempo, mucho antes de que existieran las personas, la Tierra estaba llena de dinosaurios. Algunos eran pequeños como una gallina y otros eran más grandes que un camión.',
+'Uno de los más grandes fue el argentinosaurio. Medía unos 35 metros de largo, casi lo mismo que tres autobuses en fila, y pesaba tanto como diez elefantes juntos. A pesar de su tamaño, no comía carne: se alimentaba de hojas. Con su cuello larguísimo alcanzaba las ramas más altas de los árboles.',
+'El dinosaurio más famoso es el tiranosaurio rex. Era carnívoro y tenía dientes tan grandes como un plátano. Sus patas traseras eran muy fuertes, pero sus brazos eran tan cortitos que no alcanzaba a tocarse la boca.',
+'¿Cómo sabemos todo esto si nadie los vio? Gracias a los fósiles. Los fósiles son huesos, huellas y hasta huevos que se convirtieron en piedra con el paso de millones de años. Los paleontólogos son los científicos que los buscan. Excavan con mucho cuidado, usando pinceles y pequeñas palas, para no romper nada.',
+'Los dinosaurios desaparecieron hace unos 66 millones de años. Los científicos creen que una roca gigante del espacio, llamada asteroide, chocó contra la Tierra. ¡Y cayó aquí en México, en la península de Yucatán! El choque cambió el clima y muchos animales no pudieron sobrevivir.',
+'Pero no todos desaparecieron. ¿Sabías que las aves son parientes de los dinosaurios? La próxima vez que veas una paloma, piensa que tiene un tatarabuelo muy, muy lejano… ¡con dientes enormes!'],
+q:[['¿Qué comía el argentinosaurio?','Hojas de los árboles','Carne','Peces'],
+['¿Qué son los fósiles?','Restos de animales que se volvieron piedra','Dinosaurios que están dormidos','Juguetes muy antiguos'],
+['¿Cómo se llaman los científicos que buscan fósiles?','Paleontólogos','Astronautas','Veterinarios'],
+['¿Dónde cayó el asteroide?','En México, en Yucatán','En la Luna','En el Polo Norte'],
+['¿Qué animales de hoy son parientes de los dinosaurios?','Las aves','Los perros','Los peces']]},
+{id:'luna',e:'🚀',t:'Un paseo por la Luna',tema:'El espacio',p:[
+'En julio de 1969, tres astronautas subieron a un cohete enorme. Sus nombres eran Neil Armstrong, Buzz Aldrin y Michael Collins. Iban a hacer algo que nadie había hecho jamás: llegar a la Luna.',
+'El viaje duró cuatro días. Dentro de la nave todo flotaba, porque en el espacio no se siente el peso. Los astronautas comían comida especial en bolsitas y dormían amarrados para no andar flotando por todos lados.',
+'Al llegar, Michael Collins se quedó dando vueltas alrededor de la Luna en la nave principal. Neil y Buzz bajaron en una nave pequeña llamada Águila. Neil fue el primero en pisar la Luna. Al bajar dijo una frase famosa: «Es un pequeño paso para un hombre, pero un gran salto para la humanidad».',
+'En la Luna no hay aire para respirar, por eso usaban trajes espaciales muy gruesos con oxígeno. Como la Luna jala las cosas con menos fuerza que la Tierra, los astronautas daban saltos como canguros. Recogieron rocas, tomaron fotos y clavaron una bandera.',
+'¿Y sabes qué es lo más curioso? Sus huellas siguen ahí. En la Luna no hay viento ni lluvia que las borren, así que podrían durar millones de años.',
+'Después de dos horas y media afuera, regresaron a la nave y volvieron a casa. Cayeron en el océano y un barco los rescató. Millones de personas lo habían visto todo por televisión. Ese día, muchos niños soñaron con ser astronautas. ¿Tú también?'],
+q:[['¿Quién fue el primero en pisar la Luna?','Neil Armstrong','Michael Collins','Buzz Aldrin'],
+['¿Por qué usaban trajes con oxígeno?','Porque en la Luna no hay aire','Porque hacía mucho calor','Para verse bonitos en las fotos'],
+['¿Cómo caminaban en la Luna?','Daban saltos como canguros','Corrían muy rápido','Se arrastraban'],
+['¿Por qué siguen ahí sus huellas?','No hay viento ni lluvia que las borren','Unos guardias las cuidan','Son de piedra'],
+['¿Cuánto duró el viaje a la Luna?','Cuatro días','Un año','Una hora']]},
+{id:'pulpo',e:'🐙',t:'El pulpo, genio del mar',tema:'Animales del mar',p:[
+'Si hubiera un concurso de animales sorprendentes, el pulpo ganaría muchos premios. Vive en el mar, tiene ocho brazos y ningún hueso en el cuerpo. Por eso puede meterse por agujeros pequeñísimos, del tamaño de una moneda.',
+'Sus brazos están cubiertos de ventosas, que son como pequeñas copitas que se pegan a todo. Con ellas atrapa cangrejos y conchas, y también puede sentir el sabor de las cosas. ¡Imagina probar tu comida con los dedos!',
+'El pulpo tiene otras rarezas: tiene tres corazones y su sangre es de color azul. Además, es un experto en disfrazarse. En un segundo puede cambiar de color y hasta la forma de su piel para parecerse a una roca o a una planta. Así se esconde de los tiburones y de otros animales que lo quieren comer.',
+'Si a pesar de todo un enemigo lo descubre, el pulpo lanza una nube de tinta negra. Mientras el otro animal no ve nada, el pulpo se escapa a toda velocidad.',
+'Los científicos dicen que el pulpo es muy inteligente. En algunos acuarios, los pulpos han aprendido a abrir frascos con tapa para sacar la comida de adentro. ¡Algunos hasta se han salido de su pecera por la noche para buscar comida en otra!',
+'Así que, si algún día vas al mar, mira con atención las rocas. Tal vez una de ellas tenga ocho brazos y te esté mirando.'],
+q:[['¿Cuántos corazones tiene el pulpo?','Tres','Uno','Ocho'],
+['¿Por qué puede meterse por agujeros muy pequeños?','Porque no tiene huesos','Porque es muy rápido','Porque tiene ventosas'],
+['¿Qué hace cuando un enemigo lo descubre?','Lanza una nube de tinta','Grita muy fuerte','Se hace bolita'],
+['¿Para qué cambia de color?','Para esconderse','Para ir a fiestas','Porque tiene frío'],
+['¿Qué aprendieron algunos pulpos en los acuarios?','A abrir frascos con tapa','A hablar','A jugar fútbol']]},
+{id:'futbol',e:'⚽',t:'El partido bajo la lluvia',tema:'Fútbol',p:[
+'Mateo era el portero de su equipo, Los Halcones. Le encantaba el fútbol, pero tenía un problema: cada vez que le metían un gol, se enojaba tanto que quería salirse de la cancha.',
+'El sábado llegó la gran final contra Los Tiburones. El cielo estaba gris y, a los pocos minutos, empezó a llover. La pelota resbalaba y el lodo hacía que todos se cayeran.',
+'En el primer tiempo, un delantero de Los Tiburones pateó muy fuerte. Mateo se lanzó, pero la pelota se le escapó de las manos mojadas. ¡Gol! Mateo apretó los puños y sintió que la cara se le calentaba. Quería aventar los guantes.',
+'Entonces se acordó de lo que le decía su entrenadora, la profe Lupita: «Cuando te enojes, respira tres veces y piensa en la siguiente jugada». Mateo respiró hondo, una, dos, tres veces. Se secó los guantes en la playera y gritó: «¡Vamos, equipo, todavía podemos!».',
+'Sus compañeros lo escucharon y se animaron. Sofía empató el partido con un tiro de cabeza. En el último minuto, Los Tiburones tuvieron un penal. Todos miraban a Mateo. Él respiró otra vez, miró la pelota y se lanzó hacia la derecha… ¡y la atrapó!',
+'El partido terminó en empate y los dos equipos compartieron el trofeo. Mateo estaba lleno de lodo de pies a cabeza, pero feliz. Esa tarde aprendió que perder la calma es fácil, pero recuperarla es lo que hace a un verdadero campeón.'],
+q:[['¿En qué posición jugaba Mateo?','Portero','Delantero','Árbitro'],
+['¿Qué le enseñó la profe Lupita?','Respirar tres veces y pensar en la siguiente jugada','Gritarle al árbitro','Salirse de la cancha'],
+['¿Cómo estaba el clima ese día?','Estaba lloviendo','Hacía mucho sol','Estaba nevando'],
+['¿Quién empató el partido?','Sofía','Mateo','La profe Lupita'],
+['¿Cómo terminó el partido?','En empate, y compartieron el trofeo','Los Halcones perdieron','Los Halcones ganaron 5 a 0']]},
+{id:'robot',e:'🤖',t:'Beto, el robot que no sabía reír',tema:'Robots',p:[
+'En un taller lleno de tuercas y cables vivía Beto, un robot de lata con ojos de foco. Beto sabía hacer muchas cosas: barría el piso, regaba las plantas y resolvía multiplicaciones en un segundo. Pero había algo que no sabía hacer: reírse.',
+'La inventora del taller era doña Clara. Todas las tardes, su nieta Luna llegaba de la escuela y le contaba chistes a Beto: «¿Qué le dijo un semáforo a otro? ¡No me mires, que me estoy cambiando!». Luna se doblaba de la risa, pero Beto solo parpadeaba. «Análisis completo: los semáforos no se cambian de ropa», decía con su voz de metal.',
+'Luna no se rindió. Un día le hizo cosquillas, pero Beto no sentía nada. Otro día se puso una nariz de payaso, pero Beto solo dijo: «Nariz roja detectada».',
+'Una tarde, Luna llegó triste porque le había ido mal en un examen. No tenía ganas de contar chistes. Beto la miró y algo raro pasó en sus circuitos. Quería que Luna se sintiera mejor. Entonces tomó la nariz de payaso, se la puso y empezó a bailar moviendo los brazos como un pulpo… hasta que se tropezó con una cubeta y cayó sentado.',
+'Luna soltó una carcajada. Y al escucharla, desde adentro de Beto salió un sonido nuevo: «¡Ji, ji, ji… bip!».',
+'Doña Clara asomó la cabeza, sorprendida. Beto había aprendido a reír. No con chistes ni con cosquillas, sino haciendo feliz a su amiga.'],
+q:[['¿Qué no sabía hacer Beto?','Reírse','Barrer el piso','Multiplicar'],
+['¿Quién le contaba chistes a Beto?','Luna, la nieta de doña Clara','Doña Clara','Un semáforo'],
+['¿Por qué estaba triste Luna aquella tarde?','Le había ido mal en un examen','Beto se descompuso','Perdió su nariz de payaso'],
+['¿Qué hizo Beto para alegrarla?','Se puso la nariz de payaso y bailó','Le contó un chiste','Le hizo cosquillas'],
+['¿Qué nos enseña el cuento?','Hacer feliz a alguien también te hace feliz','Que los robots no sirven','Que no hay que contar chistes']]},
+{id:'volcan',e:'🌋',t:'El volcán que nació en una milpa',tema:'Volcanes',p:[
+'Un día de febrero de 1943, en Michoacán, un campesino llamado Dionisio Pulido estaba trabajando en su milpa, que es un terreno donde se siembra maíz. De pronto, sintió que la tierra temblaba bajo sus pies. Luego vio que en el suelo se abría una grieta y que de ella salía humo con olor a azufre, como a huevo podrido.',
+'Dionisio corrió al pueblo a avisar. Al día siguiente, en el lugar de la grieta ya había un cerro de piedras y ceniza. ¡Estaba naciendo un volcán! Le pusieron Paricutín, como el pueblo más cercano.',
+'Un volcán es como una ventana por donde sale el calor del interior de la Tierra. Muy adentro hay roca tan caliente que se derrite. Esa roca derretida se llama magma, y cuando sale a la superficie la llamamos lava.',
+'El Paricutín creció muy rápido: en solo un año ya medía más de 300 metros, más que el edificio más alto que hayas visto. Su lava avanzó despacio y cubrió dos pueblos. Las personas tuvieron tiempo de salir. Hoy, en medio de un mar de roca negra, todavía se ve la torre de la iglesia de San Juan, que quedó medio enterrada.',
+'El volcán estuvo activo nueve años y luego se durmió. Científicos de todo el mundo vinieron a estudiarlo, porque era la primera vez que podían ver a un volcán nacer desde el principio. Hoy se puede subir caminando… ¡o a caballo!'],
+q:[['¿Dónde nació el volcán Paricutín?','En una milpa de Michoacán','En medio del mar','En una ciudad grande'],
+['¿Qué es el magma?','Roca derretida dentro de la Tierra','Humo con olor a huevo','Un tipo de maíz'],
+['¿Qué se ve todavía en medio de la lava?','La torre de una iglesia','Un coche rojo','La milpa de Dionisio'],
+['¿Cuántos años estuvo activo el volcán?','Nueve años','Un día','Cien años'],
+['¿Por qué vinieron científicos de todo el mundo?','Era la primera vez que veían nacer un volcán desde el principio','Querían comprar maíz','Buscaban dinosaurios']]},
+{id:'tiburon',e:'🦈',t:'Tiburones: ¿villanos o héroes?',tema:'Animales del mar',p:[
+'En muchas películas, los tiburones aparecen como monstruos que atacan a todos. Pero la verdad es muy diferente. La mayoría de los tiburones no se interesa por las personas, y es mucho más probable que te pique una abeja a que te muerda un tiburón.',
+'Los tiburones existen desde hace muchísimo tiempo: ¡ya nadaban en el mar antes de que existieran los dinosaurios! Hay más de 500 tipos diferentes. Algunos son tan pequeños que caben en tu mano. Otros son gigantes, como el tiburón ballena, que es el pez más grande del mundo. Aunque es enorme, el tiburón ballena come animalitos diminutos llamados plancton, y es tan tranquilo que hay personas que nadan a su lado. En México se puede ver en el mar de Quintana Roo y de Baja California.',
+'Los tiburones tienen superpoderes. Pueden oler una gota de sangre desde muy lejos. Además, sienten la electricidad que producen otros animales al moverse, aunque estén escondidos bajo la arena. Y sus dientes nunca se acaban: cuando uno se cae, sale otro nuevo. ¡Un tiburón puede tener miles de dientes en toda su vida!',
+'Los tiburones son importantes porque comen animales enfermos o débiles, y así mantienen el océano sano. Por desgracia, mucha gente los pesca y ahora algunos tipos de tiburón están en peligro. Cuidarlos es cuidar el mar.',
+'Así que la próxima vez que veas una película de tiburones, recuerda: no son villanos. ¡Son los guardianes del océano!'],
+q:[['¿Cuál es el pez más grande del mundo?','El tiburón ballena','El tiburón blanco','El pulpo'],
+['¿Qué come el tiburón ballena?','Plancton, unos animalitos diminutos','Personas','Barcos'],
+['¿Qué pasa con los dientes de los tiburones?','Cuando se cae uno, sale otro nuevo','Nunca se les caen','No tienen dientes'],
+['¿Por qué son importantes los tiburones?','Mantienen el mar sano','Limpian los barcos','Hacen las olas'],
+['¿Qué quiere decir que son «guardianes del océano»?','Que ayudan a cuidar el mar','Que muerden a todos','Que trabajan de policías']]},
+{id:'canela',e:'🐕',t:'Canela encuentra el camino',tema:'Mascotas',p:[
+'Canela era una perrita café con una oreja parada y otra caída. Vivía con Diego y su familia en una casa con un patio pequeño. A Canela le encantaba perseguir mariposas, aunque nunca atrapaba ninguna.',
+'Un domingo, la familia fue de día de campo al bosque. Canela corría feliz entre los árboles, olfateándolo todo. De repente vio una mariposa azul enorme y salió disparada tras ella. Corrió y corrió… hasta que la mariposa se fue volando muy alto. Canela miró a su alrededor. No veía a Diego. No veía el mantel ni la canasta. Estaba perdida.',
+'Canela se sentó y soltó un aullido triste. Después recordó algo: su nariz. Los perros huelen muchísimo mejor que las personas. Pegó la nariz al suelo y empezó a buscar. Olió hojas, piedras, un hongo… y entonces, ¡ahí estaba! Un olor conocido: el de los tenis de Diego, que olían a pasto y a chocolate.',
+'Mientras tanto, Diego la buscaba gritando su nombre, con los ojos llenos de lágrimas. Su papá le dijo: «Vamos a quedarnos quietos un momento. Si nos movemos mucho, será más difícil que nos encuentre».',
+'Siguiendo el rastro, Canela cruzó un arroyo, pasó por debajo de un tronco y subió una lomita. Desde arriba escuchó: «¡Caneeelaaa!». Bajó corriendo con la oreja caída rebotando y saltó a los brazos de Diego.',
+'Esa noche, Canela durmió en la cama de Diego. Y desde ese día, cuando ve una mariposa, primero voltea a ver dónde está su familia.'],
+q:[['¿Por qué se perdió Canela?','Persiguió una mariposa','Se quedó dormida','La dejaron en casa'],
+['¿Qué usó Canela para encontrar el camino?','Su nariz','Un mapa','Sus orejas'],
+['¿A qué olían los tenis de Diego?','A pasto y a chocolate','A flores','A pescado'],
+['¿Por qué el papá dijo que se quedaran quietos?','Para que a Canela le fuera más fácil encontrarlos','Porque estaban cansados','Porque ya era hora de comer'],
+['¿Qué hace Canela ahora cuando ve una mariposa?','Voltea a ver dónde está su familia','Se esconde','Ladra muy fuerte']]},
+{id:'abejas',e:'🐝',t:'El gran equipo de las abejas',tema:'Insectos',p:[
+'En una colmena pueden vivir más de veinte mil abejas, ¡y todas trabajan en equipo! Cada una tiene una tarea. La reina es la mamá de todas y se dedica a poner huevos, hasta dos mil en un solo día. Las obreras hacen casi todo lo demás: limpian, cuidan a las crías, construyen panales de cera y vigilan la entrada para que no entren intrusos.',
+'Las abejas exploradoras salen a buscar flores. Cuando encuentran unas muy buenas, regresan a la colmena y hacen algo increíble: ¡bailan! Dan vueltas y menean la colita. Con ese baile les dicen a las demás hacia dónde volar y qué tan lejos están las flores.',
+'De las flores, las abejas toman un juguito dulce llamado néctar. Lo llevan a la colmena y lo convierten en miel. Hacer miel cuesta mucho trabajo: una abeja, en toda su vida, hace menos de una cucharadita. Por eso un frasco de miel es el trabajo de cientos de abejas.',
+'Mientras van de flor en flor, las abejas llevan polen pegado en sus patitas peludas. Así ayudan a que las plantas den frutos. Gracias a ellas tenemos manzanas, fresas, aguacates y muchas otras comidas.',
+'Si una abeja se acerca, no te asustes ni manotees. Quédate tranquilo y se irá sola. Las abejas no quieren picarte; solo están trabajando. Sin ellas, el mundo sería mucho menos dulce… ¡y tendría mucha menos comida!'],
+q:[['¿Qué hace la abeja reina?','Pone huevos','Busca flores','Vigila la entrada'],
+['¿Para qué bailan las abejas exploradoras?','Para decir dónde están las flores','Para divertirse','Porque tienen frío'],
+['¿Qué es el néctar?','Un juguito dulce de las flores','La cera del panal','Un tipo de abeja'],
+['¿Cómo ayudan las abejas a las plantas?','Llevan polen de flor en flor','Las riegan con agua','Les quitan las hojas secas'],
+['¿Qué debes hacer si se acerca una abeja?','Quedarte tranquilo','Manotear','Correr gritando']]},
+{id:'maya',e:'🏛️',t:'La serpiente de luz de Chichén Itzá',tema:'Historia de México',p:[
+'En Yucatán, en medio de la selva, hay una ciudad antigua llamada Chichén Itzá. La construyeron los mayas hace más de mil años. Los mayas eran grandes astrónomos: observaban el Sol, la Luna y las estrellas con tanto cuidado que hicieron calendarios muy exactos.',
+'La construcción más famosa de Chichén Itzá es una gran pirámide llamada El Castillo. Está dedicada a Kukulkán, una serpiente emplumada muy importante para los mayas. La pirámide tiene cuatro escaleras, una de cada lado, y cada escalera tiene 91 escalones. Si sumas los de las cuatro escaleras y le agregas el escalón de hasta arriba, te da 365… ¡los mismos días que tiene un año!',
+'Pero lo más sorprendente pasa dos veces al año, en marzo y en septiembre. En esos días, cuando el Sol empieza a bajar por la tarde, la sombra de la pirámide forma triángulos de luz en una de las escaleras. Parece que una serpiente gigante va bajando por la pirámide hasta llegar a una cabeza de serpiente tallada en piedra. Miles de personas van a verlo.',
+'Hay otro secreto: si te paras frente a la escalera y aplaudes, el eco que regresa suena como el canto de un pájaro, el quetzal, que era sagrado para los mayas.',
+'Hoy Chichén Itzá es una de las siete maravillas del mundo moderno. Los mayas no tenían máquinas modernas y aun así construyeron algo que sigue asombrando a todos.'],
+q:[['¿Quiénes construyeron Chichén Itzá?','Los mayas','Los romanos','Los egipcios'],
+['¿Cuántos escalones tiene la pirámide en total?','365','91','100'],
+['¿Qué se ve en la pirámide en marzo y septiembre?','Una serpiente de luz y sombra','Un dragón de fuego','Una lluvia de estrellas'],
+['¿A qué suena el eco cuando aplaudes?','Al canto de un pájaro','A un trueno','A un perro'],
+['¿Por qué decimos que los mayas eran grandes astrónomos?','Observaban el cielo e hicieron calendarios','Construían barcos','Jugaban fútbol']]}];
+const rdRead=s=>(S.rd||{})[s.id]!=null;
+const rdMins=s=>Math.max(1,Math.round(s.p.join(' ').split(/\s+/).length/90));
+function rdPick(){const R=dayRec();if(R.rdPick==null||!STORIES[R.rdPick]){const u=STORIES.findIndex(s=>!rdRead(s));R.rdPick=u>=0?u:dayNum()%STORIES.length}return R.rdPick}
+function rdChange(){const R=dayRec(),c=rdPick(),n=STORIES.length;let nx=-1;
+  for(let k=1;k<n;k++){const j=(c+k)%n;if(!rdRead(STORIES[j])){nx=j;break}}
+  R.rdPick=nx>=0?nx:(c+1)%n}
+function renderRD(){
+  const i=rdPick(),s=STORIES[i],R=dayRec(),sc=(S.rd||{})[s.id];
+  $('wRD').innerHTML=`<h2>Lectura de hoy</h2>
+  <div class="rdcard"><span class="em">${s.e}</span><span><b>${s.t}</b><span class="note">${s.tema} · unos ${rdMins(s)} minutos${sc!=null?` · ya la leíste (${sc} de 5)`:''}</span></span></div>
+  <div class="row"><button class="ghost" id="rdChg">Cambiar lectura</button><button class="big" id="rdRead">Leer</button></div>
+  <p class="note">${R.rd?'¡Ya hiciste la lectura de hoy! Puedes leer otra si quieres.':'Lee con calma. Al final hay 5 preguntas.'}</p>
+  <h3 class="ph">O escoge la que quieras</h3>
+  <div class="modes">${STORIES.map((x,j)=>{const v=(S.rd||{})[x.id];return `<button class="mode ${j===i?'next':''}" data-s="${j}"><span class="n em2">${x.e}</span><span><b>${x.t}</b><span>${x.tema}</span></span><span class="sc">${v!=null?`<i class="${v>=4?'y':''}"></i>${v}/5`:''}</span></button>`}).join('')}</div>`}
+$('wRD').addEventListener('click',e=>{
+  if(e.target.closest('#rdChg')){tone(660,.06);rdChange();renderRD();return}
+  if(e.target.closest('#rdRead')){rdOpen(rdPick());return}
+  const b=e.target.closest('[data-s]');if(b)rdOpen(+b.dataset.s)});
+let rdCur=0;
+function rdOpen(i){
+  rdCur=i;const s=STORIES[i];dayRec().rdPick=i;renderTop();
+  $('rdEm').textContent=s.e;$('rdT').textContent=s.t;$('rdInfo').textContent=`${s.tema} · unos ${rdMins(s)} minutos · lee con calma, sin prisa`;
+  $('rdTxt').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');show('rd');tone(660,.06)}
+$('rdGo').addEventListener('click',()=>{
+  const s=STORIES[rdCur];
+  const list=s.q.map((x,k)=>({k,lab:`Pregunta ${k+1} de ${s.q.length}`,q:`<span class="rq">${x[0]}</span>`,opts:shuffle([{h:x[1],v:1},{h:x[2],v:2},{h:x[3],v:3}]),ans:1,noMsg:`Era: <b>${x[1]}</b>`}));
+  $('qzstory').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');
+  qzStart('rd',list,{si:rdCur})});
+$('rdQuit').addEventListener('click',()=>{S.world='rd';show('home');renderHome()});
+
+/* ===== Para papás ===== */
+function renderXProg(){
+  const D=S.daily||{},L=['D','L','M','M','J','V','S'];let rows='';
+  for(let i=6;i>=0;i--){const ms=Date.now()-i*864e5,d=dstr(ms),r=D[d];
+    rows+=`<tr><td>${L[new Date(ms).getDay()]} ${new Date(ms).getDate()}</td><td class="r">${r&&(r.tOk||r.tTries)?`×${r.t} ${r.tOk?'✓':'('+r.tTries+')'}`:'–'}</td><td class="r">${r&&r.col?r.colOk+'/10':'–'}</td><td class="r">${r&&r.en?r.enOk+'/'+((r.enW||[]).length*2||30):'–'}</td><td class="r">${r&&r.rd?r.rdOk+'/5':'–'}</td></tr>`}
+  const done=STORIES.filter(rdRead);
+  $('xprog').innerHTML=`<h3 class="ph">Reto del día, inglés y lectura</h3>
+  <p class="note">Retos del día completos: <b>${S.retoDays||0}</b> · Palabras de inglés: <b>${enCount()}</b> de ${WALL.length}</p>
+  <table class="pt"><tr><th>Día</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th></tr>${rows}</table>
+  <p class="note">En "Tabla", el número entre paréntesis son los intentos de un día sin lograrlo. Cuentas: sin error de 10.</p>
+  <p class="note">Lecturas hechas (${done.length} de ${STORIES.length}):</p><div class="fails">${done.length?done.map(s=>`<span>${s.t} (${S.rd[s.id]}/5)</span>`).join(''):'<span>Todavía ninguna</span>'}</div>
+  <h3 class="ph">Inglés: cambiar palabras</h3>
+  <p class="note">Toca una palabra de hoy que ya sepa y se cambia por la siguiente.</p>
+  <div class="enk">${enToday().W.map(w=>`<button data-kw="${w.en}">${w.e} ${w.en} ✕</button>`).join('')}</div>
+  <p class="note">Frases de hoy: <b>${enToday().PP.map(P=>P[0]).join(' / ')}</b> <button class="mini" id="phNext">Ya las sabe, cambiar</button></p>
+  <p class="note">Grupos completos (toca para marcar los que ya domina):</p>
+  <div class="eng">${WORDS.map((g,i)=>{const k=g.filter(w=>S.enKnown[w.en]).length,l=g.filter(w=>S.enLearned[w.en]&&!S.enKnown[w.en]).length,all=k===g.length;
+    return `<button data-kg="${i}" class="${all?'on':''}"><span>${g[0].e} ${EN_G[i]}</span><small>${all?'Ya las sabe ✓':k?`${k} sabidas`:l===g.length?'Aprendidas':l?`${l} de 10 aprendidas`:'Por aprender'}</small></button>`}).join('')}</div>
+  <p class="note">Al marcar un grupo como sabido, sus palabras ya no salen. Tócalo otra vez para volver a incluirlo.</p>`}
+$('xprog').addEventListener('click',e=>{enS();const R=dayRec();
+  const w=e.target.closest('[data-kw]');if(w){S.enKnown[w.dataset.kw]=1;save();renderHome();return}
+  if(e.target.closest('#phNext')){R.ph=(R.ph==null?(S.enIdx||0):R.ph)+1;save();renderHome();return}
+  const g=e.target.closest('[data-kg]');if(g){const G=WORDS[+g.dataset.kg],all=G.every(x=>S.enKnown[x.en]);G.forEach(x=>{if(all)delete S.enKnown[x.en];else S.enKnown[x.en]=1});
+    if(all&&R.enW&&!R.en)R.enW=null;save();renderHome()}});
+
+renderHome();
+pull();
+}
+</script>
+</body>
+</html>
