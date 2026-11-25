@@ -19,27 +19,16 @@ const datosIniciales = () => ({ pts: 1089, best: 20, streak: 1, last: '2026-11-2
 
 function nubeFalsa({ sinV2 = false, sinIntentos = false } = {}) {
   let n = 0; const stamp = () => new Date(Date.UTC(2026, 10, 25, 16, 0, 0, ++n)).toISOString();
-  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [], solo: false, familia: false, correos: [] };
+  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [], usuario: null, clave: null, codigo: CODE };
   db.cambiarDesdeOtroDispositivo = f => { f(db.datos); db.actualizado = stamp(); };
-  db.auth = async route => {
-    const path = route.request().url().split('/auth/v1/')[1]; const b = JSON.parse(route.request().postData() || '{}');
-    const json = (x, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(x) });
-    if (path === 'otp') { db.correos.push(b.email); return json({}); }
-    if (path === 'verify') return b.token === '123456' ? json({ access_token: 'tok1', refresh_token: 'r1', expires_in: 3600, user: { email: b.email } }) : json({ msg: 'Token has expired or is invalid' }, 403);
-    if (path.startsWith('token')) return json({ access_token: 'tok1', refresh_token: 'r1', expires_in: 3600 });
-    if (path === 'logout') return route.fulfill({ status: 204, body: '' });
-    return json({}, 404);
-  };
   db.ruta = async route => {
     const fn = route.request().url().split('/rpc/')[1]; const b = JSON.parse(route.request().postData() || '{}'); db.llamadas.push(fn);
     const json = x => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(x) });
-    const conSesion = (route.request().headers()['authorization'] || '') === 'Bearer tok1';
-    if (fn === 'tt_mis_jugadores') return conSesion ? json(db.familia ? [{ codigo: CODE, nombre: 'Adolfo', solo_cuenta: db.solo }] : []) : route.fulfill({ status: 401, body: '{}' });
-    if (b.p_codigo !== CODE) return route.fulfill({ status: 400, body: '{}' });
-    const permitido = !db.solo || (conSesion && db.familia);
-    if (fn === 'tt_vincular') { if (!conSesion || !permitido) return route.fulfill({ status: 400, body: '{}' }); db.familia = true; return json(true); }
-    if (fn === 'tt_solo_cuenta') { if (!conSesion || !db.familia) return route.fulfill({ status: 400, body: '{}' }); db.solo = b.p_on; return json(b.p_on); }
-    if (!permitido) return fn === 'tt_cargar' ? json({ login: true }) : route.fulfill({ status: 400, body: '{"message":"sin permiso"}' });
+    if (fn === 'tt_entrar') return json(b.p_usuario === db.usuario && b.p_clave === db.clave ? { codigo: db.codigo, nombre: 'Adolfo' } : { error: 'datos' });
+    if (b.p_codigo !== db.codigo) return fn === 'tt_cargar' ? json(null) : route.fulfill({ status: 400, body: '{}' });
+    if (fn === 'tt_usuario_ver') return json(db.usuario);
+    if (fn === 'tt_usuario_guardar') { if (db.clave && b.p_clave_actual !== db.clave) return json({ error: 'clave_actual' }); if (String(b.p_clave).length < 6) return json({ error: 'clave' }); db.usuario = b.p_usuario.trim().toLowerCase(); db.clave = b.p_clave; return json({ ok: true, usuario: db.usuario }); }
+    if (fn === 'tt_cambiar_codigo') { if (b.p_clave !== db.clave) return json({ error: 'clave' }); db.codigo = 'b'.repeat(32); return json({ codigo: db.codigo }); }
     const respaldar = motivo => db.respaldos.unshift({ id: db.respaldos.length + 1, creado: new Date().toISOString(), motivo, datos: JSON.parse(JSON.stringify(db.datos)) });
     switch (fn) {
       case 'tt_cargar': return json({ datos: db.datos, actualizado: db.actualizado });
@@ -78,7 +67,6 @@ async function abrir(db, { sinMotor = false } = {}) {
   page.on('pageerror', e => errores.push(String(e)));
   await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
   await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
-  await page.route('https://*.supabase.co/auth/v1/**', db.auth);
   if (sinMotor) await page.route('**/motor.js*', r => r.fulfill({ status: 404, body: '' }));
   await page.goto(url);
   return { ctx, page, errores };
@@ -218,82 +206,59 @@ test('si motor.js no carga, la app sigue funcionando igual', async () => {
   await ctx.close();
 });
 
-test('un navegador nuevo sin código no pierde nada: al poner el código carga la nube completa', async () => {
-  const db = nubeFalsa(); db.datos.retoCfg = ['t', 'rd']; db.datos.colSum = 'sin3';
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  const page = await ctx.newPage(); const errores = [];
-  page.on('pageerror', e => errores.push(String(e)));
-  await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
-  await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
-  await page.goto(url.split('?')[0]);
-  await page.waitForTimeout(800);
-  assert.equal(await page.textContent('#sPts'), '0');
-  // papá escribe el código en Para papás
-  await page.click('#papas > summary');
-  await page.fill('#pin', '2580'); await page.click('#pinGo');
-  await page.waitForSelector('#pbody', { state: 'visible' });
-  await page.fill('#codeIn', 'xyz'); await page.click('#codeGo');
-  assert.match(await page.textContent('#codeMsg'), /no es válido/);
-  await page.fill('#codeIn', url.split('?')[0] + '?p=' + CODE); await page.click('#codeGo');
-  await page.waitForFunction(() => document.getElementById('sPts').textContent === '1089');
-  const S = await page.evaluate(() => JSON.parse(localStorage.getItem('tablas-turbo-v2')));
-  assert.deepEqual(S.retoCfg, ['t', 'rd'], 'la configuración de la nube no se pisa');
-  assert.equal(S.colSum, 'sin3');
-  await page.waitForTimeout(2500);
-  assert.equal(db.datos.pts, 1089);
-  assert.deepEqual(db.datos.retoCfg, ['t', 'rd']);
-  assert.deepEqual(errores, []);
-  await ctx.close();
-});
 
 async function abrirPapas(page, pin = '2580') {
   await page.click('#papas > summary');
   await page.fill('#pin', pin); await page.click('#pinGo');
   await page.waitForSelector('#pbody', { state: 'visible' });
 }
-async function entrar(page) {
-  await page.fill('#mailIn', 'papa@ejemplo.com'); await page.click('#mailGo');
-  await page.waitForSelector('#otpIn');
-  await page.fill('#otpIn', '111111'); await page.click('#otpGo');
-  await page.waitForFunction(() => /no es correcto/.test(document.getElementById('acctMsg').textContent));
-  await page.fill('#otpIn', '123456'); await page.click('#otpGo');
-}
-
-test('cuenta de papás: entrar con correo, ligar a Adolfo, proteger y abrir en otro dispositivo sin enlace', async () => {
-  const db = nubeFalsa();
-  // 1) el teléfono de papá, que ya tiene el código
-  const A = await abrir(db);
-  await esperar(() => db.datos.pinH, 'carga inicial');
-  await abrirPapas(A.page);
-  await entrar(A.page);
-  await esperar(() => db.familia, 'la cuenta se liga sola al jugador de este dispositivo');
-  await A.page.waitForSelector('#soloOn');
-  await A.page.click('#soloOn');
-  await esperar(() => db.solo === true, 'queda protegido');
-  await A.page.waitForSelector('#soloOff');
-  // sigue guardando con la sesión
-  await A.page.click('#snd');
-  await esperar(() => db.datos.mute === true, 'guarda con sesión iniciada');
-
-  // 2) una tableta nueva, sin enlace: entra papá y aparece el avance
-  const ctx = await A.page.context().browser().newContext({ viewport: { width: 390, height: 844 } });
+async function nuevoNavegador(db, ruta) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); const errores = [];
   page.on('pageerror', e => errores.push(String(e)));
   await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
   await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
-  await page.route('https://*.supabase.co/auth/v1/**', db.auth);
-  await page.goto(url.split('?')[0]); await page.waitForTimeout(500);
-  await abrirPapas(page);
-  await entrar(page);
-  await page.waitForFunction(() => document.getElementById('sPts').textContent === '1089');
+  await page.goto(ruta || url.split('?')[0]);
+  return { ctx, page, errores };
+}
 
-  // 3) alguien con solo el enlace ya no puede ver ni pisar el avance
-  const C = await abrir(db);
-  await C.page.waitForFunction(() => /protegido/.test(document.getElementById('cloud').textContent));
+test('usuario y contraseña: crear, entrar en otro dispositivo y cerrar los enlaces viejos', async () => {
+  const db = nubeFalsa(); db.datos.retoCfg = ['t', 'rd'];
+  // 1) papá crea el usuario en el teléfono que ya tiene el enlace
+  const A = await abrir(db);
+  await esperar(() => db.datos.pinH, 'carga inicial');
+  assert.ok(await A.page.isHidden('#login'), 'con avance no se pide entrar');
+  await abrirPapas(A.page);
+  await A.page.waitForSelector('#nuGo');
+  await A.page.fill('#nuU', 'Familia'); await A.page.fill('#nuC', '123'); await A.page.click('#nuGo');
+  await A.page.waitForFunction(() => /al menos 6/.test(document.getElementById('acctMsg').textContent));
+  await A.page.fill('#nuC', 'adolfo2026'); await A.page.click('#nuGo');
+  await A.page.waitForFunction(() => /Usuario: familia/.test(document.getElementById('acct').textContent));
+
+  // 2) tableta nueva, sin enlace: entra desde la pantalla de inicio y aparece todo el avance
+  const B = await nuevoNavegador(db);
+  await B.page.waitForSelector('#login:not([hidden])');
+  await B.page.fill('#lgU', 'familia'); await B.page.fill('#lgC', 'mal'); await B.page.click('[data-entrar="lg"]');
+  await B.page.waitForFunction(() => /incorrectos/.test(document.getElementById('lgM').textContent));
+  await B.page.fill('#lgC', 'adolfo2026'); await B.page.click('[data-entrar="lg"]');
+  await B.page.waitForFunction(() => document.getElementById('sPts').textContent === '1089');
+  assert.ok(await B.page.isHidden('#login'));
+  const S = await B.page.evaluate(() => JSON.parse(localStorage.getItem('tablas-turbo-v2')));
+  assert.deepEqual(S.retoCfg, ['t', 'rd'], 'la configuración de la nube no se pisa');
+
+  // 3) cerrar los enlaces viejos desde el teléfono: el teléfono sigue guardando
+  await A.page.click('text=Cerrar los enlaces viejos');
+  await A.page.fill('#rcC', 'adolfo2026'); await A.page.click('#rcGo');
+  await A.page.waitForFunction(() => /ya no funcionan/.test(document.getElementById('acctMsg').textContent));
+  await A.page.click('#snd');
+  await esperar(() => db.datos.mute === true, 'el teléfono sigue guardando con la llave nueva');
+
+  // 4) el enlace viejo ya no abre el avance; pide entrar
+  const C = await nuevoNavegador(db, url);
+  await C.page.waitForSelector('#login:not([hidden])');
   assert.equal(await C.page.textContent('#sPts'), '0');
-  await C.page.click('#snd'); await C.page.waitForTimeout(2500);
-  assert.equal(db.datos.pts, 1089, 'el avance de la nube no se toca');
+  assert.equal(db.datos.pts, 1089);
 
-  assert.deepEqual([...A.errores, ...errores, ...C.errores], []);
-  await A.ctx.close(); await ctx.close(); await C.ctx.close();
+  assert.deepEqual([...A.errores, ...B.errores, ...C.errores], []);
+  await A.ctx.close(); await B.ctx.close(); await C.ctx.close();
 });

@@ -232,6 +232,12 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .papas input#pin,.papas input#newpin,.papas input#rstPin{width:auto;height:auto;flex:2;font:inherit;font-size:18px;min-height:52px;border-radius:14px;border:2px solid var(--line);background:var(--ld1);color:var(--ink);padding:0 12px}
 .papas .row .ghost{margin-top:0;min-height:52px}
 .papas .warn{color:var(--pink);font-weight:800}
+.login{margin:12px 0;padding:14px;border-radius:18px;background:var(--card,rgba(127,127,127,.12))}
+.login input,#acct input{width:auto;height:auto;flex:1 1 140px;min-width:0;font:inherit;font-size:17px;min-height:50px;border-radius:14px;border:2px solid var(--line);background:var(--ld1);color:var(--ink);padding:0 12px}
+.login .row{margin-top:10px;gap:8px}
+.login .row button,#acct .row button{flex:1 1 100%}
+.login .note{margin:0}
+#acct details{margin-top:10px}
 .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px;background:var(--card);border-radius:20px;padding:6px}
 .tabs button{border:0;border-radius:16px;min-height:56px;font-weight:800;font-size:19px;cursor:pointer;background:none;line-height:1.1;padding:4px 6px}
 .tabs button.on{background:var(--pink);color:#fff}
@@ -296,6 +302,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
         <div class="week" id="week"></div>
       </div>
     </div>
+    <div class="login" id="login" hidden></div>
     <div class="tabs" id="tabs"><button data-t="reto">⭐ Reto del día</button><button data-t="libre">Practicar libre</button></div>
     <div class="daily" id="daily"></div>
     <div id="libre">
@@ -361,10 +368,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
         <p class="note" id="rstMsg"></p>
       </div>
       <p class="note" id="cloud"></p>
-      <h3 class="ph">Cuenta de papás</h3>
+      <h3 class="ph">Usuario de la familia</h3>
       <div id="acct"></div>
-      <div class="row"><input id="codeIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Código de jugador" aria-label="Código de jugador"><button class="ghost" id="codeGo">Usar este código</button></div>
-      <p class="note" id="codeMsg">Si en este dispositivo no aparece el avance, escribe aquí el código de jugador (viene en el enlace de Adolfo, después de «?p=»).</p>
       <h3 class="ph">Copias de seguridad</h3>
       <p class="note">Descarga una copia del avance para guardarla tú, o vuelve a una copia anterior.</p>
       <div class="row"><button class="ghost" id="expBtn">Descargar copia</button><button class="ghost" id="impBtn">Cargar copia</button></div>
@@ -497,21 +502,8 @@ const SB='https://rrnuxiadvqqwzrhpdwpl.supabase.co',SBK='sb_publishable_S3kfMHOQ
 let CODE='';
 const setCode=p=>{if(localStorage.getItem('tt-codigo')!==p){localStorage.removeItem('tt-base');localStorage.removeItem('tt-sync-ts')}localStorage.setItem('tt-codigo',p)};
 try{const p=new URLSearchParams(location.search).get('p');if(p&&/^[a-f0-9]{24,64}$/.test(p)){setCode(p);history.replaceState(null,'',location.pathname)}CODE=localStorage.getItem('tt-codigo')||''}catch(e){}
-let pushT=null,cloudMsg=CODE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
-/* sesión de papás (Supabase Auth con código de 6 dígitos por correo); sin sesión todo funciona como antes */
-let SES=null;try{SES=JSON.parse(localStorage.getItem('tt-sesion'))}catch(e){}
-const sesSave=s=>{SES=s;try{s?localStorage.setItem('tt-sesion',JSON.stringify(s)):localStorage.removeItem('tt-sesion')}catch(e){}};
-const authPost=async(path,body,tok)=>{const h={apikey:SBK,'Content-Type':'application/json'};if(tok)h.Authorization='Bearer '+tok;
-  const r=await fetch(SB+'/auth/v1/'+path,{method:'POST',headers:h,body:JSON.stringify(body||{})});let j=null;try{j=await r.json()}catch(e){}
-  if(!r.ok){const e=new Error((j&&(j.msg||j.error_description||j.message))||r.status);e.status=r.status;throw e}return j};
-const sesFrom=j=>({at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,email:(j.user&&j.user.email)||(SES&&SES.email)||''});
-let refreshing=null;
-async function token(){if(!SES)return null;if(SES.exp-Date.now()>60000)return SES.at;
-  if(!refreshing)refreshing=authPost('token?grant_type=refresh_token',{refresh_token:SES.rt}).then(j=>{sesSave(sesFrom(j));return SES.at})
-    .catch(e=>{if(e.status>=400&&e.status<500)sesSave(null);return null}).finally(()=>{refreshing=null});
-  return refreshing}
-const rpc=async(fn,body)=>{const h={apikey:SBK,'Content-Type':'application/json'},t=await token();if(t)h.Authorization='Bearer '+t;
-  const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json()};
+let CODEBAD=false,pushT=null,cloudMsg=CODE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
+const rpc=async(fn,body)=>{const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json()};
 const setCloud=m=>{cloudMsg=m;const el=document.getElementById('cloud');if(el)el.textContent=m};
 const hhmm=()=>new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
 /* NUBE-INICIO: juntar el avance de dos dispositivos sin perder nada (función pura, con pruebas en tests/) */
@@ -580,8 +572,7 @@ async function push(){if(!CODE||pushing)return;pushing=true;
   catch(e){setCloud(offMsg)}
   finally{pushing=false}}
 async function pull(){if(!CODE)return;try{const r=await rpc('tt_cargar',{p_codigo:CODE});
-  if(!r){setCloud('El código de jugador no es válido.');return}
-  if(r.login){setCloud('El avance está protegido: inicia sesión en Para papás (Cuenta de papás) para cargarlo.');return}
+  if(!r){CODEBAD=true;setCloud('Este dispositivo ya no tiene acceso: entra con el usuario de la familia en la pantalla de inicio.');rehome();return}
   const remote=r.datos||{},localDirty=(S.ts||0)>SYNCED,remoteChanged=!BASE||r.actualizado!==BASE;
   if(!BASE&&!(S.pts>0)&&(remote.pts>0)){ // dispositivo nuevo sin avance propio: se toma el de la nube completo, sin mezclar
     try{localStorage.setItem('tt-respaldo-local',JSON.stringify({fecha:new Date().toISOString(),motivo:'antes de cargar el código',datos:S}))}catch(e){}
@@ -665,7 +656,7 @@ function renderHome(){
   flame('m1',curStreak()?3:0);
   const wd=(['sr','en','rd'].includes(S.world)||(GEN[S.world]&&S.world!=='cultq'))?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';$('wG').hidden=!GEN[wd];
   [...$('worlds').children].forEach(b=>b.classList.toggle('on',b.dataset.w===wd));
-  renderSR();renderDaily();renderEN();renderRD();renderGen();renderXProg();
+  renderSR();renderDaily();renderEN();renderRD();renderGen();renderXProg();renderLogin();
 }
 let curT=1;
 function openTable(t){
@@ -688,44 +679,43 @@ async function doReset(){if(!(await pinOk($('rstPin').value))){$('rstMsg').textC
   await backupNow('antes de borrar todo');
   const keep={pinH:S.pinH,pinDef:S.pinDef,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep,{resetAt:Date.now()});save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
-/* ---- cuenta de papás ---- */
-let acctStep='',acctEmail='',acctInfo=null;
+/* ---- usuario y contraseña de la familia ---- */
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const loginForm=id=>`<p class="note"><b>¿Ya tienen avance en otro dispositivo?</b> Entren con el usuario de la familia.</p>
+  <div class="row"><input id="${id}U" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Usuario" aria-label="Usuario">
+  <input id="${id}C" type="password" autocomplete="current-password" placeholder="Contraseña" aria-label="Contraseña"><button class="ghost" data-entrar="${id}">Entrar</button></div><p class="note" id="${id}M"></p>`;
+function renderLogin(){const el=$('login');if(!el)return;const show=!CODE||CODEBAD;el.hidden=!show;if(show&&!el.innerHTML)el.innerHTML=loginForm('lg')}
+async function entrar(id){const u=$(id+'U').value.trim(),c=$(id+'C').value,m=$(id+'M');
+  if(!u||!c){m.textContent='Escribe el usuario y la contraseña.';return}
+  m.textContent='Entrando…';let r;try{r=await rpc('tt_entrar',{p_usuario:u,p_clave:c})}catch(e){m.textContent='No hay conexión. Intenta de nuevo.';return}
+  if(!r||!r.codigo){m.textContent=r&&r.error==='bloqueado'?'Demasiados intentos. Espera 15 minutos.':'Usuario o contraseña incorrectos.';return}
+  try{setCode(r.codigo)}catch(e){}location.reload()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-entrar]');if(b)entrar(b.dataset.entrar)});
+let acctU;
+async function renderAcct(){const el=$('acct');if(!el)return;
+  if(!CODE||CODEBAD){el.innerHTML=loginForm('pa');return}
+  if(acctU===undefined){el.innerHTML='<p class="note">Cargando…</p>';try{acctU=await rpc('tt_usuario_ver',{p_codigo:CODE})}catch(e){el.innerHTML='<p class="note">Sin conexión. Abre esta sección otra vez con internet.</p>';acctU=undefined;return}}
+  el.innerHTML=!acctU?
+   `<p class="note">Crea un usuario y una contraseña para abrir el avance de ${esc(S.nombre||'Adolfo')} en cualquier teléfono o tableta, sin el enlace.</p>
+    <div class="row"><input id="nuU" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Usuario (ej. familia.monroy)" aria-label="Usuario nuevo">
+    <input id="nuC" type="password" autocomplete="new-password" placeholder="Contraseña (6 o más)" aria-label="Contraseña nueva"><button class="ghost" id="nuGo">Crear usuario</button></div><p class="note" id="acctMsg"></p>`:
+   `<p class="note">Usuario: <b>${esc(acctU)}</b>. En otro teléfono o tableta, abre la app y entra con este usuario y su contraseña.</p>
+    <details><summary class="note">Cambiar la contraseña</summary><div class="row"><input id="ccA" type="password" autocomplete="current-password" placeholder="Contraseña actual" aria-label="Contraseña actual"><input id="ccN" type="password" autocomplete="new-password" placeholder="Contraseña nueva" aria-label="Contraseña nueva"><button class="ghost" id="ccGo">Cambiar</button></div></details>
+    <details><summary class="note">Cerrar los enlaces viejos</summary><p class="note">Cambia la llave interna: los enlaces con «?p=» dejan de funcionar. Este dispositivo sigue igual; en los demás hay que entrar con el usuario. No se borra nada.</p>
+    <div class="row"><input id="rcC" type="password" autocomplete="current-password" placeholder="Contraseña" aria-label="Contraseña para cerrar enlaces"><button class="ghost" id="rcGo">Cerrar enlaces viejos</button></div></details>
+    <p class="note" id="acctMsg"></p>`}
 const acctMsg=t=>{const m=$('acctMsg');if(m)m.textContent=t};
-async function acctLoad(){if(!SES){acctInfo=null;return}try{acctInfo=await rpc('tt_mis_jugadores',{})}catch(e){acctInfo=null}}
-function renderAcct(){const el=$('acct');if(!el)return;
-  if(!SES){el.innerHTML=acctStep==='code'?
-    `<p class="note">Te mandamos un código a <b>${acctEmail}</b>. Escríbelo aquí (revisa también la carpeta de spam).</p>
-     <div class="row"><input id="otpIn" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Código del correo" aria-label="Código del correo"><button class="ghost" id="otpGo">Entrar</button></div>
-     <button class="mini" id="otpBack">Usar otro correo</button><p class="note" id="acctMsg"></p>`:
-    `<p class="note">Entra con tu correo para que el avance de ${S.nombre||'Adolfo'} quede ligado a tu cuenta y puedas abrirlo en cualquier dispositivo sin el enlace con código.</p>
-     <div class="row"><input id="mailIn" type="email" autocomplete="email" placeholder="Tu correo" aria-label="Tu correo"><button class="ghost" id="mailGo">Enviarme un código</button></div><p class="note" id="acctMsg"></p>`;return}
-  const me=(acctInfo||[]).find(x=>x.codigo===CODE),nm=S.nombre||'Adolfo';
-  el.innerHTML=`<p class="note">Sesión iniciada: <b>${SES.email}</b>.</p>`+
-    (!CODE?`<p class="note">Este dispositivo todavía no tiene jugador.</p>`:
-     !me?`<button class="ghost" id="lnkGo">Ligar a ${nm} con mi cuenta</button>`:
-     me.solo_cuenta?`<p class="note">🔒 Protegido: el avance de ${nm} solo se abre con sesión iniciada. El enlace con código ya no basta.</p><button class="mini" id="soloOff">Volver a permitir el enlace con código</button>`:
-     `<p class="note">${nm} está ligado a tu cuenta. El enlace con código todavía funciona. Cuando hayas iniciado sesión en los dispositivos donde juega, protégelo:</p><button class="ghost" id="soloOn">Proteger: pedir sesión para abrir el avance</button>`)+
-    `<button class="mini" id="outGo">Cerrar sesión en este dispositivo</button><p class="note" id="acctMsg"></p>`}
-async function acctAfterLogin(){await acctLoad();const L=acctInfo||[];
-  if(CODE&&!L.some(x=>x.codigo===CODE)){try{await rpc('tt_vincular',{p_codigo:CODE});await acctLoad()}catch(e){}}
-  if(!CODE&&L.length){try{setCode(L[0].codigo)}catch(e){}location.reload();return}
-  renderAcct();pull()}
-$('acct').addEventListener('click',async e=>{const id=e.target.id;
+const ERRU={usuario:'El usuario debe tener de 3 a 30 letras o números, sin espacios.',clave:'La contraseña debe tener al menos 6 caracteres.',ocupado:'Ese usuario ya existe. Elige otro.',clave_actual:'La contraseña actual no es correcta.',codigo:'No se encontró el avance en la nube.'};
+$('acct').addEventListener('click',async e=>{const id=e.target.id;if(!['nuGo','ccGo','rcGo'].includes(id))return;
   try{
-    if(id==='mailGo'){const m=$('mailIn').value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){acctMsg('Escribe un correo válido.');return}
-      e.target.disabled=true;acctMsg('Enviando…');await authPost('otp',{email:m,create_user:true});acctEmail=m;acctStep='code';renderAcct();return}
-    if(id==='otpBack'){acctStep='';renderAcct();return}
-    if(id==='otpGo'){const c=$('otpIn').value.replace(/\D/g,'');if(c.length<6){acctMsg('El código tiene 6 números o más.');return}
-      e.target.disabled=true;acctMsg('Revisando…');const j=await authPost('verify',{type:'email',email:acctEmail,token:c});
-      sesSave(sesFrom(j));acctStep='';await acctAfterLogin();return}
-    if(id==='lnkGo'){await rpc('tt_vincular',{p_codigo:CODE});await acctLoad();renderAcct();return}
-    if(id==='soloOn'||id==='soloOff'){await rpc('tt_solo_cuenta',{p_codigo:CODE,p_on:id==='soloOn'});await acctLoad();renderAcct();return}
-    if(id==='outGo'){const t=SES&&SES.at;sesSave(null);acctInfo=null;renderAcct();try{if(t)await authPost('logout',{},t)}catch(x){}return}
-  }catch(x){e.target.disabled=false;const m=String(x.message||'');
-    acctMsg(/expired|invalid|Token/i.test(m)?'Ese código no es correcto o ya venció. Pide otro.':/rate|seconds/i.test(m)?'Espera un minuto antes de pedir otro código.':'No se pudo. Revisa la conexión e intenta de nuevo.')}});
-$('codeGo').addEventListener('click',()=>{const v=$('codeIn').value.trim().toLowerCase().replace(/^.*[?&]p=/,'').replace(/[^a-f0-9].*$/,'');
-  if(!/^[a-f0-9]{24,64}$/.test(v)){$('codeMsg').textContent='Ese código no es válido. Revisa que esté completo.';return}
-  try{setCode(v)}catch(e){}location.reload()});
+    if(id==='nuGo'){const r=await rpc('tt_usuario_guardar',{p_codigo:CODE,p_usuario:$('nuU').value,p_clave:$('nuC').value,p_clave_actual:null});
+      if(r&&r.ok){acctU=r.usuario;renderAcct();setTimeout(()=>acctMsg('¡Listo! Ya pueden entrar con este usuario en cualquier dispositivo.'),0)}else acctMsg(ERRU[r&&r.error]||'No se pudo.');return}
+    if(id==='ccGo'){const r=await rpc('tt_usuario_guardar',{p_codigo:CODE,p_usuario:acctU,p_clave:$('ccN').value,p_clave_actual:$('ccA').value});
+      acctMsg(r&&r.ok?'Contraseña cambiada.':(ERRU[r&&r.error]||'No se pudo.'));if(r&&r.ok){$('ccA').value='';$('ccN').value=''}return}
+    if(id==='rcGo'){const r=await rpc('tt_cambiar_codigo',{p_codigo:CODE,p_clave:$('rcC').value});
+      if(!r||!r.codigo){acctMsg(r&&r.error==='clave'?'La contraseña no es correcta.':'No se pudo.');return}
+      setCode(r.codigo);CODE=r.codigo;setBase(BASE,SYNCED);$('rcC').value='';acctMsg('Listo: los enlaces viejos ya no funcionan. Aquí todo sigue igual.');return}
+  }catch(x){acctMsg('No hay conexión. Intenta de nuevo.')}});
 $('rstPin').addEventListener('keydown',e=>{if(e.key==='Enter')doReset()});
 $('rep').addEventListener('click',()=>start('mix',0));
 
@@ -1281,7 +1271,7 @@ $('bkBox').addEventListener('click',async e=>{const b=e.target.closest('[data-bk
 let papasOK=false;
 const lockP=()=>{papasOK=false;$('plock').hidden=false;$('pbody').hidden=true;$('pin').value='';$('pinMsg').textContent=''};
 $('papas').addEventListener('toggle',()=>{if(!$('papas').open)lockP();else if(!papasOK)setTimeout(()=>$('pin').focus(),50)});
-async function tryPin(){if(await pinOk($('pin').value)){papasOK=true;$('plock').hidden=true;$('pbody').hidden=false;$('pinWarn').hidden=!S.pinDef;renderAcct();acctLoad().then(renderAcct);tone(700,.08)}
+async function tryPin(){if(await pinOk($('pin').value)){papasOK=true;$('plock').hidden=true;$('pbody').hidden=false;$('pinWarn').hidden=!S.pinDef;renderAcct();tone(700,.08)}
   else{$('pinMsg').textContent='Contraseña incorrecta.';$('pin').value='';tone(220,.2,'triangle')}}
 $('pinGo').addEventListener('click',tryPin);
 $('pin').addEventListener('keydown',e=>{if(e.key==='Enter')tryPin()});
