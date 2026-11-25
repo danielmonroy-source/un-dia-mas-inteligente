@@ -128,7 +128,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 @keyframes mk{0%{opacity:0;transform:scale(.3)}20%{opacity:1;transform:scale(1.1)}35%{transform:scale(1)}75%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.9)}}
 .op.good::after{content:' ✓';font-weight:800}.op.bad::after{content:' ✗';font-weight:800}
 @media (prefers-reduced-motion:reduce){#mark.go{animation-duration:1.2s}}
-.rdprev details{background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:6px 12px;margin:4px 0 10px}#rdPrev summary{cursor:pointer;font-weight:700;min-height:40px;line-height:1.3;padding:8px 0}.rdprev p,.rdprev li{font-size:15px;line-height:1.45}.rdprev ol{padding-left:20px}
+.rdprev details{background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:6px 12px;margin:4px 0 10px}#rdPrev summary,#ciePrev summary{cursor:pointer;font-weight:700;min-height:40px;line-height:1.3;padding:8px 0}.rdprev p,.rdprev li{font-size:15px;line-height:1.45}.rdprev ol{padding-left:20px}
 .clk{width:min(210px,56vw);height:auto;display:block;margin:0 auto;color:var(--ink)}.clk .cf{fill:var(--card);stroke:var(--ink);stroke-width:4}.clk text{font:700 17px "Baloo 2",system-ui,sans-serif;fill:var(--ink)}.clk line{stroke:var(--ink)}.clk .hh{stroke:var(--pink);stroke-width:8;stroke-linecap:round}.clk .mh{stroke:#1d6fd8;stroke-width:5;stroke-linecap:round}.clk .cc{fill:var(--ink)}
 .qp .gw{font-size:clamp(38px,11vw,56px);letter-spacing:1px}.qp .gw u{text-decoration:none;border-bottom:4px solid var(--pink);color:var(--pink)}
 .qp .seq{font-size:clamp(26px,7.5vw,36px)}.qp .seq.emo{letter-spacing:2px;line-height:1.3;font-size:clamp(28px,8vw,38px)}.qp .seq u{text-decoration:none;color:var(--pink)}
@@ -138,6 +138,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .bl{min-width:96px;height:50px;border-radius:8px;display:grid;place-items:center;font-size:20px;font-weight:800;color:#fff;border:3px solid rgba(0,0,0,.15)}
 .b20{background:#2a8fa8}.b50{background:#c2408f}.b100{background:#d1453b}.b200{background:#3d9a4f}.b500{background:#3b6fc4}
 .cfgh{font-weight:800;margin:14px 0 4px}.cfg{display:grid;gap:6px}.cr{display:flex;align-items:center;gap:6px;background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:4px 8px}.cr label{flex:1;margin:0}.cr:not(.on){opacity:.75}.cr .mini{min-width:44px}.cr .mini:disabled{opacity:.25;cursor:default}
+.pizza .crust{fill:#d99a4e}.pizza .pz{fill:#ffe6a3;stroke:#c98a3c;stroke-width:1.5}.pizza .pz.on{fill:#ffb347}.pizza .pp{fill:#c0392b}
+.op svg{display:block;margin:0 auto}.op .fl{display:block;font-size:22px;margin-top:2px}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 /* suma y resta */
 .worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
@@ -296,7 +298,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div class="tabs" id="tabs"><button data-t="reto">⭐ Reto del día</button><button data-t="libre">Practicar libre</button></div>
     <div class="daily" id="daily"></div>
     <div id="libre">
-    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button><button data-w="orto">🔤 Ortografía</button><button data-w="log">🧩 Lógica</button><button data-w="reloj">🕒 Reloj</button><button data-w="din">💰 Dinero</button></div>
+    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button><button data-w="orto">🔤 Ortografía</button><button data-w="log">🧩 Lógica</button><button data-w="reloj">🕒 Reloj</button><button data-w="din">💰 Dinero</button><button data-w="cie">🔬 Ciencia</button><button data-w="frac">🍕 Fracciones</button><button data-w="cult">🌎 Cultura general</button><button data-w="ora">💬 Arma oraciones</button></div>
     <div id="wX">
     <h2>Tu camino</h2>
     <div class="path" id="path"></div>
@@ -342,6 +344,10 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <p class="note" id="rdSelNote"></p>
       <div id="rdPrev" class="rdprev" hidden></div>
       <button class="ghost" id="rdAssign" hidden></button>
+      <label>Tema de ciencia: <select id="cieSel"></select></label>
+      <p class="note" id="cieSelNote"></p>
+      <div id="ciePrev" class="rdprev" hidden></div>
+      <button class="ghost" id="cieAssign" hidden></button>
       <button class="ghost" id="reset">Borrar todo el avance</button>
       <div id="rstBox" hidden>
         <p class="note">Esto borra todo el avance de Adolfo y no se puede deshacer. Escribe la contraseña de papás para confirmar.</p>
@@ -407,6 +413,14 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div class="story" id="rdTxt"></div>
     <button class="big" id="rdGo">¡Terminé de leer! Ir a las preguntas</button>
     <button class="quit" id="rdQuit">Elegir otra lectura</button>
+  </section>
+
+  <section id="cie" hidden>
+    <div class="rdh"><span class="em" id="cieEm"></span><h2 id="cieT"></h2></div>
+    <p class="note" id="cieInfo"></p>
+    <div class="story" id="cieTxt"></div>
+    <button class="big" id="cieGo">¡Ya leí! Ir a las preguntas</button>
+    <button class="quit" id="cieQuit">Volver</button>
   </section>
 
   <section id="qz" hidden>
@@ -518,7 +532,7 @@ const flame=(id,c)=>mon(id).style.setProperty('--f',c<=0?0:Math.min(.5+c*.08,1.3
 
 let AC=null;
 const tone=(f,d=.12,type='sine',w=0)=>{if(S.mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+w,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}};
-const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz','enx'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
+const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz','enx','cie'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
 
 function renderTop(){
   $('lv').textContent=Math.floor(S.pts/LV)+1;
@@ -548,7 +562,7 @@ function renderHome(){
   <table class="pt"><tr><th>Tabla</th><th class="r">Medallas</th><th class="r">Dominio</th></tr>${range().map(t=>`<tr><td>×${t}</td><td class="r">${medals(t)}/5</td><td class="r">${Math.round(tsum(t)/30*100)}%</td></tr>`).join('')}</table>
   <p class="note">Las que más ha fallado:</p><div class="fails">${fails.length?fails.map(([k,c])=>`<span>${k.replace('x',' × ')} (${c})</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
   flame('m1',curStreak()?3:0);
-  const wd=['sr','en','rd','orto','log','reloj','din'].includes(S.world)?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';$('wG').hidden=!GEN[wd];
+  const wd=['sr','en','rd'].includes(S.world)||GEN[S.world]?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';$('wG').hidden=!GEN[wd];
   [...$('worlds').children].forEach(b=>b.classList.toggle('on',b.dataset.w===wd));
   renderSR();renderDaily();renderEN();renderRD();renderGen();renderXProg();
 }
@@ -1077,11 +1091,11 @@ function renderDaily(){
     if(k==='c')return row('c',I,R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc());
     if(k==='en')return row('en',I,R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub);
     if(k==='rd')return row('rd',I,!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de ${R.rdN||5} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`);
-    const g=GEN[k],x=R.ex&&R.ex[k];return row(k,I,kDone(k,R),`${g.e} ${g.n}`,x&&x.ok?`${x.first} de ${x.n} a la primera`:'10 preguntas')}).join('')}</div>
+    const g=GEN[k],x=R.ex&&R.ex[k];return row(k,I,kDone(k,R),k==='cie'?`${g.e} Ciencia: ${SCI[ciePick()].t}`:`${g.e} ${g.n}`,x&&x.ok?`${x.first} de ${x.n} a la primera`:k==='cie'?'Lee la explicación y contesta 6 preguntas':'10 preguntas')}).join('')}</div>
     <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':`Completa las ${NP} partes y gana 50 puntos de premio.`}</p>${full?boleta(R):''}`;
   const sel=$('retoSel');
   sel.innerHTML=`<option value="0">Automática (una que no se sabe)</option>`+[2,3,4,5,6,7,8,9,10].map(t=>`<option value="${t}">×${t}</option>`).join('');
-  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-');rdSelRender();cfgRender()}
+  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-');rdSelRender();cieSelRender();cfgRender()}
 $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const k=b.dataset.d;tone(660,.06);
   if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
   else if(k==='rd')rdOpen(rdPick());
@@ -1294,7 +1308,7 @@ function qzResolve(ok,b,q){QZ.lock=true;
     mark(false);mood('m5','oops');tone(220,.25,'triangle');
     $('qzmsg').innerHTML=q.noMsg||'La correcta es la verde.';
     if(q.after&&q.build)say(q.after);
-    if(QZ.kind==='en'&&!q.retry)QZ.list.push(Object.assign({},q,{retry:true,opts:q.opts&&shuffle(q.opts.slice()),pos:0,miss:false}));
+    if((QZ.kind==='en'||QZ.kind==='gen')&&!q.retry)QZ.list.push(Object.assign({},q,{retry:true,opts:q.opts&&shuffle(q.opts.slice()),pos:0,miss:false}));
   }
   const c=$('qzcombo');c.hidden=QZ.combo<2;c.textContent='racha ×'+QZ.combo;flame('m5',QZ.combo);
   QZ.i++;qzDots();save();
@@ -1323,7 +1337,8 @@ function qzFinish(){
   }else if(QZ.kind==='gen'){const k=QZ.act,g=GEN[k];S.gx=S.gx||{};const x=S.gx[k]=S.gx[k]||{n:0,best:0,log:[]};
     x.n++;x.best=Math.max(x.best,QZ.first);x.log.unshift({d:today(),ok:QZ.first,n:N,reto:!!QZ.reto});if(x.log.length>30)x.log.length=30;
     R.ex=R.ex||{};
-    if(QZ.reto&&!(R.ex[k]&&R.ex[k].ok)){R.ex[k]={ok:true,cal:r1(QZ.first/N*10),first:QZ.first,n:N};news.push(`¡Terminaste <b>${g.n}</b> del reto de hoy!`)}
+    if(k==='cie'){const id=SCI[QZ.si].id;S.cie=S.cie||{};S.cie[id]=Math.max(S.cie[id]||0,QZ.first)}
+    if(QZ.reto&&(k!=='cie'||QZ.si===ciePick())&&!(R.ex[k]&&R.ex[k].ok)){if(k==='cie'&&S.cieSel===SCI[QZ.si].id)S.cieSel='';R.ex[k]={ok:true,cal:r1(QZ.first/N*10),first:QZ.first,n:N};news.push(`¡Terminaste <b>${g.n}</b> del reto de hoy!`)}
     news.push(QZ.first===N?'¡Todas bien a la primera!':`Contestaste bien <b>${QZ.first} de ${N}</b> a la primera.`);
   }else{
     const st=STORIES[QZ.si];S.rd=S.rd||{};S.rdLog=S.rdLog||[];
@@ -1343,7 +1358,7 @@ function qzFinish(){
   if(QZ.kind==='en'){const pt=QZ.part,Rd=dayRec();againAct=pt==='w'?enQuizW:enQuizP;
     if(!Rd.en){nextAct=pt==='w'?enQuizP:enQuizW;$('nextb').textContent=pt==='w'?'Practicar frases':'Practicar palabras'}
     else{nextAct=toReto;$('nextb').textContent='Al reto del día'}}
-  else if(QZ.kind==='gen'){const k=QZ.act,rt=QZ.reto;againAct=()=>genStart(k,rt);if(rt){nextAct=toReto;$('nextb').textContent='Al reto del día'}else{nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Volver'}}
+  else if(QZ.kind==='gen'){const k=QZ.act,rt=QZ.reto,si=QZ.si;againAct=k==='cie'?()=>cieOpen(si,rt):()=>genStart(k,rt);if(rt){nextAct=toReto;$('nextb').textContent='Al reto del día'}else{nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Volver'}}
   else{const si=QZ.si;againAct=()=>rdOpen(si);nextAct=toReto;$('nextb').textContent='Al reto del día'}
   show('end');mood('m3',QZ.first>=N*.6?'happy':null);flame('m3',QZ.maxc);
   [0,.12,.24].forEach((w,i)=>tone([523,659,784][i],.2,'sine',w));
@@ -1447,18 +1462,24 @@ function dinQuiz(){return numLab([dinContar(),dinCambio(),dinAlcanza(),dinContar
 const GEN={orto:{n:'Ortografía',e:'🔤',d:'Letras que se confunden: b/v, c/s/z, ll/y, g/j, h, r/rr, acentos y mayúsculas.',f:ortoQuiz},
   log:{n:'Lógica',e:'🧩',d:'Series de números, figuras que siguen, ¿cuál no va? y acertijos.',f:logQuiz},
   reloj:{n:'El reloj',e:'🕒',d:'Leer la hora en un reloj de manecillas y saber qué hora será.',f:relojQuiz},
-  din:{n:'Dinero',e:'💰',d:'Contar monedas y billetes, dar cambio y saber si alcanza.',f:dinQuiz}};
-function genStart(k,reto){qzStart('gen',GEN[k].f(),{act:k,reto:!!reto})}
+  din:{n:'Dinero',e:'💰',d:'Contar monedas y billetes, dar cambio y saber si alcanza.',f:dinQuiz},
+  cie:{n:'Ciencia',e:'🔬',d:'Un tema al día: lee la explicación y contesta las preguntas.',f:null},
+  frac:{n:'Fracciones',e:'🍕',d:'Medios, tercios, cuartos, sextos y octavos con pizzas.',f:()=>fracQuiz()},
+  cult:{n:'Cultura general',e:'🌎',d:'Preguntas de México, el mundo, animales, el cuerpo, arte, deportes y más.',f:()=>cultQuiz()},
+  ora:{n:'Arma oraciones',e:'💬',d:'Ordenar palabras para formar oraciones, escoger la frase bien dicha y ordenar lo que pasó.',f:()=>oraQuiz()}};
+function genStart(k,reto){if(k==='cie'){cieOpen(ciePick(),reto);return}qzStart('gen',GEN[k].f(),{act:k,reto:!!reto})}
 function renderGen(){const k=S.world,g=GEN[k];if(!g){$('wG').innerHTML='';return}const x=(S.gx||{})[k]||{};
   $('wG').innerHTML=`<h2>${g.e} ${g.n}</h2><p class="note">${g.d}</p><button class="big" id="genGo">Practicar (10 preguntas)</button>
-  <p class="note">${x.n?`Rondas: <b>${x.n}</b> · Mejor resultado: <b>${x.best} de 10</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>`}
-$('wG').addEventListener('click',e=>{if(e.target.closest('#genGo'))genStart(S.world,false)});
+  <p class="note">${x.n?`Rondas: <b>${x.n}</b> · Mejor resultado: <b>${x.best}</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>`;
+  if(k==='cie'){const t=SCI[ciePick()];$('genGo').textContent=`Tema de hoy: ${t.e} ${t.t}`;
+    $('wG').insertAdjacentHTML('beforeend',`<details class="rdold"><summary>Otros temas para practicar</summary><div class="modes">${SCI.map((s,j)=>`<button class="mode" data-ci="${j}"><span class="n em2">${s.e}</span><span><b>${s.t}</b><span>${cieDone(s)?`Ya lo viste (${S.cie[s.id]}/${s.q.length})`:'Sin ver'}</span></span></button>`).join('')}</div></details>`)}}
+$('wG').addEventListener('click',e=>{if(e.target.closest('#genGo')){genStart(S.world,false);return}const c=e.target.closest('[data-ci]');if(c)cieOpen(+c.dataset.ci,false)});
 
 /* --- Reto del día configurable --- */
-const RK_ALL=['t','c','en','rd','orto','log','reloj','din'],RK_DEF=['t','c','en','rd'];
+const RK_ALL=['t','c','en','rd','orto','log','reloj','din','cie','frac','cult','ora'],RK_DEF=['t','c','en','rd'];
 const retoCfg=()=>{const c=(S.retoCfg||RK_DEF).filter(k=>RK_ALL.includes(k));return c.length?c:RK_DEF.slice()};
 const dayKeys=R=>R&&R.cfg&&R.cfg.length?R.cfg:RK_DEF;
-const KS={t:'Tabla',c:'Cuentas',en:'Inglés',rd:'Lectura',orto:'Ortografía',log:'Lógica',reloj:'Reloj',din:'Dinero'};
+const KS={t:'Tabla',c:'Cuentas',en:'Inglés',rd:'Lectura',orto:'Ortografía',log:'Lógica',reloj:'Reloj',din:'Dinero',cie:'Ciencia',frac:'Fracciones',cult:'Cultura general',ora:'Oraciones'};
 const kName=(k,R)=>k==='t'?'Tabla del '+R.t:k==='c'?'Cuentas en columna':GEN[k]?GEN[k].n:KS[k];
 const kDone=(k,R)=>k==='t'?!!R.tOk:k==='c'?!!R.col:k==='en'?!!R.en:k==='rd'?!!R.rd:!!(R.ex&&R.ex[k]&&R.ex[k].ok);
 const kCal=(k,R)=>k==='t'?R.tCal:k==='c'?R.colCal:k==='en'?R.enCal:k==='rd'?R.rdCal:(R.ex&&R.ex[k]?R.ex[k].cal:null);
@@ -1471,6 +1492,264 @@ $('cfgBox').addEventListener('click',e=>{const t=e.target;let on=retoCfg();
   else if(t.dataset.up||t.dataset.dn){const k=t.dataset.up||t.dataset.dn,i=on.indexOf(k),j=i+(t.dataset.up?-1:1);if(i<0||j<0||j>=on.length)return;[on[i],on[j]]=[on[j],on[i]]}
   else return;
   S.retoCfg=on;dayRec().cfg=on.slice();save();renderHome();tone(660,.06)});
+
+/* ===== Ciencia: temas (papá elige el del día) ===== */
+const SCI=[
+{id:'huesos',e:'🦴',t:'Huesos y músculos',p:[
+'Dentro de tu cuerpo hay un esqueleto que te sostiene, como las vigas de una casa. Un adulto tiene 206 huesos. Los bebés nacen con unos 300, pero algunos se van uniendo mientras crecen.',
+'El hueso más largo es el fémur, que está en el muslo. Los huesos más pequeños están dentro de tu oído. El cráneo protege al cerebro y las costillas protegen al corazón y a los pulmones.',
+'Los huesos no se mueven solos: los mueven los músculos, que jalan de ellos como si fueran cuerdas. El corazón también es un músculo y trabaja sin parar. Para tener huesos fuertes ayuda tomar leche, comer verduras, jugar y dormir bien.'],
+q:[['¿Cuántos huesos tiene un adulto?','206','20','1000'],
+['¿Cuál es el hueso más largo del cuerpo?','El fémur, en el muslo','El de la nariz','Uno del oído'],
+['¿Qué protege el cráneo?','El cerebro','El estómago','Las piernas'],
+['¿Qué mueve a los huesos?','Los músculos','La sangre','El pelo'],
+['¿El corazón es un músculo?','Sí','No','Solo en los adultos'],
+['¿Qué ayuda a tener huesos fuertes?','Tomar leche, jugar y dormir bien','Comer muchos dulces','Ver tele todo el día']]},
+{id:'sentidos',e:'👀',t:'Los cinco sentidos',p:[
+'Los sentidos son la forma en que tu cuerpo se entera de lo que pasa afuera. Tenemos cinco: la vista, el oído, el olfato, el gusto y el tacto.',
+'Con los ojos vemos colores y formas. Con los oídos escuchamos sonidos. Con la nariz olemos. Con la lengua probamos los sabores: dulce, salado, ácido y amargo. Y con la piel sentimos si algo está frío, caliente, suave o áspero.',
+'La piel es el órgano más grande del cuerpo y cubre todo. Los sentidos mandan mensajes al cerebro, y el cerebro decide qué hacer. Por eso, si tocas algo muy caliente, quitas la mano rapidísimo.'],
+q:[['¿Cuántos sentidos tenemos?','Cinco','Tres','Diez'],
+['¿Con qué parte del cuerpo olemos?','Con la nariz','Con los ojos','Con las manos'],
+['¿Qué sentido usamos para probar la comida?','El gusto','La vista','El oído'],
+['¿Cuál es el órgano más grande del cuerpo?','La piel','El ojo','La lengua'],
+['¿Cuál de estos es un sabor?','Ácido','Azul','Ruidoso'],
+['¿A dónde mandan sus mensajes los sentidos?','Al cerebro','Al estómago','A los pies']]},
+{id:'plantas',e:'🌱',t:'Las partes de una planta',p:[
+'Las plantas son seres vivos. Tienen partes, y cada una hace un trabajo. La raíz está bajo la tierra: sujeta a la planta y toma agua. El tallo la sostiene y lleva el agua hacia arriba, como un popote.',
+'Las hojas son la cocina de la planta. Con la luz del sol, el agua y el aire, fabrican su propio alimento. A esto se le llama fotosíntesis. Mientras lo hacen, sueltan oxígeno, el aire que necesitamos para respirar.',
+'Las flores sirven para hacer semillas. Muchas flores necesitan la ayuda de abejas y mariposas, que llevan el polen de una flor a otra. Luego aparece el fruto, que protege a las semillas. De cada semilla puede nacer una planta nueva.'],
+q:[['¿Qué hace la raíz?','Sujeta a la planta y toma agua','Hace las flores','Atrae a las abejas'],
+['¿Qué parte lleva el agua hacia arriba?','El tallo','La flor','La semilla'],
+['¿Qué necesitan las hojas para hacer alimento?','Luz del sol, agua y aire','Pan y leche','Solo oscuridad'],
+['¿Cómo se llama cuando la planta fabrica su alimento?','Fotosíntesis','Digestión','Respiración'],
+['¿Qué sueltan las plantas que nosotros respiramos?','Oxígeno','Humo','Polvo'],
+['¿Para qué sirve el fruto?','Para proteger las semillas','Para tomar agua','Para hacer sombra']]},
+{id:'agua',e:'💧',t:'El agua y sus estados',p:[
+'El agua puede estar de tres formas: sólida, líquida y gaseosa. Cuando está sólida es hielo. Cuando está líquida es la que tomas y con la que te bañas. Cuando está en gas es vapor, como el que sale de una olla hirviendo.',
+'Si el agua se enfría mucho, a cero grados, se congela y se vuelve hielo. Si se calienta mucho, a cien grados, hierve y se vuelve vapor.',
+'El agua de la Tierra siempre está viajando: es el ciclo del agua. El sol calienta los mares y el agua sube como vapor (evaporación). Arriba se enfría y forma nubes (condensación). Cuando las nubes pesan, cae la lluvia (precipitación). El agua llega a ríos y mares, y todo vuelve a empezar.'],
+q:[['¿Cómo se llama el agua en estado sólido?','Hielo','Vapor','Lluvia'],
+['¿Qué es el vapor?','Agua en forma de gas','Agua congelada','Agua sucia'],
+['¿A cuántos grados se congela el agua?','A cero grados','A cien grados','A cincuenta grados'],
+['¿Cómo se llama cuando el agua sube como vapor?','Evaporación','Precipitación','Congelación'],
+['¿Qué forman las gotitas de agua allá arriba?','Nubes','Montañas','Estrellas'],
+['¿Qué es la precipitación?','Cuando cae el agua, como la lluvia','Cuando el agua hierve','Cuando el agua se congela']]},
+{id:'vivos',e:'🐞',t:'Seres vivos y cosas sin vida',p:[
+'¿Cómo sabemos si algo está vivo? Los seres vivos nacen, crecen, se alimentan, respiran, se reproducen (tienen hijos o semillas) y, algún día, mueren.',
+'Las personas, los animales, las plantas y los hongos son seres vivos. Aunque un árbol no camine, está vivo: nace de una semilla, crece, toma agua y hace semillas nuevas.',
+'Una piedra, el agua, una pelota o un coche no son seres vivos. Pueden moverse o cambiar, pero no se alimentan ni crecen por sí solos. Un juguete de cuerda se mueve, pero no está vivo.'],
+q:[['¿Cuál de estos es un ser vivo?','Un árbol','Una piedra','Una pelota'],
+['¿Cuál NO es un ser vivo?','Un coche','Un gato','Un hongo'],
+['¿Qué hacen todos los seres vivos?','Nacen, crecen y se alimentan','Tienen ruedas','Hacen ruido'],
+['¿Las plantas están vivas?','Sí, aunque no caminen','No, porque no se mueven','Solo las que tienen flores'],
+['Un juguete de cuerda se mueve. ¿Está vivo?','No','Sí','Solo cuando camina'],
+['¿De dónde nace un árbol?','De una semilla','De una piedra','De la lluvia']]},
+{id:'animales',e:'🐾',t:'Cómo se agrupan los animales',p:[
+'Los científicos agrupan a los animales para estudiarlos. Los vertebrados tienen columna vertebral, un hueso largo en la espalda. Los invertebrados no tienen huesos.',
+'Los vertebrados se dividen en cinco grupos: mamíferos (tienen pelo y toman leche de su mamá, como el perro, la ballena y el murciélago), aves (tienen plumas y pico), peces (viven en el agua y respiran con branquias), reptiles (tienen escamas secas, como la iguana) y anfibios (viven en el agua y en la tierra, como la rana).',
+'Los invertebrados son la mayoría de los animales. Los insectos tienen seis patas, como la hormiga y la mariposa. Las arañas tienen ocho. También son invertebrados los gusanos, los caracoles y el pulpo.'],
+q:[['¿Qué tienen los vertebrados?','Columna vertebral','Seis patas','Alas'],
+['¿Qué grupo tiene pelo y toma leche de su mamá?','Los mamíferos','Las aves','Los peces'],
+['La ballena vive en el mar. ¿Qué es?','Un mamífero','Un pez','Un insecto'],
+['¿Cuántas patas tiene un insecto?','Seis','Ocho','Cuatro'],
+['¿Cuál de estos es un anfibio?','La rana','La iguana','El águila'],
+['¿Cuál de estos es un invertebrado?','El caracol','El perro','La gallina']]},
+{id:'cadena',e:'🦊',t:'¿Quién se come a quién?',p:[
+'Todos los seres vivos necesitan energía, y casi toda viene del Sol. Las plantas la usan para hacer su alimento, por eso se llaman productoras.',
+'Los animales no pueden hacer su comida. Los herbívoros comen plantas, como el conejo y la vaca. Los carnívoros comen otros animales, como el león y el águila. Los omnívoros comen de todo, como el oso… y las personas.',
+'Si lo ponemos en fila, se forma una cadena alimenticia: el pasto, luego el conejo que se come el pasto, luego el zorro que se come al conejo. Al final, los hongos y las lombrices descomponen lo que queda y regresan nutrientes a la tierra para que crezcan más plantas.'],
+q:[['¿De dónde viene casi toda la energía?','Del Sol','De la Luna','De las piedras'],
+['¿Cómo se llaman los animales que solo comen plantas?','Herbívoros','Carnívoros','Productores'],
+['¿Qué come un carnívoro?','Otros animales','Solo pasto','Piedras'],
+['Las personas comemos de todo. ¿Qué somos?','Omnívoros','Herbívoros','Productores'],
+['En la cadena pasto → conejo → zorro, ¿quién es el productor?','El pasto','El zorro','El conejo'],
+['¿Qué hacen los hongos y las lombrices?','Descomponen lo que queda y nutren la tierra','Cazan zorros','Hacen la lluvia']]},
+{id:'imanes',e:'🧲',t:'Los imanes',p:[
+'Un imán es un objeto que atrae algunas cosas sin tocarlas. Atrae a las cosas hechas de hierro, como los clips y los clavos. Pero no atrae la madera, el plástico, el papel ni el vidrio.',
+'Todo imán tiene dos lados llamados polos: el polo norte y el polo sur. Si juntas dos polos diferentes, se pegan. Si juntas dos polos iguales, se empujan, como si no quisieran tocarse.',
+'La Tierra funciona como un imán gigante. Por eso existe la brújula: su aguja es un imancito que siempre apunta hacia el norte. Durante siglos, los marineros la usaron para no perderse en el mar.'],
+q:[['¿Qué atrae un imán?','Cosas de hierro, como clips','Madera','Papel'],
+['¿Cuántos polos tiene un imán?','Dos','Uno','Cinco'],
+['¿Qué pasa si juntas dos polos iguales?','Se empujan','Se pegan','Se derriten'],
+['¿Qué pasa si juntas un polo norte y un polo sur?','Se pegan','Se empujan','No pasa nada'],
+['¿Hacia dónde apunta la aguja de una brújula?','Hacia el norte','Hacia abajo','Hacia donde tú quieras'],
+['¿Un imán atrae una regla de plástico?','No','Sí','Solo si es roja']]},
+{id:'luz',e:'🔦',t:'La luz y las sombras',p:[
+'La luz viaja en línea recta. Cuando algo se pone en su camino y no la deja pasar, detrás se forma una sombra.',
+'Hay materiales transparentes, como el vidrio de una ventana, que dejan pasar la luz. Y hay materiales opacos, como la madera o tu cuerpo, que no la dejan pasar. Por eso tu cuerpo hace sombra y una ventana limpia casi no.',
+'Tu sombra cambia durante el día. En la mañana y en la tarde, cuando el sol está bajito, es larga. Al mediodía, cuando el sol está más alto, es cortita. Y el arcoíris aparece cuando la luz del sol pasa por gotitas de agua y se separa en colores.'],
+q:[['¿Cómo viaja la luz?','En línea recta','En zigzag','En círculos'],
+['¿Cuándo se forma una sombra?','Cuando algo bloquea la luz','Cuando llueve','Cuando hace frío'],
+['¿El vidrio de una ventana es…?','Transparente','Opaco','Un imán'],
+['¿Cuándo es más corta tu sombra?','Al mediodía','En la mañana temprano','En la tarde'],
+['¿Qué es un material opaco?','Uno que no deja pasar la luz','Uno que brilla','Uno que es mojado'],
+['¿Cómo se forma un arcoíris?','La luz del sol pasa por gotitas de agua','Alguien lo pinta','Lo hace la Luna']]},
+{id:'comida',e:'🥗',t:'Comer bien: el Plato del Bien Comer',p:[
+'Para crecer fuerte y tener energía, tu cuerpo necesita distintos alimentos. En México se usa el Plato del Bien Comer, que tiene tres grupos.',
+'El primero son las verduras y frutas, que dan vitaminas para no enfermarte. El segundo son los cereales, como la tortilla, el arroz y la avena, que dan energía para jugar y pensar. El tercero son las leguminosas, como los frijoles y las lentejas, y los alimentos de origen animal, como el huevo, el pollo y la leche, que ayudan a formar músculos.',
+'Lo mejor es comer de los tres grupos en cada comida y tomar agua simple. Los dulces, los refrescos y las papitas no son malos de vez en cuando, pero si se comen mucho le hacen daño al cuerpo y a los dientes.'],
+q:[['¿Cuántos grupos tiene el Plato del Bien Comer?','Tres','Uno','Diez'],
+['¿Qué nos dan las verduras y frutas?','Vitaminas para no enfermarnos','Solo azúcar','Nada'],
+['¿En qué grupo está la tortilla?','Cereales','Frutas','Origen animal'],
+['¿Qué son los frijoles?','Leguminosas','Frutas','Dulces'],
+['¿Qué es mejor tomar todos los días?','Agua simple','Refresco','Jarabe'],
+['¿Qué pasa si se comen muchos dulces?','Le hacen daño al cuerpo y a los dientes','Te hacen volar','Te dan superfuerza']]},
+{id:'ambiente',e:'♻️',t:'Cuidar el planeta',p:[
+'La Tierra es nuestra casa, y hay cosas sencillas que todos podemos hacer para cuidarla. Una idea fácil de recordar son las tres erres: reducir, reutilizar y reciclar.',
+'Reducir es usar menos cosas, como llevar tu propia botella en lugar de comprar botellas de plástico. Reutilizar es usar algo otra vez, como hacer un juguete con una caja. Reciclar es separar la basura para que con ella se hagan cosas nuevas.',
+'La basura orgánica viene de seres vivos, como las cáscaras de fruta, y se puede volver abono. La inorgánica es como el plástico, el vidrio o las latas. ¡Una botella de plástico puede tardar cientos de años en deshacerse! También cuidamos el planeta cerrando la llave mientras nos lavamos los dientes y apagando la luz al salir.'],
+q:[['¿Cuáles son las tres erres?','Reducir, reutilizar y reciclar','Correr, reír y rodar','Rojo, rosa y rayado'],
+['¿Qué es reutilizar?','Usar algo otra vez','Tirarlo a la basura','Comprar uno nuevo'],
+['Una cáscara de plátano es basura…','Orgánica','Inorgánica','De metal'],
+['¿Cuánto puede tardar en deshacerse una botella de plástico?','Cientos de años','Un día','Una semana'],
+['¿Qué haces para ahorrar agua al lavarte los dientes?','Cerrar la llave','Dejarla abierta','Usar más agua'],
+['¿Qué puedes hacer al salir de un cuarto?','Apagar la luz','Prender la tele','Abrir la llave']]},
+{id:'dientes',e:'🦷',t:'Tus dientes',p:[
+'Los niños tienen 20 dientes de leche. Más o menos a los seis años se empiezan a caer y salen los dientes permanentes, que son los que te van a durar toda la vida. Un adulto tiene 32.',
+'Cada diente tiene un trabajo. Los de enfrente, llamados incisivos, cortan. Los colmillos desgarran. Las muelas, que están atrás, trituran la comida. La capa blanca de afuera se llama esmalte y es lo más duro de todo tu cuerpo.',
+'En la boca viven bacterias diminutas. Cuando comes azúcar y no te lavas los dientes, las bacterias hacen ácido que abre hoyitos en el esmalte: las caries. Para evitarlas, lávate los dientes después de comer y antes de dormir, y visita al dentista.'],
+q:[['¿Cuántos dientes de leche tienen los niños?','20','32','10'],
+['¿Cuántos dientes tiene un adulto?','32','20','100'],
+['¿Qué hacen las muelas?','Trituran la comida','Cortan el pelo','Ven la comida'],
+['¿Cómo se llama la capa blanca y dura del diente?','Esmalte','Encía','Lengua'],
+['¿Qué son las caries?','Hoyitos en los dientes','Un tipo de muela','Dientes nuevos'],
+['¿Cuándo es bueno lavarte los dientes?','Después de comer y antes de dormir','Solo en tu cumpleaños','Nunca']]},
+{id:'estaciones',e:'🍂',t:'Las estaciones del año',p:[
+'El año tiene cuatro estaciones: primavera, verano, otoño e invierno. Cada una dura más o menos tres meses.',
+'Las estaciones pasan porque la Tierra está un poquito inclinada mientras le da la vuelta al Sol. Durante una parte del año, nuestro lado de la Tierra recibe los rayos del sol más directos y hace más calor. En otra parte los recibe más de lado y hace más frío.',
+'En México, la primavera empieza en marzo y las flores se abren. En verano hace calor y, en muchos lugares, llueve bastante. En otoño se caen las hojas de algunos árboles. Y en invierno hace más frío y los días son más cortos.'],
+q:[['¿Cuántas estaciones tiene el año?','Cuatro','Dos','Doce'],
+['¿Por qué hay estaciones?','La Tierra está inclinada mientras gira alrededor del Sol','El Sol se apaga a veces','La Luna tapa al Sol'],
+['¿En qué estación se caen las hojas de algunos árboles?','Otoño','Verano','Primavera'],
+['¿Cuándo empieza la primavera?','En marzo','En diciembre','En agosto'],
+['¿Cómo son los días en invierno?','Más cortos','Más largos','Iguales a los de verano'],
+['¿Cuánto dura cada estación, más o menos?','Tres meses','Un día','Un año']]}];
+const cieDone=x=>(S.cie||{})[x.id]!=null;
+function ciePick(){const R=dayRec();if(R.ciePick==null||!SCI[R.ciePick]){
+  const c=SCI.findIndex(x=>x.id===S.cieSel);
+  if(c>=0)R.ciePick=c;else{const U=SCI.map((x,j)=>j).filter(j=>!cieDone(SCI[j]));R.ciePick=U.length?U[Math.floor(Math.random()*U.length)]:dayNum()%SCI.length}}
+  return R.ciePick}
+let cieCur=0,cieReto=false;
+function cieOpen(i,reto){cieCur=i;cieReto=!!reto;const s=SCI[i];
+  $('cieEm').textContent=s.e;$('cieT').textContent=s.t;$('cieInfo').textContent='Ciencia · lee con calma y luego contesta '+s.q.length+' preguntas';
+  $('cieTxt').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');show('cie');tone(660,.06)}
+const cieQuiz=i=>numLab(SCI[i].q.map(x=>mkQ(0,`<span class="rq">${x[0]}</span>`,x[1],x.slice(2),{tx:true,noMsg:`Era: <b>${x[1]}</b>`})));
+$('cieGo').addEventListener('click',()=>qzStart('gen',cieQuiz(cieCur),{act:'cie',reto:cieReto,si:cieCur}));
+$('cieQuit').addEventListener('click',()=>{show('home');renderHome()});
+function cieSelRender(){const o=x=>`<option value="${x.id}">${x.e} ${x.t}${cieDone(x)?` (ya lo vio: ${S.cie[x.id]}/${x.q.length})`:''}</option>`;
+  const U=SCI.filter(x=>!cieDone(x)),D=SCI.filter(cieDone);
+  $('cieSel').innerHTML=`<option value="">Al azar (uno que no haya visto)</option><optgroup label="Sin ver (${U.length})">${U.map(o).join('')}</optgroup>${D.length?`<optgroup label="Ya vistos (${D.length})">${D.map(o).join('')}</optgroup>`:''}`;
+  $('cieSel').value=SCI.some(x=>x.id===S.cieSel)?S.cieSel:'';
+  const R=dayRec(),cur=SCI[ciePick()],x=R.ex&&R.ex.cie;
+  $('cieSelNote').textContent=x&&x.ok?`Hoy ya hizo «${cur.t}». Lo que elijas aquí le aparecerá mañana.`:`Tema de hoy: «${cur.t}». Escoge otro en la lista para leerlo antes de ponérselo. Si no eliges, cada día sale uno al azar de los que no ha visto.`;ciePrevRender()}
+function ciePrevRender(){const v=$('cieSel').value,x=SCI.find(y=>y.id===v),cur=SCI.some(y=>y.id===S.cieSel)?S.cieSel:'',P=$('ciePrev'),B=$('cieAssign');
+  if(!x){P.hidden=true;P.innerHTML=''}
+  else{P.hidden=false;P.innerHTML=`<details><summary>Leer «${x.t}» antes de elegirlo</summary>${x.p.map(t=>`<p>${t}</p>`).join('')}<p><b>Preguntas</b> (la respuesta correcta en negritas):</p><ol>${x.q.map(q=>`<li>${q[0]}<br><b>${q[1]}</b> · ${q[2]} · ${q[3]}</li>`).join('')}</ol></details>`}
+  B.hidden=v===cur;B.textContent=x?`Ponerle «${x.t}»`:'Dejar que salga al azar'}
+$('cieSel').addEventListener('change',ciePrevRender);
+$('cieAssign').addEventListener('click',()=>{S.cieSel=$('cieSel').value;const R=dayRec();if(!(R.ex&&R.ex.cie&&R.ex.cie.ok))R.ciePick=null;ciePick();save();renderHome();tone(660,.06)});
+
+/* ===== Fracciones con pizza ===== */
+const DEN={2:['medio','medios'],3:['tercio','tercios'],4:['cuarto','cuartos'],6:['sexto','sextos'],8:['octavo','octavos']};
+const NUMW=['cero','un','dos','tres','cuatro','cinco','seis','siete','ocho'];
+const frTxt=(k,n)=>`${NUMW[k]} ${DEN[n][k===1?0:1]}`;
+const fr=(k,n)=>`${k}/${n}`;
+function pizzaSVG(n,k,sz){const R=46,c=50;let s='';
+  for(let i=0;i<n;i++){const a0=i/n*2*Math.PI-Math.PI/2,a1=(i+1)/n*2*Math.PI-Math.PI/2,x0=c+R*Math.cos(a0),y0=c+R*Math.sin(a0),x1=c+R*Math.cos(a1),y1=c+R*Math.sin(a1),big=(a1-a0)>Math.PI?1:0;
+    s+=`<path d="M${c},${c} L${x0},${y0} A${R},${R} 0 ${big} 1 ${x1},${y1} Z" class="${i<k?'pz on':'pz'}"/>`;
+    if(i<k){const am=(a0+a1)/2;s+=`<circle cx="${c+R*.55*Math.cos(am)}" cy="${c+R*.55*Math.sin(am)}" r="${n>4?4:6}" class="pp"/>`}}
+  return `<svg class="pizza" viewBox="0 0 100 100" width="${sz||150}" height="${sz||150}"><circle cx="50" cy="50" r="49" class="crust"/>${s}</svg>`}
+function frQue(){const n=pickOne([2,3,4,4,6,8,8]),k=rint(1,n-1);
+  return mkQ(0,`<span class="rq">¿Qué parte de la pizza tiene pepperoni?</span>${pizzaSVG(n,k)}`,fr(k,n),[fr(n-k,n),fr(k,n+2),fr(1,n),fr(k+1,n)].filter(x=>x!==fr(k,n)),{noMsg:`Son <b>${k}</b> rebanadas de <b>${n}</b>: ${fr(k,n)}`})}
+function frLee(){const n=pickOne([2,3,4,6,8]),k=rint(1,n-1),ok=frTxt(k,n);
+  const oth=[];for(const m of shuffle([2,3,4,6,8]))if(m!==n&&k<m)oth.push(frTxt(k,m));if(k>1)oth.unshift(frTxt(1,n));
+  return mkQ(0,`<span class="rq">¿Cómo se lee esta fracción?</span><span class="gw">${fr(k,n)}</span>`,ok,oth,{tx:true,noMsg:`Se lee: <b>${ok}</b>`})}
+function frMas(){let a,b;if(Math.random()<.5){const n=pickOne([3,4,6,8]);a=[rint(1,n-1),n];do{b=[rint(1,n-1),n]}while(b[0]===a[0])}
+  else{const ns=pickN([2,3,4,6,8],2);a=[1,ns[0]];b=[1,ns[1]]}
+  const big=a[0]/a[1]>b[0]/b[1]?a:b,small=big===a?b:a;
+  const q={k:0,lab:'',q:'<span class="rq">¿Dónde hay más pizza?</span>',opts:shuffle([{h:`${pizzaSVG(big[1],big[0],96)}<span class="fl">${fr(...big)}</span>`,v:1},{h:`${pizzaSVG(small[1],small[0],96)}<span class="fl">${fr(...small)}</span>`,v:0}]),ans:1,pic:true,
+    noMsg:big[1]!==small[1]?`Hay más en <b>${fr(...big)}</b>: entre menos pedazos se parta la pizza, más grande es cada pedazo.`:`Hay más en <b>${fr(...big)}</b>.`};return q}
+function frCuento(){const n=pickOne([4,6,8]),k=rint(1,n-1),queda=Math.random()<.5;
+  const ans=queda?fr(n-k,n):fr(k,n);
+  return mkQ(0,`<span class="rq">Una pizza tiene ${n} rebanadas iguales. Te comes ${k}. ¿Qué parte de la pizza ${queda?'queda':'te comiste'}?</span>${pizzaSVG(n,queda?n-k:k,110)}`,ans,[queda?fr(k,n):fr(n-k,n),fr(k,n-k||1),fr(n,k)].filter(x=>x!==ans),{noMsg:`Era <b>${ans}</b>`})}
+function frBusca(){const n=pickOne([2,3,4,6,8]),k=rint(1,n-1);const others=[];
+  const cand=shuffle([[n-k,n],[k,n===8?4:8],[k+1>n-1?1:k+1,n],[1,n===2?4:2]]);for(const x of cand){if(others.length>=2)break;if(x[0]/x[1]!==k/n&&x[0]<x[1]&&!others.some(o=>o[0]===x[0]&&o[1]===x[1]))others.push(x)}
+  return {k:0,lab:'',q:`<span class="rq">¿Cuál pizza muestra <b>${fr(k,n)}</b>?</span>`,opts:shuffle([{h:pizzaSVG(n,k,90),v:1},...others.map(x=>({h:pizzaSVG(x[1],x[0],90),v:0}))]),ans:1,pic:true,noMsg:`${fr(k,n)} es ${frTxt(k,n)}: la pizza en ${n} pedazos con ${k} pintados.`}}
+function fracQuiz(){return numLab([frQue(),frLee(),frQue(),frMas(),frBusca(),frCuento(),frQue(),frLee(),frMas(),frCuento()])}
+
+/* ===== Cultura general ===== */
+const CULT=[
+['¿Cuál es la capital de México?','Ciudad de México','Guadalajara','Monterrey'],
+['¿Cuántos estados tiene México?','32','10','50'],
+['¿De qué colores es la bandera de México?','Verde, blanco y rojo','Azul, blanco y rojo','Amarillo, azul y rojo'],
+['¿Qué animal está en el escudo de la bandera de México?','Un águila','Un león','Un caballo'],
+['¿En qué fecha se celebra la Independencia de México?','15 y 16 de septiembre','25 de diciembre','1 de enero'],
+['¿Qué se celebra el 2 de noviembre en México?','Día de Muertos','Navidad','El Día del Niño'],
+['¿Cuándo se celebra el Día del Niño en México?','30 de abril','14 de febrero','16 de septiembre'],
+['¿Qué océano está al oeste de México?','El Pacífico','El Índico','El Ártico'],
+['¿Cuál es el planeta más grande del sistema solar?','Júpiter','La Tierra','Marte'],
+['¿Cuál es el planeta más cercano al Sol?','Mercurio','Neptuno','Saturno'],
+['¿Qué planeta es famoso por sus anillos?','Saturno','Mercurio','Venus'],
+['¿Cuántos continentes hay?','Siete','Dos','Veinte'],
+['¿En qué continente está México?','América','Europa','Asia'],
+['¿Cuál es el océano más grande del mundo?','El Pacífico','El Atlántico','El Índico'],
+['¿Cuál es el animal terrestre más grande?','El elefante africano','La jirafa','El rinoceronte'],
+['¿Cuál es el animal más alto del mundo?','La jirafa','El elefante','El avestruz'],
+['¿Cuál es el animal más grande que ha existido?','La ballena azul','El tiranosaurio','El tiburón blanco'],
+['¿Qué animal es el más rápido en tierra?','El guepardo','El caballo','El perro'],
+['¿Cuántas patas tiene una araña?','Ocho','Seis','Diez'],
+['¿Qué animal produce la miel?','La abeja','La hormiga','La mariposa'],
+['¿Cuántos días tiene un año?','365','100','30'],
+['¿Cuántos meses tiene un año?','12','10','7'],
+['¿Cuántas horas tiene un día?','24','12','60'],
+['¿Cuántos minutos tiene una hora?','60','100','24'],
+['¿Cuál es el mes más corto del año?','Febrero','Diciembre','Julio'],
+['¿Qué instrumento tiene teclas blancas y negras?','El piano','La guitarra','El tambor'],
+['¿Cuántas cuerdas tiene normalmente una guitarra?','Seis','Dos','Veinte'],
+['¿Qué colores se mezclan para hacer verde?','Azul y amarillo','Rojo y blanco','Negro y rosa'],
+['¿Qué colores se mezclan para hacer naranja?','Rojo y amarillo','Azul y verde','Blanco y negro'],
+['¿Cuántos jugadores tiene un equipo de fútbol en la cancha?','Once','Cinco','Veinte'],
+['¿Cada cuántos años hay un Mundial de fútbol?','Cada cuatro años','Cada año','Cada diez años'],
+['¿En qué deporte se usa una canasta?','Básquetbol','Fútbol','Natación'],
+['¿Quién pintó la Mona Lisa?','Leonardo da Vinci','Frida Kahlo','Diego Rivera'],
+['¿Qué pintora mexicana es famosa por sus autorretratos?','Frida Kahlo','María Félix','Sor Juana'],
+['¿Quién inventó el foco que se volvió famoso en todo el mundo?','Thomas Edison','Albert Einstein','Isaac Newton'],
+['¿Quién fue el primer ser humano en pisar la Luna?','Neil Armstrong','Cristóbal Colón','Pelé'],
+['¿Qué usaban los marineros para orientarse hacia el norte?','La brújula','El reloj','El termómetro'],
+['¿Qué instrumento mide la temperatura?','El termómetro','La regla','La báscula'],
+['¿Con qué se mide cuánto pesa algo?','Con una báscula','Con un reloj','Con un termómetro'],
+['¿Cuál es el país más grande del mundo?','Rusia','México','Japón'],
+['¿En qué país están las pirámides de Guiza?','Egipto','México','Francia'],
+['¿En qué ciudad está la Torre Eiffel?','París','Londres','Roma'],
+['¿Qué idioma se habla en Brasil?','Portugués','Español','Inglés'],
+['¿Qué idioma indígena hablaban los mexicas y todavía se habla en México?','Náhuatl','Inglés','Latín'],
+['¿Qué palabra viene del náhuatl?','Chocolate','Computadora','Bicicleta'],
+['¿Cuál es el río más largo de América?','El Amazonas','El Bravo','El Nilo'],
+['¿Cuál es la montaña más alta de México?','El Pico de Orizaba','El Everest','El Popocatépetl'],
+['¿Cuál es la montaña más alta del mundo?','El Everest','El Pico de Orizaba','El Kilimanjaro'],
+['¿Qué gas necesitamos respirar para vivir?','Oxígeno','Humo','Helio'],
+['¿Qué órgano bombea la sangre?','El corazón','El estómago','El pulmón'],
+['¿Con qué órgano respiramos?','Con los pulmones','Con el corazón','Con el hígado'],
+['¿Qué es la Luna?','El satélite de la Tierra','Una estrella','Un planeta'],
+['¿Qué estrella nos da luz y calor?','El Sol','La Luna','La Estrella Polar'],
+['¿Cuántos lados tiene un cuadrado?','Cuatro','Tres','Cinco'],
+['¿Cuántos lados tiene un hexágono?','Seis','Ocho','Cinco'],
+['¿Qué se celebra el 24 de febrero en México?','El Día de la Bandera','El Día de Muertos','Año Nuevo'],
+['¿Qué zona arqueológica de México tiene una pirámide llamada El Castillo?','Chichén Itzá','Teotihuacán','Tulum'],
+['¿Qué animalito mexicano aparece en el billete de 50 pesos?','El ajolote','El jaguar','El quetzal'],
+['¿Cuál es el desierto caliente más grande del mundo?','El Sahara','El de Sonora','El de Atacama'],
+['¿Qué semilla mexicana se usa para hacer tortillas?','El maíz','El arroz','El trigo']];
+function cultQuiz(){return numLab(pickN(CULT,10).map(x=>mkQ(0,`<span class="rq">${x[0]}</span>`,x[1],x.slice(2),{tx:true,noMsg:`Era: <b>${x[1]}</b>`})))}
+
+/* ===== Arma oraciones ===== */
+const ORA=[['🐶','El perro corre en el parque.'],['🍦','Mi hermana come un helado.'],['⚽','Los niños juegan fútbol en la escuela.'],['📚','Yo leo un libro antes de dormir.'],['🌧️','Hoy llueve mucho en la ciudad.'],['🐱','El gato duerme en el sillón.'],['🚲','Mi papá me enseñó a andar en bici.'],['🎂','Mañana es el cumpleaños de mi abuela.'],['🍎','Me gustan las manzanas rojas.'],['🏫','Mi maestra se llama Rosa.'],['🐦','Los pájaros cantan en la mañana.'],['🧸','Mi oso de peluche es muy suave.'],['🎮','Después de la tarea juego videojuegos.'],['🌮','El domingo comimos tacos con mis tíos.'],['🌙','En la noche salen las estrellas.'],['🐢','La tortuga camina muy despacio.'],['🎨','Ayer pinté un dibujo para mi mamá.'],['🏊','En verano vamos a nadar a la alberca.'],['🦷','Me lavo los dientes tres veces al día.'],['🚌','El camión de la escuela es amarillo.'],['🌳','El árbol de mi casa es muy alto.'],['🍕','Mis amigos y yo compartimos una pizza.'],['🦖','El tiranosaurio tenía dientes enormes.'],['🧱','Construí un castillo con mis bloques.'],['🐟','Los peces nadan en el agua.']];
+const ORAOK=[['Los perros corren rápido.','Los perros corre rápido.','El perros corren rápido.'],['Yo fui al parque ayer.','Yo fuimos al parque ayer.','Yo va al parque ayer.'],['Mi mamá y yo cocinamos.','Mi mamá y yo cocina.','Mi mamá y yo cocinan.'],['Las flores son bonitas.','Las flores es bonitas.','La flores son bonitas.'],['Mañana voy a la escuela.','Mañana fui a la escuela.','Mañana voy en la escuela.'],['Ayer comí pizza.','Ayer como pizza.','Ayer comeré pizza.'],['El niño está contento.','El niño está contenta.','El niño están contento.'],['Nosotros jugamos fútbol.','Nosotros juego fútbol.','Nosotros juegan fútbol.'],['Me gustan los dulces.','Me gusta los dulces.','Me gustan el dulces.'],['Tengo dos gatos negros.','Tengo dos gato negros.','Tengo dos gatos negro.'],['Ella se llama Ana.','Ella me llama Ana.','Ella se llamo Ana.'],['Hoy hace mucho calor.','Hoy hacen mucho calor.','Hoy hace mucha calor.'],['Mis amigos vinieron a mi casa.','Mis amigos vino a mi casa.','Mis amigo vinieron a mi casa.'],['La mesa es grande.','La mesa es grando.','El mesa es grande.'],['¿Quieres jugar conmigo?','¿Quieres jugar con mí?','¿Quieres jugar con yo?']];
+const ORACU=[['Me desperté.','Me lavé los dientes.','Desayuné.','Me fui a la escuela.'],['Sembré una semilla.','La regué todos los días.','Salió una plantita.','Creció una flor.'],['Saqué el pan.','Le puse jamón.','Cerré el sándwich.','Me lo comí.'],['Llegué a la fiesta.','Cantamos las mañanitas.','Partimos el pastel.','Abrimos los regalos.'],['Se ponchó la llanta.','Mi papá sacó la llanta de repuesto.','Cambió la llanta.','Seguimos el viaje.'],['Empezó a llover.','Abrí mi paraguas.','Salté en los charcos.','Llegué a casa mojado.']];
+function oraQuiz(){const B=pickN(ORA,5).map(([e,t])=>({k:0,lab:'',q:`<span class="em">${e}</span><span class="rq">Ordena las palabras para formar la oración</span>`,build:t.split(' '),okMsg:`¡Muy bien! <b>${t}</b>`,noMsg:`Era: <b>${t}</b>`}));
+  const C=pickN(ORAOK,3).map(x=>mkQ(0,'<span class="rq">¿Cuál está bien dicha?</span>',x[0],x.slice(1),{tx:true,noMsg:`Se dice: <b>${x[0]}</b>`}));
+  const H=pickN(ORACU,2).map(x=>({k:0,lab:'',q:'<span class="rq">Ordena lo que pasó, de primero a último</span>',build:x.slice(),okMsg:'¡Así pasó!',noMsg:'El orden era: '+x.join(' → ')}));
+  return numLab([B[0],C[0],B[1],H[0],B[2],C[1],B[3],H[1],B[4],C[2]])}
 
 /* ===== Lectura ===== */
 const STORIES=[
