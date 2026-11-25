@@ -61,7 +61,7 @@ const H=[
  ['esc-mayus','len','Escritura','Mayúsculas y punto final',['esc-ordenar'],'media'],
  ['esc-orto','len','Escritura','Ortografía de tercer grado',[],'baja'],
  ['esc-letra','len','Escritura','Letra legible (en papel)',[],'media',1],
- ['ent-comunidad','eti','Entorno','Mi comunidad y mi municipio (Apaxco)',[],'media'],
+ ['ent-comunidad','eti','Entorno','Mi comunidad y mi municipio',[],'media'],
  ['ent-mexico','eti','Entorno','Mi estado y México: regiones y paisajes',['ent-comunidad'],'media'],
  ['ent-tradiciones','eti','Entorno','Tradiciones y pueblos originarios',['ent-mexico'],'media'],
  ['esp-dir','hum','Espacio y ritmo','Izquierda, derecha, arriba, abajo, adelante y atrás',[],'media'],

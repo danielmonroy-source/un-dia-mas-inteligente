@@ -356,13 +356,13 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <button class="ghost" id="cultAssign" hidden></button>
       <button class="ghost" id="reset">Borrar todo el avance</button>
       <div id="rstBox" hidden>
-        <p class="note">Esto borra todo el avance de Adolfo. Antes se guarda una copia que puedes recuperar en «Copias de seguridad». Escribe la contraseña de papás para confirmar.</p>
+        <p class="note">Esto borra todo el avance del jugador. Antes se guarda una copia que puedes recuperar en «Copias de seguridad». Escribe la contraseña de papás para confirmar.</p>
         <div class="row"><input id="rstPin" type="password" inputmode="numeric" autocomplete="off" placeholder="Contraseña" aria-label="Contraseña para borrar"><button class="ghost" id="rstGo">Borrar</button><button class="ghost" id="rstNo">Cancelar</button></div>
         <p class="note" id="rstMsg"></p>
       </div>
       <p class="note" id="cloud"></p>
       <div class="row"><input id="codeIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Código de jugador" aria-label="Código de jugador"><button class="ghost" id="codeGo">Usar este código</button></div>
-      <p class="note" id="codeMsg">Si en este dispositivo no aparece el avance, escribe aquí el código de jugador (viene en el enlace de Adolfo, después de «?p=»).</p>
+      <p class="note" id="codeMsg">Si en este dispositivo no aparece el avance, escribe aquí el código de jugador (viene en el enlace del jugador, después de «?p=»).</p>
       <h3 class="ph">Copias de seguridad</h3>
       <p class="note">Descarga una copia del avance para guardarla tú, o vuelve a una copia anterior.</p>
       <div class="row"><button class="ghost" id="expBtn">Descargar copia</button><button class="ghost" id="impBtn">Cargar copia</button></div>
@@ -487,7 +487,7 @@ const MODES=[
 let S=null;
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S){try{const o=JSON.parse(localStorage.getItem('tablas-turbo-v1'));if(o)S={pts:o.pts,best:o.best,streak:o.streak,last:o.last,days:o.days,facts:o.facts,mute:o.mute}}catch(e){}}
-const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo',colSum:'con2',colRes:'sin2'});
+const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'',colSum:'con2',colRes:'sin2'});
 S=Object.assign(DEF(),S||{});
 const save=()=>{try{calSnap()}catch(e){}S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
 /* ---- nube (Supabase) ---- */
@@ -626,7 +626,7 @@ function renderTop(){
 }
 function renderHome(){
   renderTop();
-  $('hola').textContent=`¡Hola, ${S.nombre||'Adolfo'}!`;$('nombre').value=S.nombre||'';
+  $('hola').textContent=`¡Hola, ${S.nombre||'estudiante'}!`;$('nombre').value=S.nombre||'';
   $('sDays').textContent=curStreak();$('sPts').textContent=S.pts;
   let tot=0;range().forEach(t=>tot+=medals(t));$('sMed').textContent=tot;
   const L=['D','L','M','M','J','V','S'];let w='';
@@ -643,9 +643,9 @@ function renderHome(){
   const tsum=t=>range().reduce((a,n)=>a+box(t,n),0);
   let rounds=0;for(let i=0;i<7;i++)rounds+=S.days[dstr(Date.now()-i*864e5)]||0;
   const fails=Object.entries(S.miss||{}).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  $('prog').innerHTML=`<p class="note">Rondas en los últimos 7 días: <b>${rounds}</b> · Racha: <b>${curStreak()} ${curStreak()===1?'día':'días'}</b></p>
+  $('prog').innerHTML=`<p class="note">Rondas en los últimos 7 días: <b>${htmlText(rounds)}</b> · Racha: <b>${htmlText(curStreak())} ${curStreak()===1?'día':'días'}</b></p>
   <table class="pt"><tr><th>Tabla</th><th class="r">Medallas</th><th class="r">Dominio</th></tr>${range().map(t=>`<tr><td>×${t}</td><td class="r">${medals(t)}/5</td><td class="r">${Math.round(tsum(t)/30*100)}%</td></tr>`).join('')}</table>
-  <p class="note">Las que más ha fallado:</p><div class="fails">${fails.length?fails.map(([k,c])=>`<span>${k.replace('x',' × ')} (${c})</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
+  <p class="note">Las que más ha fallado:</p><div class="fails">${fails.length?fails.map(([k,c])=>`<span>${htmlText(k.replace('x',' × '))} (${htmlText(c)})</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
   flame('m1',curStreak()?3:0);
   const wd=(['sr','en','rd'].includes(S.world)||(GEN[S.world]&&S.world!=='cultq'))?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';$('wG').hidden=!GEN[wd];
   [...$('worlds').children].forEach(b=>b.classList.toggle('on',b.dataset.w===wd));
@@ -656,7 +656,7 @@ function openTable(t){
   curT=t;renderTop();$('tT').textContent='Tabla del '+t;
   const nx=MODES.find(m=>best(t,m.id)<8);
   $('modes').innerHTML=MODES.map((m,i)=>{const b=best(t,m.id);
-    return `<button class="mode ${nx&&nx.id===m.id?'next':''}" data-m="${m.id}"><span class="n">${i+1}</span><span><b>${m.name}</b><span>${m.d}</span></span><span class="sc"><i class="${b>=8?'y':''}"></i>${b?b+'/10':''}</span></button>`}).join('');
+    return `<button class="mode ${nx&&nx.id===m.id?'next':''}" data-m="${m.id}"><span class="n">${i+1}</span><span><b>${m.name}</b><span>${m.d}</span></span><span class="sc"><i class="${b>=8?'y':''}"></i>${b?htmlText(b)+'/10':''}</span></button>`}).join('');
   $('peek').innerHTML=range().map(n=>`<span>${t} × ${n} = ${t*n}</span>`).join('');
   show('tabla');
 }
@@ -684,6 +684,7 @@ const wrongNear=(r,t,n)=>shuffle([r+t,r-t,r+1,r-1,r+2,r+10,r-10].filter(x=>x>0&&
 function mk(t,n,type,k){const q={t,n,type,k,flip:type==='ch'&&G0flip&&Math.random()<.5};if(type==='sino')q.shown=Math.random()<.5?t*n:wrongNear(t*n,t,n);return q}
 let G0flip=false;
 function start(mode,t){
+  if(mode!=='mix'&&(!Number.isInteger(t)||t<1||t>10))return;
   if(G)clearTimeout(G.to);
   let list;
   if(mode==='mix'){
@@ -801,7 +802,7 @@ function bookRound(pts,maxc){
   S.pts+=pts;const newBest=maxc>S.best;if(newBest)S.best=maxc;
   return{d,firstToday,newBest}}
 function commonNews(b,lvlBefore,maxc){const news=[];
-  if(b.firstToday)news.push(S.streak>1?`¡Racha de <b>${S.streak} días</b> seguidos! Vuelve mañana para que crezca.`:`¡Empezaste tu racha! Juega mañana para llevarla a <b>2 días</b>.`);
+  if(b.firstToday)news.push(S.streak>1?`¡Racha de <b>${htmlText(S.streak)} días</b> seguidos! Vuelve mañana para que crezca.`:`¡Empezaste tu racha! Juega mañana para llevarla a <b>2 días</b>.`);
   if(S.days[b.d]===3)news.push('¡Cumpliste la <b>meta de hoy</b>: 3 rondas!');
   if(b.newBest)news.push(`Nuevo récord: <b>${maxc} aciertos</b> seguidos`);
   const lv=Math.floor(S.pts/LV);if(lv>lvlBefore)news.push(`¡Subiste al <b>nivel ${lv+1}</b>!`);
@@ -946,7 +947,7 @@ function srOpen(lv){
   srCur=lv;const L=SRL[lv-1];renderTop();$('srT').textContent=`Nivel ${lv}: ${L.name}`;
   const nx=SRM.find(m=>srBest(lv,m.id)<m.need);
   $('srmodes').innerHTML=SRM.map((m,i)=>{const b=srBest(lv,m.id);
-    return `<button class="mode ${nx&&nx.id===m.id?'next':''}" data-m="${m.id}"><span class="n">${i+1}</span><span><b>${m.name}</b><span>${m.d} · ${m.q} cuentas</span></span><span class="sc"><i class="${b>=m.need?'y':''}"></i>${b?b+'/'+m.q:''}</span></button>`}).join('');
+    return `<button class="mode ${nx&&nx.id===m.id?'next':''}" data-m="${m.id}"><span class="n">${i+1}</span><span><b>${m.name}</b><span>${m.d} · ${m.q} cuentas</span></span><span class="sc"><i class="${b>=m.need?'y':''}"></i>${b?htmlText(b)+'/'+m.q:''}</span></button>`}).join('');
   show('srlvl');
 }
 function srStart(lv,mode){
@@ -1119,8 +1120,8 @@ function renderSR(){
     return `<button class="mode ${nextL===L?'next':''}" data-l="${L.n}" ${u?'':'disabled'}><span class="n">${L.ic}</span><span><b>${L.name}</b><span>Nivel ${L.n}</span></span><span class="sc">${u?`<span class="med">${SRM.map(m=>`<i class="${srBest(L.n,m.id)>=m.need?'y':''}"></i>`).join('')}</span>`:lockSvg}</span></button>`}).join('');
   const E=srS().err,F=srS().fails;
   $('srprog').innerHTML=`<h3 class="ph">Suma y resta</h3><table class="pt"><tr><th>Nivel</th><th class="r">Medallas</th></tr>${SRL.map(L=>`<tr><td>${L.n}. ${L.name}</td><td class="r">${srMedals(L.n)}/4</td></tr>`).join('')}</table>
-  <p class="note">Errores: olvidó llevar <b>${E.llevar||0}</b> · olvidó pedir prestado <b>${E.prestar||0}</b> · otros <b>${E.otro||0}</b></p>
-  <p class="note">Últimas cuentas que le costaron:</p><div class="fails">${F.length?F.slice(0,10).map(x=>`<span>${x}</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
+  <p class="note">Errores: olvidó llevar <b>${htmlText(E.llevar||0)}</b> · olvidó pedir prestado <b>${htmlText(E.prestar||0)}</b> · otros <b>${htmlText(E.otro||0)}</b></p>
+  <p class="note">Últimas cuentas que le costaron:</p><div class="fails">${F.length?F.slice(0,10).map(x=>`<span>${htmlText(x)}</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
 }
 $('worlds').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.world=b.dataset.w;save();tone(660,.06);renderHome()});
 $('srpath').addEventListener('click',e=>{const b=e.target.closest('.mode');if(b&&!b.disabled){tone(660,.06);srOpen(+b.dataset.l)}});
@@ -1166,7 +1167,7 @@ const calCls=c=>c==null?'':c>=8?'hi':c>=6?'mid':'lo';
 function dayCals(R){const K=dayKeys(R),c=K.map(k=>[kName(k,R),kCal(k,R)]);
   const v=c.map(x=>x[1]).filter(x=>x!=null);return{c,K,avg:v.length===c.length?r1(v.reduce((a,b)=>a+b,0)/v.length):null}}
 function boleta(R){const {c,avg}=dayCals(R);
-  return `<div class="boleta"><b class="bt">Tu calificación de hoy</b>${c.map(([n,v])=>`<div class="br"><span>${n}</span><b class="cal ${calCls(v)}">${v??'–'}</b></div>`).join('')}
+  return `<div class="boleta"><b class="bt">Tu calificación de hoy</b>${c.map(([n,v])=>`<div class="br"><span>${htmlText(n)}</span><b class="cal ${calCls(v)}">${htmlText(v??'–')}</b></div>`).join('')}
   <div class="br tot"><span>Promedio</span><b class="cal ${calCls(avg)}">${avg??'–'}</b></div></div>`}
 function retoBonus(){const R=dayRec();if(retoParts(R).every(Boolean)&&!R.bonus){R.bonus=true;S.pts+=50;S.retoDays=(S.retoDays||0)+1;return '¡<b>Reto del día completo</b>! Te ganaste <b>50 puntos</b> de premio'+boleta(R)}return null}
 function retoParts(R){return dayKeys(R).map(k=>kDone(k,R))}
@@ -1182,11 +1183,11 @@ function renderDaily(){
   $('daily').innerHTML=`<div class="dh">Reto de hoy <span>${full?'¡Completo! +50':n+' de '+NP}</span></div>
     <div class="dbar"><i style="width:${n/NP*100}%"></i></div>
     <div class="modes">${dayKeys(R).map((k,i)=>{const I=String(i+1);
-    if(k==='t')return row('t',I,R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden y luego en desorden'+(R.tTries?` · intentos: ${R.tTries}`:''));
-    if(k==='c')return row('c',I,R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc());
+    if(k==='t')return row('t',I,R.tOk,`Tabla del ${htmlText(R.t)}`,R.tOk?'¡Lo lograste!':'En orden y luego en desorden'+(R.tTries?` · intentos: ${htmlText(R.tTries)}`:''));
+    if(k==='c')return row('c',I,R.col,'10 cuentas en columna',R.col?`${htmlText(R.colOk)} de 10 sin error`:colDesc());
     if(k==='en')return row('en',I,R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub);
-    if(k==='rd')return row('rd',I,!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de ${R.rdN||5} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`);
-    const g=GEN[k],x=R.ex&&R.ex[k];return row(k,I,kDone(k,R),PK[k]?`${g.e} ${PK[k].lbl}: ${PK[k].data[pkPick(k)].t}`:`${g.e} ${g.n}`,x&&x.ok?`${x.first} de ${x.n} a la primera`:PK[k]?'Lee y contesta las preguntas':'10 preguntas')}).join('')}</div>
+    if(k==='rd')return row('rd',I,!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${htmlText(R.rdOk)} de ${htmlText(R.rdN||5)} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`);
+    const g=GEN[k],x=R.ex&&R.ex[k];return row(k,I,kDone(k,R),PK[k]?`${g.e} ${PK[k].lbl}: ${PK[k].data[pkPick(k)].t}`:`${g.e} ${g.n}`,x&&x.ok?`${htmlText(x.first)} de ${htmlText(x.n)} a la primera`:PK[k]?'Lee y contesta las preguntas':'10 preguntas')}).join('')}</div>
     <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':`Completa las ${NP} partes y gana 50 puntos de premio.`}</p>${full?boleta(R):''}`;
   const sel=$('retoSel');
   sel.innerHTML=`<option value="0">Automática (una que no se sabe)</option>`+[2,3,4,5,6,7,8,9,10].map(t=>`<option value="${t}">×${t}</option>`).join('');
@@ -1207,22 +1208,76 @@ async function pinMigrate(){if(S.pinH)return;const p=String(S.pin||'2580'),h=awa
 /* copias de seguridad */
 async function backupNow(motivo){try{localStorage.setItem('tt-respaldo-local',JSON.stringify({fecha:new Date().toISOString(),motivo,datos:S}))}catch(e){}
   if(CODE){try{await rpc('tt_respaldo_crear',{p_codigo:CODE,p_motivo:motivo})}catch(e){}}}
+const htmlText=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const bkMsg=t=>{$('bkMsg').textContent=t};
-async function applyData(d,motivo){if(!d||typeof d!=='object'||Array.isArray(d)||typeof d.pts!=='number'){bkMsg('Ese archivo no parece una copia del avance. No se cambió nada.');return false}
+const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
+const countValue=x=>Number.isSafeInteger(x)&&x>=0;
+const stringValue=x=>typeof x==='string';
+const booleanValue=x=>typeof x==='boolean';
+const dateKey=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x);
+const nullable=check=>x=>x===null||check(x);
+const arrayOf=check=>x=>Array.isArray(x)&&x.every(check);
+const mapOf=(check,key=()=>true)=>x=>record(x)&&Object.entries(x).every(([k,v])=>key(k)&&check(v));
+const fields=(x,checks)=>record(x)&&Object.entries(checks).every(([k,check])=>x[k]===undefined||check(x[k]));
+const counts=mapOf(countValue);
+const score=nullable(Number.isFinite);
+const scores=mapOf(score);
+const readingLog=x=>fields(x,{d:dateKey,h:stringValue,id:stringValue,n:countValue,ok:countValue,
+  miss:arrayOf(countValue),secs:countValue,peek:booleanValue,try:countValue})&&
+  dateKey(x.d)&&stringValue(x.id)&&x.n>0&&countValue(x.ok)&&x.ok<=x.n;
+const backupDay=x=>fields(x,{
+  t:v=>countValue(v)&&v>=1&&v<=10,tTries:countValue,tCal:score,colCal:score,enCal:score,rdCal:score,
+  tOk:booleanValue,col:booleanValue,en:booleanValue,bonus:booleanValue,enCounted:booleanValue,
+  colOk:countValue,rdOk:countValue,rdN:countValue,rd:nullable(stringValue),cfg:arrayOf(stringValue),
+  enWd:booleanValue,enPd:booleanValue,enSet:countValue,enOk:countValue,enPOk:countValue,
+  enWf:nullable(countValue),enPf:nullable(countValue),enWn:countValue,enPn:countValue,
+  enW:nullable(arrayOf(stringValue)),ph:countValue,prevCal:scores,redo:mapOf(booleanValue),
+  rdPick:nullable(countValue),ciePick:nullable(countValue),cultPick:nullable(countValue),
+  ex:mapOf(nullable(v=>fields(v,{ok:booleanValue,cal:score,first:countValue,n:countValue})))
+});
+function safeJson(x,depth=0){
+  if(depth>32)return false;
+  if(Array.isArray(x))return x.every(v=>safeJson(v,depth+1));
+  if(record(x))return Object.entries(x).every(([k,v])=>
+    !['__proto__','constructor','prototype'].includes(k)&&safeJson(v,depth+1));
+  return x===null||stringValue(x)||typeof x==='boolean'||Number.isFinite(x)
+}
+function validBackup(d){
+  return record(d)&&countValue(d.pts)&&safeJson(d)&&fields(d,{
+    nombre:stringValue,best:countValue,streak:countValue,ts:countValue,resetAt:countValue,
+    last:x=>x===''||dateKey(x),tab:stringValue,world:stringValue,mute:booleanValue,open:booleanValue,pinDef:booleanValue,
+    colSum:stringValue,colRes:stringValue,rdSel:stringValue,cieSel:stringValue,cultSel:stringValue,
+    retoT:x=>countValue(x)&&x<=10,retoDays:countValue,retoCfg:arrayOf(stringValue),enIdx:countValue,enDone:countValue,
+    days:mapOf(countValue,dateKey),facts:counts,miss:counts,med:counts,rk:counts,rd:counts,cie:counts,cult:counts,
+    enKnown:mapOf(x=>countValue(x)||booleanValue(x)),enLearned:mapOf(x=>countValue(x)||booleanValue(x)),
+    daily:mapOf(backupDay,dateKey),cal:mapOf(x=>fields(x,{t:countValue,avg:score,m:scores,v:arrayOf(score)}),dateKey),
+    rdLog:arrayOf(readingLog),sr:x=>fields(x,{med:counts,err:counts,fails:arrayOf(stringValue)}),
+    gx:mapOf(x=>fields(x,{n:countValue,best:countValue,log:arrayOf(v=>fields(v,{d:dateKey,n:countValue,ok:countValue,reto:booleanValue}))})),
+    ku:mapOf(x=>fields(x,{n:countValue,c:countValue,fn:countValue,fo:countValue,sd:arrayOf(dateKey),ap:countValue,
+      lv:v=>Number.isInteger(v)&&v>=-1&&v<=5,due:v=>v===''||dateKey(v),dd:v=>v===''||dateKey(v),
+      lf:nullable(countValue),pk:Number.isFinite,e:counts,ff:dateKey,mig:countValue})&&Array.isArray(x.sd)&&countValue(x.n))
+  })
+}
+async function applyData(d,motivo){
+  if(!validBackup(d)){bkMsg('Ese archivo no parece una copia del avance. No se cambió nada.');return false}
   await backupNow(motivo);
   const keep={pinH:S.pinH,pinDef:S.pinDef};delete d.pin;S=Object.assign(DEF(),d,keep,{resetAt:Date.now()});save();renderHome();
   bkMsg('Listo. Se cargó la copia; el avance que había antes quedó respaldado.');return true}
 $('expBtn').addEventListener('click',()=>{const d=JSON.parse(JSON.stringify(S));delete d.pinH;delete d.pin;
   const blob=new Blob([JSON.stringify({app:'un-dia-mas-inteligente',v:1,fecha:new Date().toISOString(),datos:d},null,1)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='avance-'+(S.nombre||'adolfo').toLowerCase()+'-'+today()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);bkMsg('Copia descargada.')});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='avance-'+today()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);bkMsg('Copia descargada.')});
 $('impBtn').addEventListener('click',()=>$('impFile').click());
 $('impFile').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
-  try{const j=JSON.parse(await f.text());await applyData(j&&j.datos?j.datos:j,'antes de cargar un archivo')}catch(err){bkMsg('No se pudo leer el archivo. No se cambió nada.')}});
+  try{const j=JSON.parse(await f.text()),wrapped=record(j)&&Object.prototype.hasOwnProperty.call(j,'datos');
+    if(wrapped&&((j.app!==undefined&&j.app!=='un-dia-mas-inteligente')||(j.v!==undefined&&j.v!==1))){
+      bkMsg('El formato de la copia no es compatible. No se cambió nada.');return}
+    await applyData(wrapped?j.datos:j,'antes de cargar un archivo')
+  }catch(err){bkMsg('No se pudo leer el archivo. No se cambió nada.')}});
 $('bkList').addEventListener('click',async()=>{if(!CODE){bkMsg('Sin código de jugador: no hay copias en la nube.');return}
   bkMsg('Buscando copias…');let L;try{L=await rpc('tt_respaldos_listar',{p_codigo:CODE})}catch(e){bkMsg(String(e.message)==='404'?'Las copias en la nube todavía no están activadas.':'Sin conexión. Inténtalo más tarde.');return}
   if(!L||!L.length){bkMsg('Todavía no hay copias en la nube.');$('bkBox').innerHTML='';return}
   bkMsg('Toca una copia para volver a ese avance. El avance de ahora se respalda antes.');
-  $('bkBox').innerHTML='<div class="eng">'+L.map(b=>{const d=new Date(b.creado);return `<button data-bk="${+b.id}"><span>${d.toLocaleDateString('es-MX')} ${d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</span><small>${b.pts??0} puntos · ${String(b.motivo).replace(/[<>&"]/g,'')}</small></button>`}).join('')+'</div>'});
+  $('bkBox').innerHTML='<div class="eng">'+L.map(b=>{const d=new Date(b.creado);return `<button data-bk="${+b.id}"><span>${d.toLocaleDateString('es-MX')} ${d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</span><small>${htmlText(b.pts??0)} puntos · ${htmlText(b.motivo??'')}</small></button>`}).join('')+'</div>'});
 $('bkBox').addEventListener('click',async e=>{const b=e.target.closest('[data-bk]');if(!b)return;
   if(b.dataset.sure!=='1'){[...$('bkBox').querySelectorAll('[data-bk]')].forEach(x=>{x.dataset.sure='';x.classList.remove('on')});b.dataset.sure='1';b.classList.add('on');bkMsg('Toca la misma copia otra vez para confirmar.');return}
   try{const d=await rpc('tt_respaldo_cargar',{p_codigo:CODE,p_id:+b.dataset.bk});if(await applyData(d,'antes de restaurar una copia'))$('bkBox').innerHTML=''}catch(err){bkMsg('No se pudo cargar la copia. No se cambió nada.')}});
@@ -1245,7 +1300,7 @@ const COLV=['sin2','mix2','con2','sin3','con3'],colLv=op=>{const v=op==='+'?S.co
 const COLT={sin2:'sencillas de 2 cifras',mix2:'de 2 cifras, algunas difíciles',con2:'de 2 cifras',sin3:'sencillas de 3 cifras',con3:'de 3 cifras'};
 const colDesc=()=>{const a=colLv('+'),b=colLv('-');return `5 sumas ${a.startsWith('con')?'llevando ':''}${COLT[a]} y 5 restas ${b.startsWith('con')?'pidiendo prestado ':''}${COLT[b]}`};
 $('sumSel').addEventListener('change',e=>{S.colSum=e.target.value;save();renderHome()});
-function rdSelRender(){const o=x=>`<option value="${x.id}">${x.e} ${x.t}${rdRead(x)?` (ya la leyó: ${(S.rd||{})[x.id]}/${x.q.length})`:''}</option>`;
+function rdSelRender(){const o=x=>`<option value="${x.id}">${x.e} ${x.t}${rdRead(x)?` (ya la leyó: ${htmlText((S.rd||{})[x.id])}/${x.q.length})`:''}</option>`;
   const U=STORIES.filter(x=>!rdRead(x)).slice(0,20),D=STORIES.filter(rdRead);
   $('rdSel').innerHTML=`<option value="">Al azar (una que no haya leído)</option><optgroup label="Para elegir (${U.length})">${U.map(o).join('')}</optgroup>${D.length?`<optgroup label="Ya leídas (${D.length})">${D.map(o).join('')}</optgroup>`:''}`;
   $('rdSel').value=STORIES.some(x=>x.id===S.rdSel)?S.rdSel:'';rdPrevRender();
@@ -1289,14 +1344,18 @@ try{pickVoice();speechSynthesis.addEventListener('voiceschanged',pickVoice)}catc
 let AUD=null,ttsWorks=false;
 function sayNet(t,fail){try{if(AUD)AUD.pause();AUD=new Audio('https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&ttsspeed=0.8&q='+encodeURIComponent(t));AUD.onerror=fail;const pr=AUD.play();if(pr&&pr.catch)pr.catch(fail)}catch(e){fail()}}
 function sayFail(){document.querySelectorAll('.sayMsg').forEach(el=>el.hidden=false)}
-function say(t){t=t.replace(/…/g,'').trim();if(!VOICE)pickVoice();
+const englishPhraseKey=t=>t==='My name is '+(S.nombre||'Alex')+'.'?'My name is Alex.':t;
+const speechText=t=>englishPhraseKey(t).replace(/…/g,'').trim();
+function say(t){t=speechText(t);
+  if(t!=='My name is Alex.'&&!Object.prototype.hasOwnProperty.call(WBY,t)&&!PHR.some(p=>speechText(p[0])===t))return;
+  if(!VOICE)pickVoice();
   const ss=window.speechSynthesis;
   if(!ss||!window.SpeechSynthesisUtterance||(!VOICE&&!ttsWorks)){sayNet(t,sayFail);return}
   try{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=.8;let ok=false;
     u.onstart=()=>{ok=true;ttsWorks=true};u.onerror=()=>{if(!ok)sayNet(t,sayFail)};
     if(ss.speaking||ss.pending)ss.cancel();ss.speak(u);
     setTimeout(()=>{if(!ok&&!ttsWorks)sayNet(t,sayFail)},1200)}catch(e){sayNet(t,sayFail)}}
-const sayBtn=t=>`<button class="say" data-say="${t}" aria-label="Escuchar">🔊</button>`;
+const sayBtn=t=>`<button class="say" data-say="${htmlText(t)}" aria-label="Escuchar">🔊</button>`;
 document.addEventListener('click',e=>{const b=e.target.closest('[data-say]');if(b)say(b.dataset.say)});
 
 /* ===== Inglés: 10 palabras por día (emoji|inglés|español) ===== */
@@ -1360,13 +1419,13 @@ function enWords(){enS();const R=dayRec();let L=(R.enW||[]).filter(w=>WBY[w]&&!S
   for(const w of WALL){if(L.length>=EN_N)break;if(!enOut(w.en)&&!L.includes(w.en))L.push(w.en)}
   if(L.length<EN_N){const rest=shuffle(WALL.filter(w=>!S.enKnown[w.en]&&!L.includes(w.en)));while(L.length<EN_N&&rest.length)L.push(rest.pop().en)}
   R.enW=L;return L.map(w=>WBY[w])}
-const enToday=()=>{enS();const R=dayRec();if(R.ph==null)R.ph=(S.enIdx||0)%PHP.length;const RP=PHP[R.ph%PHP.length],nm=S.nombre||'Adolfo';
-  return{W:enWords(),RP,PP:RP.map(P=>P[0].includes('…')?[P[0].replace('…',' '+nm+'.'),P[1].replace('…',' '+nm+'.'),P[2].replace('(y dices tu nombre)',nm),P[3]]:P)}};
+const enToday=()=>{enS();const R=dayRec();if(R.ph==null)R.ph=(S.enIdx||0)%PHP.length;const RP=PHP[R.ph%PHP.length],nm=S.nombre||'Alex';
+  return{W:enWords(),RP,PP:RP.map(P=>P[0].includes('…')?[P[0].replace('…',()=> ' '+nm+'.'),P[1].replace('…',()=> ' '+nm+'.'),P[2].replace('(y dices tu nombre)',()=>nm),P[3]]:P)}};
 const enCount=()=>Object.keys(enS().enLearned).length+Object.keys(S.enKnown).filter(w=>!S.enLearned[w]).length;
 function renderEN(el){el=el||$('wEN');
   const R=dayRec(),{W,PP}=enToday(),n=W.length;
   el.innerHTML=`<h2>Inglés de hoy</h2>
-  <div class="phr"><small>Frases del día</small>${PP.map(P=>`<div class="en">${P[0]} ${sayBtn(P[0])}</div><p><b>${P[1]}</b></p><p class="note">Suena como: «${P[2]}». Úsala ${P[3]}</p>`).join('<hr>')}</div>
+  <div class="phr"><small>Frases del día</small>${PP.map(P=>`<div class="en">${htmlText(P[0])} ${sayBtn(P[0])}</div><p><b>${htmlText(P[1])}</b></p><p class="note">Suena como: «${htmlText(P[2])}». Úsala ${P[3]}</p>`).join('<hr>')}</div>
   <h3 class="ph">Tus ${n} palabras</h3>
   <div class="words">${W.map(w=>`<button class="wd" data-say="${w.en}"><span class="em">${w.e}</span><span><b>${w.en}</b><span>${w.es}</span></span></button>`).join('')}</div>
   <p class="note">Toca cada palabra para escucharla y repítela en voz alta.</p>
@@ -1394,9 +1453,9 @@ function enQuizW(){
 /* frases: qué significa (con audio), qué dices en tal situación y ármala, para las dos frases */
 function enQuizP(){
   const {PP,RP}=enToday(),list=[],others=P=>shuffle(PHR.filter(x=>!RP.includes(x))).slice(0,2);
-  PP.forEach(P=>list.push({lab:'Frase: ¿qué significa?',q:`<span>${P[0]}</span>${sayBtn(P[0])}`,opts:shuffle([P,...others(P)]).map(o=>({h:o[1],v:o[0]})),ans:P[0],auto:P[0],tx:true,noMsg:`Significa: <b>${P[1]}</b>`}));
-  PP.forEach(P=>list.push({lab:'Frase: ¿qué dices?',q:`<span class="rq">¿Qué dices ${P[3].replace(/\.$/,'')}?</span>`,opts:shuffle([P,...PP.filter(x=>x!==P),...others(P).slice(0,1)]).map(o=>({h:o[0],v:o[0]})),ans:P[0],after:P[0],tx:true,noMsg:`Se dice: <b>${P[0]}</b>`}));
-  PP.forEach(P=>list.push({lab:'Frase: ármala',q:`<span class="rq">Toca las palabras en orden para decir:</span><span>${P[1]}</span>`,build:P[0].replace(/…/g,'').trim().split(/\s+/),after:P[0],okMsg:`¡Perfecto! Ahora dila en voz alta: <b>${P[0]}</b>`,noMsg:`Bien armada: <b>${P[0]}</b>. Dila en voz alta.`}));
+  PP.forEach(P=>list.push({lab:'Frase: ¿qué significa?',q:`<span>${htmlText(P[0])}</span>${sayBtn(P[0])}`,opts:shuffle([P,...others(P)]).map(o=>({h:htmlText(o[1]),v:o[0]})),ans:P[0],auto:P[0],tx:true,noMsg:`Significa: <b>${htmlText(P[1])}</b>`}));
+  PP.forEach(P=>list.push({lab:'Frase: ¿qué dices?',q:`<span class="rq">¿Qué dices ${P[3].replace(/\.$/,'')}?</span>`,opts:shuffle([P,...PP.filter(x=>x!==P),...others(P).slice(0,1)]).map(o=>({h:htmlText(o[0]),v:o[0]})),ans:P[0],after:P[0],tx:true,noMsg:`Se dice: <b>${htmlText(P[0])}</b>`}));
+  PP.forEach(P=>list.push({lab:'Frase: ármala',q:`<span class="rq">Toca las palabras en orden para decir:</span><span>${htmlText(P[1])}</span>`,build:P[0].replace(/…/g,'').trim().split(/\s+/),after:P[0],okMsg:`¡Perfecto! Ahora dila en voz alta: <b>${htmlText(P[0])}</b>`,noMsg:`Bien armada: <b>${htmlText(P[0])}</b>. Dila en voz alta.`}));
   list.forEach((q,k)=>q.k=k);
   qzStart('en',list,{part:'p'})}
 $('qzq').addEventListener('click',e=>{const b=e.target.closest('[data-pk]');if(b){b.outerHTML=`<span>${b.dataset.pk}</span>`}});
@@ -1414,12 +1473,12 @@ function qzAsk(){
   $('qzlab').textContent=(q.retry?'Otra vez: ':'')+q.lab;
   $('qzq').innerHTML=`<div class="qp">${q.q}</div>`;$('qzmsg').innerHTML='';
   const tx=q.tx||QZ.kind==='rd';
-  if(q.build){q.pos=0;q.miss=false;$('qzans').innerHTML=`<div class="bld" id="bldOut"></div><div class="enk bldw">${shuffle(q.build.map((w,i)=>`<button data-b="${i}" data-w="${w}">${w}</button>`)).join('')}</div>`;qzDots();return}
+  if(q.build){q.pos=0;q.miss=false;$('qzans').innerHTML=`<div class="bld" id="bldOut"></div><div class="enk bldw">${shuffle(q.build.map((w,i)=>`<button data-b="${i}" data-w="${htmlText(w)}">${htmlText(w)}</button>`)).join('')}</div>`;qzDots();return}
   $('qzans').innerHTML=`<div class="${tx?'opts1':'opts'}">${q.opts.map((o,i)=>`<button class="op ${tx?'tx':'sm'}" data-i="${i}">${o.h}</button>`).join('')}</div>`;
   if(q.auto)say(q.auto);
   qzDots()}
 function qzKey(q){if(QZ.kind==='rd')return 'lec:info';if(QZ.kind==='gen')return 'gen:'+QZ.act;
-  return QZ.part==='w'?'en:'+q.ans:'enf:'+(q.build?q.after:q.ans)}
+  return QZ.part==='w'?'en:'+q.ans:'enf:'+englishPhraseKey(q.build?q.after:q.ans)}
 function qzLog(ok,q,primero){mot({k:qzKey(q),ok,primero,pista:false,fmt:q.build?'rcl':'rec',ms:Date.now()-(QZ.t0||Date.now()),err:ok?null:'otro',
   origen:QZ.kind==='gen'?(QZ.reto?'reto':'libre'):(S.tab==='libre'?'libre':'reto'),extra:QZ.kind==='rd'?{s:STORIES[QZ.si]&&STORIES[QZ.si].id,q:q.k}:QZ.kind==='gen'?{q:q.k}:null})}
 function qzResolve(ok,b,q){QZ.lock=true;qzLog(ok,q,!q.retry&&!q.wrong);
@@ -1442,9 +1501,9 @@ function qzResolve(ok,b,q){QZ.lock=true;qzLog(ok,q,!q.retry&&!q.wrong);
   QZ.to=setTimeout(()=>QZ.i>=QZ.list.length?qzFinish():qzAsk(),ok?(q.build?1800:1100):2600)}
 $('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[QZ.i];
   if(q.build){const c=e.target.closest('[data-b]');if(!c||c.disabled)return;
-    if(c.dataset.w===q.build[q.pos]){q.pos++;c.disabled=true;$('bldOut').innerHTML=q.build.slice(0,q.pos).map(w=>`<span>${w}</span>`).join('');tone(600+q.pos*50,.06);
+    if(c.dataset.w===q.build[q.pos]){q.pos++;c.disabled=true;$('bldOut').innerHTML=q.build.slice(0,q.pos).map(w=>`<span>${htmlText(w)}</span>`).join('');tone(600+q.pos*50,.06);
       if(q.pos>=q.build.length)qzResolve(!q.miss,null,q)}
-    else{q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');mark(false);tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${q.build[q.pos-1]||'…'}»?`}
+    else{q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');mark(false);tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${htmlText(q.build[q.pos-1]||'…')}»?`}
     return}
   const b=e.target.closest('.op');if(!b||b.disabled)return;
   const ok=q.opts[+b.dataset.i].v===q.ans;
@@ -1598,7 +1657,7 @@ const GEN={orto:{n:'Ortografía',e:'🔤',d:'Letras que se confunden: b/v, c/s/z
 function genStart(k,reto){if(PK[k]){pkOpen(k,pkPick(k),reto);return}qzStart('gen',GEN[k].f(),{act:k,reto:!!reto})}
 function renderGen(){const k=S.world,g=GEN[k];if(!g){$('wG').innerHTML='';return}const x=(S.gx||{})[k]||{};
   $('wG').innerHTML=`<h2>${g.e} ${g.n}</h2><p class="note">${g.d}</p><button class="big" id="genGo">Practicar (10 preguntas)</button>
-  <p class="note">${x.n?`Rondas: <b>${x.n}</b> · Mejor resultado: <b>${x.best}</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>`;
+  <p class="note">${x.n?`Rondas: <b>${htmlText(x.n)}</b> · Mejor resultado: <b>${htmlText(x.best)}</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>`;
   if(PK[k]){const P=PK[k],t=P.data[pkPick(k)];$('genGo').textContent=`Hoy: ${t.e} ${t.t}`;
     const Dn=P.data.map((x,j)=>j).filter(j=>pkDone(k,P.data[j]));
     $('wG').insertAdjacentHTML('beforeend',`${k==='cult'?'<button class="ghost" id="cultQ">Preguntas rápidas (10 al azar)</button>':''}${Dn.length?`<details class="rdold"><summary>Ya ${P.visto}s (${Dn.length})</summary><p class="note">Puedes repasarlos cuando quieras.</p><div class="modes">${Dn.map(j=>{const s=P.data[j];return `<button class="mode" data-pi="${j}"><span class="n em2">${s.e}</span><span><b>${s.t}</b><span>${S[P.st][s.id]}/${s.q.length}</span></span></button>`}).join('')}</div></details>`:''}`)}}
@@ -2041,7 +2100,7 @@ function pkOpen(k,i,reto){pkCur={k,i,reto:!!reto};const s=PK[k].data[i];
 const pkQuiz=(k,i)=>numLab(PK[k].data[i].q.map(x=>mkQ(0,`<span class="rq">${x[0]}</span>`,x[1],x.slice(2),{tx:true,noMsg:`Era: <b>${x[1]}</b>`})));
 $('cieGo').addEventListener('click',()=>qzStart('gen',pkQuiz(pkCur.k,pkCur.i),{act:pkCur.k,reto:pkCur.reto,si:pkCur.i}));
 $('cieQuit').addEventListener('click',()=>{show('home');renderHome()});
-function pkSelRender(k){const P=PK[k],D=P.data,o=x=>`<option value="${x.id}">${x.e} ${x.t}${pkDone(k,x)?` (ya lo ${P.visto}: ${S[P.st][x.id]}/${x.q.length})`:''}</option>`;
+function pkSelRender(k){const P=PK[k],D=P.data,o=x=>`<option value="${x.id}">${x.e} ${x.t}${pkDone(k,x)?` (ya lo ${P.visto}: ${htmlText(S[P.st][x.id])}/${x.q.length})`:''}</option>`;
   const U=pkWin(k).map(j=>D[j]),Dn=D.filter(x=>pkDone(k,x));
   $(k+'Sel').innerHTML=`<option value="">Al azar (de los que no ha ${P.visto})</option><optgroup label="Para elegir (${U.length})">${U.map(o).join('')}</optgroup>${Dn.length?`<optgroup label="Ya ${P.visto}s (${Dn.length})">${Dn.map(o).join('')}</optgroup>`:''}`;
   $(k+'Sel').value=D.some(x=>x.id===S[P.sel])?S[P.sel]:'';
@@ -2517,7 +2576,7 @@ function rdPick(){const R=dayRec();if(R.rdPick==null||!STORIES[R.rdPick]){
   return R.rdPick}
 function renderRD(){
   const i=rdPick(),s=STORIES[i],R=dayRec(),sc=(S.rd||{})[s.id],D=STORIES.map((x,j)=>j).filter(j=>rdRead(STORIES[j])&&j!==i);
-  const item=j=>{const x=STORIES[j],v=(S.rd||{})[x.id],n=x.q.length;return `<button class="mode ${j===i?'next':''}" data-s="${j}"><span class="n em2">${x.e}</span><span><b>${x.t}</b><span>${x.tema}</span></span><span class="sc">${v!=null?`<i class="${v>=n*.8?'y':''}"></i>${v}/${n}`:''}</span></button>`};
+  const item=j=>{const x=STORIES[j],v=(S.rd||{})[x.id],n=x.q.length;return `<button class="mode ${j===i?'next':''}" data-s="${j}"><span class="n em2">${x.e}</span><span><b>${x.t}</b><span>${x.tema}</span></span><span class="sc">${v!=null?`<i class="${v>=n*.8?'y':''}"></i>${htmlText(v)}/${n}`:''}</span></button>`};
   $('wRD').innerHTML=`<h2>Lectura de hoy</h2>
   <div class="rdcard"><span class="em">${s.e}</span><span><b>${s.t}</b><span class="note">${s.tema} · unos ${rdMins(s)} minutos${sc!=null?` · ya la leíste (${sc} de ${s.q.length})`:''}</span></span></div>
   <div class="row"><button class="big" id="rdRead">${R.rd?'Leer otra vez':'Leer'}</button></div>
@@ -2549,15 +2608,15 @@ let histAll=false;
 const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 function calHist(){calBackfill();const E=Object.entries(S.cal).sort((a,b)=>a[0]<b[0]?1:-1);
   if(!E.length)return `<h3 class="ph">Historial de calificaciones</h3><p class="note">Todavía no hay calificaciones. Aparecen al hacer el reto del día.</p>`;
-  const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${v}</b>`,fd=d=>{const [y,m,dd]=d.split('-');return `${+dd}/${+m}/${y.slice(2)}`};
+  const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${htmlText(v)}</b>`,fd=d=>{const [y,m,dd]=d.split('-');return `${+dd}/${+m}/${htmlText(y.slice(2))}`};
   const months={};E.forEach(([d,x])=>{const k=d.slice(0,7);(months[k]=months[k]||[]).push(x)});
   const avg=a=>a.length?r1(a.reduce((s,v)=>s+v,0)/a.length):null;
   const MV=x=>x.m||(x.v?{t:x.v[0],c:x.v[1],en:x.v[2],rd:x.v[3]}:{});
   const COLS=RK_ALL.filter(k=>E.some(([d,x])=>MV(x)[k]!=null)),th=COLS.map(k=>`<th class="r">${KS[k]}</th>`).join('');
   const mrows=Object.entries(months).map(([k,a])=>{const col=c=>avg(a.map(x=>MV(x)[c]).filter(v=>v!=null));const full=a.filter(x=>x.avg!=null);
-    return `<tr><td>${MES[+k.slice(5)-1]} ${k.slice(0,4)}</td>${COLS.map(c=>`<td class="r">${cv(col(c))}</td>`).join('')}<td class="r">${cv(avg(full.map(x=>x.avg)))}</td><td class="r">${full.length}</td></tr>`}).join('');
+    return `<tr><td>${MES[+k.slice(5)-1]} ${htmlText(k.slice(0,4))}</td>${COLS.map(c=>`<td class="r">${cv(col(c))}</td>`).join('')}<td class="r">${cv(avg(full.map(x=>x.avg)))}</td><td class="r">${full.length}</td></tr>`}).join('');
   const list=histAll?E:E.slice(0,14);
-  const rows=list.map(([d,x])=>`<tr><td>${fd(d)}</td>${COLS.map(c=>`<td class="r">${c==='t'&&MV(x).t!=null?'×'+x.t+' ':''}${cv(MV(x)[c])}</td>`).join('')}<td class="r">${cv(x.avg)}</td></tr>`).join('');
+  const rows=list.map(([d,x])=>`<tr><td>${fd(d)}</td>${COLS.map(c=>`<td class="r">${c==='t'&&MV(x).t!=null?'×'+htmlText(x.t)+' ':''}${cv(MV(x)[c])}</td>`).join('')}<td class="r">${cv(x.avg)}</td></tr>`).join('');
   return `<h3 class="ph">Historial de calificaciones</h3>
   <p class="note">Promedio por mes (la última columna son los días con el reto completo):</p>
   <div class="tw"><table class="pt hs"><tr><th>Mes</th>${th}<th class="r">Prom.</th><th class="r">Días</th></tr>${mrows}</table></div>
@@ -2572,9 +2631,9 @@ function rdReport(){
   const avg=F.length?Math.round(F.reduce((a,l)=>a+calif(l),0)/F.length*10)/10:null;
   const fd=d=>{const [y,m,dd]=d.split('-');return `${+dd}/${+m}`};
   const rows=L.slice(0,12).map(l=>{const st=STORIES.find(x=>x.id===l.id);const c=calif(l);
-    return `<tr><td>${fd(l.d)}</td><td>${st?st.t:l.id}${l.try>1?` <small>(intento ${l.try})</small>`:''}</td><td class="r"><b class="cal ${c>=8?'hi':c>=6?'mid':'lo'}">${c}</b></td><td class="r">${mmss(l.secs)}${l.secs<60?' ⚠️':''}</td><td class="r">${l.peek?'sí':'no'}</td></tr>`}).join('');
-  const miss=L.slice(0,5).filter(l=>l.miss.length).slice(0,3).map(l=>{const st=STORIES.find(x=>x.id===l.id);if(!st)return '';
-    return `<p class="note"><b>${st.t}</b> (${fd(l.d)}):</p><ul class="rmiss">${l.miss.map(k=>`<li>${st.q[k][0]} <span>Correcta: ${st.q[k][1]}</span></li>`).join('')}</ul>`}).join('');
+    return `<tr><td>${fd(l.d)}</td><td>${st?st.t:htmlText(l.id)}${l.try>1?` <small>(intento ${l.try})</small>`:''}</td><td class="r"><b class="cal ${c>=8?'hi':c>=6?'mid':'lo'}">${c}</b></td><td class="r">${mmss(l.secs)}${l.secs<60?' ⚠️':''}</td><td class="r">${l.peek?'sí':'no'}</td></tr>`}).join('');
+  const miss=L.slice(0,5).filter(l=>Array.isArray(l.miss)&&l.miss.length).slice(0,3).map(l=>{const st=STORIES.find(x=>x.id===l.id);if(!st)return '';
+    return `<p class="note"><b>${st.t}</b> (${fd(l.d)}):</p><ul class="rmiss">${l.miss.filter(k=>Number.isInteger(k)&&st.q[k]).map(k=>`<li>${st.q[k][0]} <span>Correcta: ${st.q[k][1]}</span></li>`).join('')}</ul>`}).join('');
   return `<h3 class="ph">Lectura: calificaciones</h3>
   <p class="note">Promedio (primer intento de cada lectura): <b class="cal ${avg>=8?'hi':avg>=6?'mid':'lo'}">${avg??'–'}</b> de 10 · ${F.length} ${F.length===1?'lectura':'lecturas'}</p>
   <table class="pt"><tr><th>Día</th><th>Lectura</th><th class="r">Calif.</th><th class="r">Leyó</th><th class="r">Volvió a ver</th></tr>${rows}</table>
@@ -2585,22 +2644,22 @@ function renderXProg(){
   const W7=[];for(let i=6;i>=0;i--){const ms=Date.now()-i*864e5;W7.push([ms,D[dstr(ms)]])}
   const C7=RK_ALL.filter(k=>W7.some(([ms,r])=>r&&dayKeys(r).includes(k)));
   for(const [ms,r] of W7){
-    const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${v}</b>`,dc=r?dayCals(r):null;
-    rows+=`<tr><td>${L[new Date(ms).getDay()]} ${new Date(ms).getDate()}</td>${C7.map(k=>`<td class="r">${k==='t'?(r&&(r.tOk||r.tTries)?`×${r.t} ${cv(r.tCal)}${r.tOk?'':' ('+r.tTries+')'}`:'–'):cv(r&&kCal(k,r))}</td>`).join('')}<td class="r">${cv(dc&&dc.avg)}</td></tr>`}
+    const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${htmlText(v)}</b>`,dc=r?dayCals(r):null;
+    rows+=`<tr><td>${L[new Date(ms).getDay()]} ${new Date(ms).getDate()}</td>${C7.map(k=>`<td class="r">${k==='t'?(r&&(r.tOk||r.tTries)?`×${htmlText(r.t)} ${cv(r.tCal)}${r.tOk?'':' ('+htmlText(r.tTries)+')'}`:'–'):cv(r&&kCal(k,r))}</td>`).join('')}<td class="r">${cv(dc&&dc.avg)}</td></tr>`}
   const done=STORIES.filter(rdRead);
   const Rt=dayRec(),parts=dayKeys(Rt).map(k=>[k,kName(k,Rt),kDone(k,Rt),kCal(k,Rt)]);
   $('xprog').innerHTML=`${calHist()}<h3 class="ph">Pedir que repita una actividad de hoy</h3>
   <p class="note">La actividad vuelve a quedar pendiente en su reto y se califica de nuevo.</p>
-  <div class="eng">${parts.map(([k,n,ok,c])=>`<button data-redo="${k}" ${ok?'':'disabled'}><span>${n}</span><small>${ok?`Hecha (${c??'–'}) · tocar para repetir`:(Rt.redo||{})[k]?'Pendiente: pediste repetirla':'Todavía no la hace'}</small></button>`).join('')}</div>
+  <div class="eng">${parts.map(([k,n,ok,c])=>`<button data-redo="${k}" ${ok?'':'disabled'}><span>${htmlText(n)}</span><small>${ok?`Hecha (${htmlText(c??'–')}) · tocar para repetir`:(Rt.redo||{})[k]?'Pendiente: pediste repetirla':'Todavía no la hace'}</small></button>`).join('')}</div>
   <h3 class="ph">Reto del día, inglés y lectura</h3>
-  <p class="note">Retos del día completos: <b>${S.retoDays||0}</b> · Palabras de inglés: <b>${enCount()}</b> de ${WALL.length}</p>
+  <p class="note">Retos del día completos: <b>${htmlText(S.retoDays||0)}</b> · Palabras de inglés: <b>${enCount()}</b> de ${WALL.length}</p>
   <div class="tw"><table class="pt hs"><tr><th>Día</th>${C7.map(k=>`<th class="r">${KS[k]}</th>`).join('')}<th class="r">Prom.</th></tr>${rows}</table></div>
   <p class="note">Calificaciones sobre 10, con el primer intento de cada parte del día. El promedio sale cuando completa todas las del día. En "Tabla", el número entre paréntesis son los intentos sin lograr el reto.</p>
   ${rdReport()}
   <h3 class="ph">Inglés: cambiar palabras</h3>
   <p class="note">Toca una palabra de hoy que ya sepa y se cambia por la siguiente.</p>
   <div class="enk">${enToday().W.map(w=>`<button data-kw="${w.en}">${w.e} ${w.en} ✕</button>`).join('')}</div>
-  <p class="note">Frases de hoy: <b>${enToday().PP.map(P=>P[0]).join(' / ')}</b> <button class="mini" id="phNext">Ya las sabe, cambiar</button></p>
+  <p class="note">Frases de hoy: <b>${enToday().PP.map(P=>htmlText(P[0])).join(' / ')}</b> <button class="mini" id="phNext">Ya las sabe, cambiar</button></p>
   <p class="note">Grupos completos (toca para marcar los que ya domina):</p>
   <div class="eng">${WORDS.map((g,i)=>{const k=g.filter(w=>S.enKnown[w.en]).length,l=g.filter(w=>S.enLearned[w.en]&&!S.enKnown[w.en]).length,all=k===g.length;
     return `<button data-kg="${i}" class="${all?'on':''}"><span>${g[0].e} ${EN_G[i]}</span><small>${all?'Ya las sabe ✓':k?`${k} sabidas`:l===g.length?'Aprendidas':l?`${l} de 10 aprendidas`:'Por aprender'}</small></button>`}).join('')}</div>

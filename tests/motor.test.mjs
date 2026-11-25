@@ -137,22 +137,22 @@ test('migración: la tabla del 4 y las 10 palabras quedan "En práctica" sin toc
   const facts = {}; for (let i = 1; i <= 10; i++) facts['4x' + i] = 3;
   facts['2x3'] = 1; facts['7x8'] = 0;
   const words = ['dog', 'cat', 'bird', 'fish', 'horse', 'cow', 'pig', 'mouse', 'rabbit', 'frog'];
-  const S = { pts: 1089, med: { '4-esc': 10 }, cal: { '2026-11-24': { avg: 9 } }, facts, miss: { '4x7': 2, '7x8': 3 },
-    enLearned: Object.fromEntries(words.map(w => [w, 1])), last: '2026-11-24',
-    daily: { '2026-11-24': { t: 4, tOk: true, tTries: 1, en: true, enW: words } } };
+  const S = { pts: 240, med: { '4-esc': 10 }, cal: { '2024-02-29': { avg: 9 } }, facts, miss: { '4x7': 2, '7x8': 3 },
+    enLearned: Object.fromEntries(words.map(w => [w, 1])), last: '2024-02-29',
+    daily: { '2024-02-29': { t: 4, tOk: true, tTries: 1, en: true, enW: words } } };
   const antes = JSON.stringify({ pts: S.pts, med: S.med, cal: S.cal, facts: S.facts, miss: S.miss });
-  assert.equal(M.migrar(S, '2026-11-25'), true);
+  assert.equal(M.migrar(S, '2024-03-01'), true);
   assert.equal(JSON.stringify({ pts: S.pts, med: S.med, cal: S.cal, facts: S.facts, miss: S.miss }), antes);
-  for (let i = 1; i <= 10; i++) assert.equal(M.estadoK(S, 'mul:4x' + i, '2026-11-25'), 'pra');
-  for (const w of words) assert.equal(M.estadoK(S, 'en:' + w, '2026-11-25'), 'pra');
-  assert.equal(M.estadoK(S, 'mul:2x3', '2026-11-25'), 'apr');
-  assert.equal(M.estadoK(S, 'mul:7x8', '2026-11-25'), 'nec');
+  for (let i = 1; i <= 10; i++) assert.equal(M.estadoK(S, 'mul:4x' + i, '2024-03-01'), 'pra');
+  for (const w of words) assert.equal(M.estadoK(S, 'en:' + w, '2024-03-01'), 'pra');
+  assert.equal(M.estadoK(S, 'mul:2x3', '2024-03-01'), 'apr');
+  assert.equal(M.estadoK(S, 'mul:7x8', '2024-03-01'), 'nec');
   assert.equal(S.ku['mul:4x7'].e.otro, 2);
-  assert.ok(M.pendientes(S, '2026-11-25').includes('mul:4x7'), 'lo migrado se repasa desde hoy');
-  assert.equal(M.migrar(S, '2026-11-26'), false, 'solo se migra una vez');
+  assert.ok(M.pendientes(S, '2024-03-01').includes('mul:4x7'), 'lo migrado se repasa desde hoy');
+  assert.equal(M.migrar(S, '2024-03-02'), false, 'solo se migra una vez');
   // al primer acierto sin ayuda del día siguiente, ya son 2 días: consolidación
-  M.registrar(S, { k: 'mul:4x7', ok: true, primero: true, fmt: 'rcl', dia: '2026-11-26' });
-  assert.equal(M.estadoK(S, 'mul:4x7', '2026-11-26'), 'con');
+  M.registrar(S, { k: 'mul:4x7', ok: true, primero: true, fmt: 'rcl', dia: '2024-03-02' });
+  assert.equal(M.estadoK(S, 'mul:4x7', '2024-03-02'), 'con');
 });
 
 test('unir el avance de dos dispositivos conserva los días sin ayuda de ambos', () => {

@@ -1,5 +1,5 @@
 -- Fase 0: respaldos automáticos y guardado que no pisa otros dispositivos.
--- Solo agrega cosas; no cambia ni borra los datos de Adolfo. Se puede correr más de una vez.
+-- Solo agrega cosas; no cambia ni borra los datos del jugador. Se puede correr más de una vez.
 create table if not exists public.tt_respaldos (
   id bigint generated always as identity primary key,
   codigo text not null,

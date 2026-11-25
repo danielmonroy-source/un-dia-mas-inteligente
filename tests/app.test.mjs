@@ -13,12 +13,12 @@ const { chromium } = createRequire(import.meta.url)('playwright');
 const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
 const motor = readFileSync(fileURLToPath(new URL('../motor.js', import.meta.url)), 'utf8');
 const CODE = 'a'.repeat(32);
-const datosIniciales = () => ({ pts: 1089, best: 20, streak: 1, last: '2026-11-24', days: { '2026-11-24': 5 }, facts: { '4x1': 3 }, med: {}, miss: {},
-  sr: { med: {}, err: {}, fails: [] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {}, cal: { '2026-11-24': { m: { t: 10 }, t: 4, avg: 8.3 } },
-  ts: 1795620411507, nombre: 'Adolfo', pin: '2580', mute: false, open: false, retoCfg: ['t', 'c', 'en', 'rd'] });
+const datosIniciales = () => ({ pts: 240, best: 20, streak: 1, last: '2024-02-29', days: { '2024-02-29': 5 }, facts: { '4x1': 3 }, med: {}, miss: {},
+  sr: { med: {}, err: {}, fails: [] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {}, cal: { '2024-02-29': { m: { t: 10 }, t: 4, avg: 7.2 } },
+  ts: 179562043207, nombre: 'Persona de prueba', pin: '2580', mute: false, open: false, retoCfg: ['t', 'c', 'en', 'rd'] });
 
 function nubeFalsa({ sinV2 = false, sinIntentos = false } = {}) {
-  let n = 0; const stamp = () => new Date(Date.UTC(2026, 10, 25, 16, 0, 0, ++n)).toISOString();
+  let n = 0; const stamp = () => new Date(Date.UTC(2024, 2, 1, 16, 0, 0, ++n)).toISOString();
   const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [] };
   db.cambiarDesdeOtroDispositivo = f => { f(db.datos); db.actualizado = stamp(); };
   db.ruta = async route => {
@@ -73,7 +73,7 @@ test('contraseña cifrada, guardado sin pisarse, borrar y restaurar, exportar', 
   const db = nubeFalsa(); const { ctx, page, errores } = await abrir(db);
 
   await esperar(() => db.datos.pinH && !('pin' in db.datos), 'la contraseña se migra a hash y deja de subirse en texto');
-  assert.equal(db.datos.pts, 1089, 'no cambia el avance');
+  assert.equal(db.datos.pts, 240, 'no cambia el avance');
   assert.equal(db.datos.pinDef, true);
 
   await page.click('#papas > summary');
@@ -89,10 +89,10 @@ test('contraseña cifrada, guardado sin pisarse, borrar y restaurar, exportar', 
   assert.ok(!JSON.stringify(db.datos).includes('4321'), 'la contraseña nunca viaja en texto');
 
   // Otro dispositivo guarda una lectura mientras esta pestaña cambia el sonido: no se debe perder ninguna de las dos cosas.
-  db.cambiarDesdeOtroDispositivo(d => { d.rd.azteca = 6; d.pts = 1150; d.ts += 10; });
+  db.cambiarDesdeOtroDispositivo(d => { d.rd.azteca = 6; d.pts = 320; d.ts += 10; });
   await page.click('#snd');
   await esperar(() => db.datos.mute === true && db.datos.rd.azteca === 6, 'se juntan los dos cambios');
-  assert.equal(db.datos.pts, 1150);
+  assert.equal(db.datos.pts, 320);
 
   // Borrar todo: pide la contraseña nueva y deja copia.
   await page.click('#reset');
@@ -100,22 +100,22 @@ test('contraseña cifrada, guardado sin pisarse, borrar y restaurar, exportar', 
   assert.match(await page.textContent('#rstMsg'), /incorrecta/);
   await page.fill('#rstPin', '4321'); await page.click('#rstGo');
   await esperar(() => db.datos.pts === 0, 'se borra el avance');
-  assert.ok(db.respaldos.some(r => r.motivo === 'antes de borrar todo' && r.datos.pts === 1150), 'hay copia antes de borrar');
-  assert.ok(db.datos.cal['2026-11-24'], 'el historial de calificaciones se conserva como antes');
+  assert.ok(db.respaldos.some(r => r.motivo === 'antes de borrar todo' && r.datos.pts === 320), 'hay copia antes de borrar');
+  assert.ok(db.datos.cal['2024-02-29'], 'el historial de calificaciones se conserva como antes');
 
   // Restaurar desde la nube (dos toques para confirmar).
   await page.click('#bkList');
   const btn = page.locator('#bkBox [data-bk]').filter({ hasText: 'antes de borrar todo' }).first();
   await btn.click(); assert.equal(db.datos.pts, 0, 'el primer toque solo pide confirmación');
   await btn.click();
-  await esperar(() => db.datos.pts === 1150 && db.datos.rd.azteca === 6, 'se restaura la copia');
+  await esperar(() => db.datos.pts === 320 && db.datos.rd.azteca === 6, 'se restaura la copia');
   assert.ok(db.datos.pinH && db.datos.pinDef === false, 'restaurar no regresa la contraseña vieja');
 
   // Exportar: archivo sin la contraseña.
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#expBtn')]);
   const p = join(mkdtempSync(join(tmpdir(), 'udmi-')), 'copia.json'); await dl.saveAs(p);
   const copia = JSON.parse(readFileSync(p, 'utf8'));
-  assert.equal(copia.datos.pts, 1150); assert.ok(!('pinH' in copia.datos) && !('pin' in copia.datos));
+  assert.equal(copia.datos.pts, 320); assert.ok(!('pinH' in copia.datos) && !('pin' in copia.datos));
 
   // Importar el mismo archivo.
   await page.setInputFiles('#impFile', p);
@@ -169,7 +169,7 @@ test('cada respuesta queda registrada y sube a la nube; el avance anterior se mi
   assert.ok(db.intentos.some(x => x.ok && x.primero === false && x.k === t.k), 'el acierto después del error no cuenta como primer intento');
   await esperar(() => db.datos.ku, 'el resumen por conocimiento se guarda con el avance');
   assert.equal(db.datos.ku['en:dog'].mig, 1, 'las palabras aprendidas se migran');
-  assert.equal(db.datos.pts > 1089 || db.datos.pts === 1089, true);
+  assert.equal(db.datos.pts > 240 || db.datos.pts === 240, true);
   assert.equal(db.datos.rk[4], 1, 'las medallas del reto no cambian');
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('tt-cola')).length), 0, 'la cola queda vacía');
   // panel de papás
@@ -219,13 +219,103 @@ test('un navegador nuevo sin código no pierde nada: al poner el código carga l
   await page.fill('#codeIn', 'xyz'); await page.click('#codeGo');
   assert.match(await page.textContent('#codeMsg'), /no es válido/);
   await page.fill('#codeIn', url.split('?')[0] + '?p=' + CODE); await page.click('#codeGo');
-  await page.waitForFunction(() => document.getElementById('sPts').textContent === '1089');
+  await page.waitForFunction(() => document.getElementById('sPts').textContent === '240');
   const S = await page.evaluate(() => JSON.parse(localStorage.getItem('tablas-turbo-v2')));
   assert.deepEqual(S.retoCfg, ['t', 'rd'], 'la configuración de la nube no se pisa');
   assert.equal(S.colSum, 'sin3');
   await page.waitForTimeout(2500);
-  assert.equal(db.datos.pts, 1089);
+  assert.equal(db.datos.pts, 240);
   assert.deepEqual(db.datos.retoCfg, ['t', 'rd']);
   assert.deepEqual(errores, []);
   await ctx.close();
+});
+
+test('rechaza copias inválidas antes de hacer un respaldo o reemplazar el progreso', async () => {
+  const db = nubeFalsa();
+  const { ctx, page, errores } = await abrir(db);
+  try {
+    await esperar(() => db.datos.pinH, 'progreso sintético cargado');
+    await page.click('#papas > summary');
+    await page.fill('#pin', '2580');
+    await page.click('#pinGo');
+    await page.waitForSelector('#pbody', { state: 'visible' });
+    const before = await page.evaluate(() => localStorage.getItem('tablas-turbo-v2'));
+    const invalid = [
+      '{',
+      '{"app":"otra-app","v":1,"datos":{"pts":1}}',
+      '{"app":"un-dia-mas-inteligente","v":2,"datos":{"pts":1}}',
+      '{"pts":-1}',
+      '{"pts":1,"daily":{"2024-02-29":{"cfg":false}}}',
+      '{"pts":1,"rdLog":[null]}',
+      '{"pts":1,"sr":{"fails":"incorrecto"}}',
+      '{"pts":1,"ku":{"mul:4x1":{"n":1,"sd":null}}}',
+      '{"pts":1,"datosFuturos":{"__proto__":{}}}'
+    ];
+    for (const buffer of invalid) {
+      await page.setInputFiles('#impFile', { name: 'copia.json', mimeType: 'application/json', buffer: Buffer.from(buffer) });
+      await page.waitForFunction(() => document.querySelector('#bkMsg').textContent.includes('No se cambió nada'));
+      assert.equal(await page.evaluate(() => localStorage.getItem('tablas-turbo-v2')), before);
+      // Esperar el mensaje de cada archivo por separado.
+      await page.locator('#bkMsg').evaluate(el => { el.textContent = ''; });
+    }
+    assert.equal(db.respaldos.length, 0);
+    assert.deepEqual(errores, []);
+    const compat = { pts: 14, nombre: 'Perfil de muestra', facts: { '2x2': 2 }, datoFuturo: { etiqueta: 'muestra' } };
+    await page.setInputFiles('#impFile', { name: 'avance.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(compat)) });
+    await page.waitForFunction(() => document.querySelector('#bkMsg').textContent.includes('Se cargó la copia'));
+    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('tablas-turbo-v2')));
+    for (const key of Object.keys(compat)) assert.deepEqual(restored[key], compat[key]);
+    assert.equal(restored.pinH, db.datos.pinH);
+  } finally { await ctx.close(); }
+});
+
+test('muestra texto dinámico con caracteres HTML como texto literal', async () => {
+  const db = nubeFalsa();
+  const name = '<i>Perfil ficticio</i> & "voz"';
+  db.datos.nombre = name;
+  db.datos.enIdx = 1;
+  db.datos.sr.fails = ['<i>cuenta sintética</i>'];
+  db.datos.cal['2024-02-29'].m.t = '<i>nota sintética</i>';
+  const { ctx, page, errores } = await abrir(db);
+  try {
+    await page.waitForFunction(value => document.querySelector('#hola').textContent.includes(value), name);
+    await page.click('#daily [data-d="en"]');
+    const phrase = page.locator('#enxBody .phr .en').filter({ hasText: name });
+    assert.equal(await phrase.count(), 1);
+    assert.equal(await phrase.locator('i').count(), 0);
+    assert.equal(await phrase.locator('[data-say]').getAttribute('data-say'), 'My name is '+name+'.');
+    assert.equal(await page.locator('#srprog .fails').textContent(), '<i>cuenta sintética</i>');
+    assert.equal(await page.locator('#srprog .fails i').count(), 0);
+    assert.ok((await page.textContent('#xprog')).includes('<i>nota sintética</i>'));
+    assert.equal(await page.locator('#xprog i').count(), 0);
+    assert.deepEqual(errores, []);
+  } finally { await ctx.close(); }
+});
+
+test('el respaldo de voz en línea utiliza una frase genérica y conserva el audio del vocabulario', async () => {
+  const ctx = await browser.newContext();
+  try {
+    const page = await ctx.newPage();
+    const name = 'Alias Privado de Prueba';
+    await page.addInitScript(alias => {
+      localStorage.setItem('tablas-turbo-v2', JSON.stringify({ pts: 3, nombre: alias, enIdx: 1 }));
+      Object.defineProperty(window, 'speechSynthesis', { value: undefined });
+      window.audioUrls = [];
+      window.Audio = class {
+        constructor(src) { window.audioUrls.push(src); }
+        pause() {}
+        play() { return Promise.resolve(); }
+      };
+    }, name);
+    await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
+    await page.goto(url.split('?')[0]);
+    await page.click('#daily [data-d="en"]');
+    await page.locator('#enxBody .en').filter({ hasText: name }).locator('button').click();
+    const word = page.locator('#enxBody .wd').first();
+    const vocab = await word.getAttribute('data-say');
+    await word.click();
+    const requests = await page.evaluate(() => window.audioUrls);
+    assert.deepEqual(requests.map(u => new URL(u).searchParams.get('q')), ['My name is Alex.', vocab]);
+    assert.ok(requests.every(u => new URL(u).hostname === 'translate.google.com'));
+  } finally { await ctx.close(); }
 });

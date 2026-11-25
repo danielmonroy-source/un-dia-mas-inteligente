@@ -1,6 +1,6 @@
 -- Fase T1: registro de cada respuesta (intentos).
--- Solo agrega una tabla y dos funciones; no cambia ni borra los datos de Adolfo. Se puede correr más de una vez.
--- No guarda nombres ni datos personales: solo el código del jugador, qué se preguntó y cómo le fue.
+-- Solo agrega una tabla y dos funciones; no cambia ni borra los datos del jugador. Se puede correr más de una vez.
+-- Registra el código del jugador y evidencias educativas seudonimizadas.
 create table if not exists public.tt_intentos (
   id uuid primary key,
   codigo text not null,

@@ -2,21 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { nubeMerge } from './cargar-nube.mjs';
 
-const base = () => ({ pts: 100, best: 5, streak: 1, last: '2026-11-24', days: { '2026-11-24': 5 }, facts: { '4x1': 3 }, med: {}, miss: { '4x3': 1 },
+const base = () => ({ pts: 100, best: 5, streak: 1, last: '2024-02-29', days: { '2024-02-29': 5 }, facts: { '4x1': 3 }, med: {}, miss: { '4x3': 1 },
   sr: { med: {}, err: { llevar: 3 }, fails: ['88 + 36'] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {},
-  cal: { '2026-11-24': { avg: 8.3 } }, rdLog: [{ d: '2026-11-24', h: '04:00 p.m.', id: 'dino', try: 1, ok: 4, n: 5 }], ts: 1000, nombre: 'Adolfo', mute: false });
+  cal: { '2024-02-29': { avg: 7.2 } }, rdLog: [{ d: '2024-02-29', h: '04:00 p.m.', id: 'dino', try: 1, ok: 4, n: 5 }], ts: 1000, nombre: 'Persona de prueba', mute: false });
 
 test('no pierde avance hecho en dos dispositivos', () => {
   const tablet = base(), phone = base();
-  tablet.pts = 180; tablet.daily['2026-11-25'] = { t: 6, tOk: true, tCal: 9 }; tablet.facts['6x7'] = 1; tablet.ts = 2000;
-  phone.pts = 150; phone.enLearned.red = 1; phone.rd.azteca = 5; phone.rdLog = [{ d: '2026-11-25', h: '05:00 p.m.', id: 'azteca', try: 1, ok: 5, n: 6 }, ...phone.rdLog];
-  phone.daily['2026-11-25'] = { t: 6, tOk: false, rd: 'azteca' }; phone.ts = 1500;
+  tablet.pts = 180; tablet.daily['2024-03-01'] = { t: 6, tOk: true, tCal: 9 }; tablet.facts['6x7'] = 1; tablet.ts = 2000;
+  phone.pts = 150; phone.enLearned.red = 1; phone.rd.azteca = 5; phone.rdLog = [{ d: '2024-03-01', h: '05:00 p.m.', id: 'azteca', try: 1, ok: 5, n: 6 }, ...phone.rdLog];
+  phone.daily['2024-03-01'] = { t: 6, tOk: false, rd: 'azteca' }; phone.ts = 1500;
   const m = nubeMerge(tablet, phone);
   assert.equal(m.pts, 180);
   assert.equal(m.enLearned.red, 1);
   assert.equal(m.rd.azteca, 5);
   assert.equal(m.facts['6x7'], 1);
-  assert.equal(m.daily['2026-11-25'].tOk, true, 'gana el registro del día con más partes hechas');
+  assert.equal(m.daily['2024-03-01'].tOk, true, 'gana el registro del día con más partes hechas');
   assert.equal(m.rdLog.length, 2);
   assert.equal(m.rdLog[0].id, 'azteca', 'el registro de lecturas queda ordenado del más reciente al más antiguo');
   assert.equal(m.ts, 2000);
@@ -41,9 +41,9 @@ test('la configuración la decide el cambio más reciente', () => {
 
 test('la racha viene del dispositivo que jugó más recientemente', () => {
   const a = base(), b = base();
-  a.last = '2026-11-25'; a.streak = 2; a.ts = 1000; b.last = '2026-11-24'; b.streak = 1; b.ts = 9000;
+  a.last = '2024-03-01'; a.streak = 2; a.ts = 1000; b.last = '2024-02-29'; b.streak = 1; b.ts = 9000;
   const m = nubeMerge(a, b);
-  assert.equal(m.last, '2026-11-25'); assert.equal(m.streak, 2);
+  assert.equal(m.last, '2024-03-01'); assert.equal(m.streak, 2);
 });
 
 test('un borrado o una copia restaurada no se deshace con datos viejos de otro dispositivo', () => {
