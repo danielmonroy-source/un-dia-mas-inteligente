@@ -128,7 +128,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 @keyframes mk{0%{opacity:0;transform:scale(.3)}20%{opacity:1;transform:scale(1.1)}35%{transform:scale(1)}75%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.9)}}
 .op.good::after{content:' ✓';font-weight:800}.op.bad::after{content:' ✗';font-weight:800}
 @media (prefers-reduced-motion:reduce){#mark.go{animation-duration:1.2s}}
-.rdprev details{background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:6px 12px;margin:4px 0 10px}#rdPrev summary,#ciePrev summary{cursor:pointer;font-weight:700;min-height:40px;line-height:1.3;padding:8px 0}.rdprev p,.rdprev li{font-size:15px;line-height:1.45}.rdprev ol{padding-left:20px}
+.rdprev details{background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:6px 12px;margin:4px 0 10px}#rdPrev summary,#ciePrev summary,#cultPrev summary{cursor:pointer;font-weight:700;min-height:40px;line-height:1.3;padding:8px 0}.rdprev p,.rdprev li{font-size:15px;line-height:1.45}.rdprev ol{padding-left:20px}
 .clk{width:min(210px,56vw);height:auto;display:block;margin:0 auto;color:var(--ink)}.clk .cf{fill:var(--card);stroke:var(--ink);stroke-width:4}.clk text{font:700 17px "Baloo 2",system-ui,sans-serif;fill:var(--ink)}.clk line{stroke:var(--ink)}.clk .hh{stroke:var(--pink);stroke-width:8;stroke-linecap:round}.clk .mh{stroke:#1d6fd8;stroke-width:5;stroke-linecap:round}.clk .cc{fill:var(--ink)}
 .qp .gw{font-size:clamp(38px,11vw,56px);letter-spacing:1px}.qp .gw u{text-decoration:none;border-bottom:4px solid var(--pink);color:var(--pink)}
 .qp .seq{font-size:clamp(26px,7.5vw,36px)}.qp .seq.emo{letter-spacing:2px;line-height:1.3;font-size:clamp(28px,8vw,38px)}.qp .seq u{text-decoration:none;color:var(--pink)}
@@ -298,7 +298,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div class="tabs" id="tabs"><button data-t="reto">⭐ Reto del día</button><button data-t="libre">Practicar libre</button></div>
     <div class="daily" id="daily"></div>
     <div id="libre">
-    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button><button data-w="orto">🔤 Ortografía</button><button data-w="log">🧩 Lógica</button><button data-w="reloj">🕒 Reloj</button><button data-w="din">💰 Dinero</button><button data-w="cie">🔬 Ciencia</button><button data-w="frac">🍕 Fracciones</button><button data-w="cult">🌎 Cultura general</button><button data-w="ora">💬 Arma oraciones</button></div>
+    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button><button data-w="orto">🔤 Ortografía</button><button data-w="log">🧩 Lógica</button><button data-w="reloj">🕒 Reloj</button><button data-w="din">💰 Dinero</button><button data-w="cie">🔬 Ciencia</button><button data-w="frac">🍕 Fracciones</button><button data-w="cult">🌎 Cultura general</button></div>
     <div id="wX">
     <h2>Tu camino</h2>
     <div class="path" id="path"></div>
@@ -348,6 +348,10 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <p class="note" id="cieSelNote"></p>
       <div id="ciePrev" class="rdprev" hidden></div>
       <button class="ghost" id="cieAssign" hidden></button>
+      <label>Texto de cultura general: <select id="cultSel"></select></label>
+      <p class="note" id="cultSelNote"></p>
+      <div id="cultPrev" class="rdprev" hidden></div>
+      <button class="ghost" id="cultAssign" hidden></button>
       <button class="ghost" id="reset">Borrar todo el avance</button>
       <div id="rstBox" hidden>
         <p class="note">Esto borra todo el avance de Adolfo y no se puede deshacer. Escribe la contraseña de papás para confirmar.</p>
@@ -1091,11 +1095,11 @@ function renderDaily(){
     if(k==='c')return row('c',I,R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc());
     if(k==='en')return row('en',I,R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub);
     if(k==='rd')return row('rd',I,!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de ${R.rdN||5} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`);
-    const g=GEN[k],x=R.ex&&R.ex[k];return row(k,I,kDone(k,R),k==='cie'?`${g.e} Ciencia: ${SCI[ciePick()].t}`:`${g.e} ${g.n}`,x&&x.ok?`${x.first} de ${x.n} a la primera`:k==='cie'?'Lee la explicación y contesta 6 preguntas':'10 preguntas')}).join('')}</div>
+    const g=GEN[k],x=R.ex&&R.ex[k];return row(k,I,kDone(k,R),PK[k]?`${g.e} ${PK[k].lbl}: ${PK[k].data[pkPick(k)].t}`:`${g.e} ${g.n}`,x&&x.ok?`${x.first} de ${x.n} a la primera`:PK[k]?'Lee y contesta las preguntas':'10 preguntas')}).join('')}</div>
     <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':`Completa las ${NP} partes y gana 50 puntos de premio.`}</p>${full?boleta(R):''}`;
   const sel=$('retoSel');
   sel.innerHTML=`<option value="0">Automática (una que no se sabe)</option>`+[2,3,4,5,6,7,8,9,10].map(t=>`<option value="${t}">×${t}</option>`).join('');
-  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-');rdSelRender();cieSelRender();cfgRender()}
+  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-');rdSelRender();pkSelRender('cie');pkSelRender('cult');cfgRender()}
 $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const k=b.dataset.d;tone(660,.06);
   if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
   else if(k==='rd')rdOpen(rdPick());
@@ -1123,11 +1127,11 @@ const COLT={sin2:'sencillas de 2 cifras',mix2:'de 2 cifras, algunas difíciles',
 const colDesc=()=>{const a=colLv('+'),b=colLv('-');return `5 sumas ${a.startsWith('con')?'llevando ':''}${COLT[a]} y 5 restas ${b.startsWith('con')?'pidiendo prestado ':''}${COLT[b]}`};
 $('sumSel').addEventListener('change',e=>{S.colSum=e.target.value;save();renderHome()});
 function rdSelRender(){const o=x=>`<option value="${x.id}">${x.e} ${x.t}${rdRead(x)?` (ya la leyó: ${(S.rd||{})[x.id]}/${x.q.length})`:''}</option>`;
-  const U=STORIES.filter(x=>!rdRead(x)),D=STORIES.filter(rdRead);
-  $('rdSel').innerHTML=`<option value="">Al azar (una que no haya leído)</option><optgroup label="Sin leer (${U.length})">${U.map(o).join('')}</optgroup>${D.length?`<optgroup label="Ya leídas (${D.length})">${D.map(o).join('')}</optgroup>`:''}`;
+  const U=STORIES.filter(x=>!rdRead(x)).slice(0,20),D=STORIES.filter(rdRead);
+  $('rdSel').innerHTML=`<option value="">Al azar (una que no haya leído)</option><optgroup label="Para elegir (${U.length})">${U.map(o).join('')}</optgroup>${D.length?`<optgroup label="Ya leídas (${D.length})">${D.map(o).join('')}</optgroup>`:''}`;
   $('rdSel').value=STORIES.some(x=>x.id===S.rdSel)?S.rdSel:'';rdPrevRender();
   const R=dayRec(),cur=STORIES[rdPick()];
-  $('rdSelNote').textContent=R.rd?`Hoy ya leyó «${(STORIES.find(x=>x.id===R.rd)||cur).t}». Lo que elijas aquí le aparecerá mañana.`:`Hoy le toca: «${cur.t}». Escoge otra en la lista para leerla antes de ponérsela. Si no eliges ninguna, cada día le sale una al azar de las que no ha leído.`}
+  $('rdSelNote').textContent=R.rd?`Hoy ya leyó «${(STORIES.find(x=>x.id===R.rd)||cur).t}». Lo que elijas aquí le aparecerá mañana.`:`Hoy le toca: «${cur.t}». Escoge otra en la lista para leerla antes de ponérsela. Si no eliges, sale una al azar. Cuando la termina, entra una nueva a la lista.`}
 function rdPrevRender(){const v=$('rdSel').value,x=STORIES.find(y=>y.id===v),cur=STORIES.some(y=>y.id===S.rdSel)?S.rdSel:'';
   const P=$('rdPrev'),B=$('rdAssign');
   if(!x){P.hidden=true;P.innerHTML=''}
@@ -1337,8 +1341,8 @@ function qzFinish(){
   }else if(QZ.kind==='gen'){const k=QZ.act,g=GEN[k];S.gx=S.gx||{};const x=S.gx[k]=S.gx[k]||{n:0,best:0,log:[]};
     x.n++;x.best=Math.max(x.best,QZ.first);x.log.unshift({d:today(),ok:QZ.first,n:N,reto:!!QZ.reto});if(x.log.length>30)x.log.length=30;
     R.ex=R.ex||{};
-    if(k==='cie'){const id=SCI[QZ.si].id;S.cie=S.cie||{};S.cie[id]=Math.max(S.cie[id]||0,QZ.first)}
-    if(QZ.reto&&(k!=='cie'||QZ.si===ciePick())&&!(R.ex[k]&&R.ex[k].ok)){if(k==='cie'&&S.cieSel===SCI[QZ.si].id)S.cieSel='';R.ex[k]={ok:true,cal:r1(QZ.first/N*10),first:QZ.first,n:N};news.push(`¡Terminaste <b>${g.n}</b> del reto de hoy!`)}
+    if(PK[k]){const P=PK[k],id=P.data[QZ.si].id;S[P.st]=S[P.st]||{};S[P.st][id]=Math.max(S[P.st][id]||0,QZ.first)}
+    if(QZ.reto&&(!PK[k]||QZ.si===pkPick(k))&&!(R.ex[k]&&R.ex[k].ok)){if(PK[k]&&S[PK[k].sel]===PK[k].data[QZ.si].id)S[PK[k].sel]='';R.ex[k]={ok:true,cal:r1(QZ.first/N*10),first:QZ.first,n:N};news.push(`¡Terminaste <b>${g.n}</b> del reto de hoy!`)}
     news.push(QZ.first===N?'¡Todas bien a la primera!':`Contestaste bien <b>${QZ.first} de ${N}</b> a la primera.`);
   }else{
     const st=STORIES[QZ.si];S.rd=S.rd||{};S.rdLog=S.rdLog||[];
@@ -1358,7 +1362,7 @@ function qzFinish(){
   if(QZ.kind==='en'){const pt=QZ.part,Rd=dayRec();againAct=pt==='w'?enQuizW:enQuizP;
     if(!Rd.en){nextAct=pt==='w'?enQuizP:enQuizW;$('nextb').textContent=pt==='w'?'Practicar frases':'Practicar palabras'}
     else{nextAct=toReto;$('nextb').textContent='Al reto del día'}}
-  else if(QZ.kind==='gen'){const k=QZ.act,rt=QZ.reto,si=QZ.si;againAct=k==='cie'?()=>cieOpen(si,rt):()=>genStart(k,rt);if(rt){nextAct=toReto;$('nextb').textContent='Al reto del día'}else{nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Volver'}}
+  else if(QZ.kind==='gen'){const k=QZ.act,rt=QZ.reto,si=QZ.si;againAct=PK[k]?()=>pkOpen(k,si,rt):()=>genStart(k,rt);if(rt){nextAct=toReto;$('nextb').textContent='Al reto del día'}else{nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Volver'}}
   else{const si=QZ.si;againAct=()=>rdOpen(si);nextAct=toReto;$('nextb').textContent='Al reto del día'}
   show('end');mood('m3',QZ.first>=N*.6?'happy':null);flame('m3',QZ.maxc);
   [0,.12,.24].forEach((w,i)=>tone([523,659,784][i],.2,'sine',w));
@@ -1465,21 +1469,22 @@ const GEN={orto:{n:'Ortografía',e:'🔤',d:'Letras que se confunden: b/v, c/s/z
   din:{n:'Dinero',e:'💰',d:'Contar monedas y billetes, dar cambio y saber si alcanza.',f:dinQuiz},
   cie:{n:'Ciencia',e:'🔬',d:'Un tema al día: lee la explicación y contesta las preguntas.',f:null},
   frac:{n:'Fracciones',e:'🍕',d:'Medios, tercios, cuartos, sextos y octavos con pizzas.',f:()=>fracQuiz()},
-  cult:{n:'Cultura general',e:'🌎',d:'Preguntas de México, el mundo, animales, el cuerpo, arte, deportes y más.',f:()=>cultQuiz()},
-  ora:{n:'Arma oraciones',e:'💬',d:'Ordenar palabras para formar oraciones, escoger la frase bien dicha y ordenar lo que pasó.',f:()=>oraQuiz()}};
-function genStart(k,reto){if(k==='cie'){cieOpen(ciePick(),reto);return}qzStart('gen',GEN[k].f(),{act:k,reto:!!reto})}
+  cult:{n:'Cultura general',e:'🌎',d:'Textos cortos de temas interesantes: videojuegos, películas, fútbol, México, el mundo, inventos y más. Lee y contesta las preguntas.',f:null},
+  cultq:{n:'Preguntas rápidas de cultura general',e:'🌎',d:'',f:()=>cultQuiz()}};
+function genStart(k,reto){if(PK[k]){pkOpen(k,pkPick(k),reto);return}qzStart('gen',GEN[k].f(),{act:k,reto:!!reto})}
 function renderGen(){const k=S.world,g=GEN[k];if(!g){$('wG').innerHTML='';return}const x=(S.gx||{})[k]||{};
   $('wG').innerHTML=`<h2>${g.e} ${g.n}</h2><p class="note">${g.d}</p><button class="big" id="genGo">Practicar (10 preguntas)</button>
   <p class="note">${x.n?`Rondas: <b>${x.n}</b> · Mejor resultado: <b>${x.best}</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>`;
-  if(k==='cie'){const t=SCI[ciePick()];$('genGo').textContent=`Tema de hoy: ${t.e} ${t.t}`;
-    $('wG').insertAdjacentHTML('beforeend',`<details class="rdold"><summary>Otros temas para practicar</summary><div class="modes">${SCI.map((s,j)=>`<button class="mode" data-ci="${j}"><span class="n em2">${s.e}</span><span><b>${s.t}</b><span>${cieDone(s)?`Ya lo viste (${S.cie[s.id]}/${s.q.length})`:'Sin ver'}</span></span></button>`).join('')}</div></details>`)}}
-$('wG').addEventListener('click',e=>{if(e.target.closest('#genGo')){genStart(S.world,false);return}const c=e.target.closest('[data-ci]');if(c)cieOpen(+c.dataset.ci,false)});
+  if(PK[k]){const P=PK[k],t=P.data[pkPick(k)];$('genGo').textContent=`Hoy: ${t.e} ${t.t}`;
+    const Dn=P.data.map((x,j)=>j).filter(j=>pkDone(k,P.data[j]));
+    $('wG').insertAdjacentHTML('beforeend',`${k==='cult'?'<button class="ghost" id="cultQ">Preguntas rápidas (10 al azar)</button>':''}${Dn.length?`<details class="rdold"><summary>Ya ${P.visto}s (${Dn.length})</summary><p class="note">Puedes repasarlos cuando quieras.</p><div class="modes">${Dn.map(j=>{const s=P.data[j];return `<button class="mode" data-pi="${j}"><span class="n em2">${s.e}</span><span><b>${s.t}</b><span>${S[P.st][s.id]}/${s.q.length}</span></span></button>`}).join('')}</div></details>`:''}`)}}
+$('wG').addEventListener('click',e=>{if(e.target.closest('#genGo')){genStart(S.world,false);return}if(e.target.closest('#cultQ')){genStart('cultq',false);return}const c=e.target.closest('[data-pi]');if(c)pkOpen(S.world,+c.dataset.pi,false)});
 
 /* --- Reto del día configurable --- */
-const RK_ALL=['t','c','en','rd','orto','log','reloj','din','cie','frac','cult','ora'],RK_DEF=['t','c','en','rd'];
+const RK_ALL=['t','c','en','rd','orto','log','reloj','din','cie','frac','cult'],RK_DEF=['t','c','en','rd'];
 const retoCfg=()=>{const c=(S.retoCfg||RK_DEF).filter(k=>RK_ALL.includes(k));return c.length?c:RK_DEF.slice()};
-const dayKeys=R=>R&&R.cfg&&R.cfg.length?R.cfg:RK_DEF;
-const KS={t:'Tabla',c:'Cuentas',en:'Inglés',rd:'Lectura',orto:'Ortografía',log:'Lógica',reloj:'Reloj',din:'Dinero',cie:'Ciencia',frac:'Fracciones',cult:'Cultura general',ora:'Oraciones'};
+const dayKeys=R=>{const c=R&&R.cfg?R.cfg.filter(k=>RK_ALL.includes(k)):[];return c.length?c:RK_DEF};
+const KS={t:'Tabla',c:'Cuentas',en:'Inglés',rd:'Lectura',orto:'Ortografía',log:'Lógica',reloj:'Reloj',din:'Dinero',cie:'Ciencia',frac:'Fracciones',cult:'Cultura general'};
 const kName=(k,R)=>k==='t'?'Tabla del '+R.t:k==='c'?'Cuentas en columna':GEN[k]?GEN[k].n:KS[k];
 const kDone=(k,R)=>k==='t'?!!R.tOk:k==='c'?!!R.col:k==='en'?!!R.en:k==='rd'?!!R.rd:!!(R.ex&&R.ex[k]&&R.ex[k].ok);
 const kCal=(k,R)=>k==='t'?R.tCal:k==='c'?R.colCal:k==='en'?R.enCal:k==='rd'?R.rdCal:(R.ex&&R.ex[k]?R.ex[k].cal:null);
@@ -1624,31 +1629,306 @@ q:[['¿Cuántas estaciones tiene el año?','Cuatro','Dos','Doce'],
 ['¿En qué estación se caen las hojas de algunos árboles?','Otoño','Verano','Primavera'],
 ['¿Cuándo empieza la primavera?','En marzo','En diciembre','En agosto'],
 ['¿Cómo son los días en invierno?','Más cortos','Más largos','Iguales a los de verano'],
-['¿Cuánto dura cada estación, más o menos?','Tres meses','Un día','Un año']]}];
-const cieDone=x=>(S.cie||{})[x.id]!=null;
-function ciePick(){const R=dayRec();if(R.ciePick==null||!SCI[R.ciePick]){
-  const c=SCI.findIndex(x=>x.id===S.cieSel);
-  if(c>=0)R.ciePick=c;else{const U=SCI.map((x,j)=>j).filter(j=>!cieDone(SCI[j]));R.ciePick=U.length?U[Math.floor(Math.random()*U.length)]:dayNum()%SCI.length}}
-  return R.ciePick}
-let cieCur=0,cieReto=false;
-function cieOpen(i,reto){cieCur=i;cieReto=!!reto;const s=SCI[i];
-  $('cieEm').textContent=s.e;$('cieT').textContent=s.t;$('cieInfo').textContent='Ciencia · lee con calma y luego contesta '+s.q.length+' preguntas';
+['¿Cuánto dura cada estación, más o menos?','Tres meses','Un día','Un año']]},
+{id:'corazon',e:'❤️',t:'El corazón y la sangre',p:[
+'Tu corazón es un músculo del tamaño de tu puño. Está en el pecho, un poco hacia la izquierda, protegido por las costillas. Late todo el tiempo, de día y de noche, sin que tengas que pensarlo.',
+'Con cada latido, el corazón bombea sangre por unos tubos llamados vasos sanguíneos: las arterias llevan la sangre desde el corazón y las venas la regresan. La sangre lleva oxígeno y alimento a todas las partes del cuerpo.',
+'Cuando corres o juegas, tu corazón late más rápido porque los músculos necesitan más oxígeno. Puedes sentir tus latidos poniendo dos dedos en tu muñeca o en tu cuello. Hacer ejercicio hace que el corazón se ponga fuerte.'],
+q:[['¿De qué tamaño es tu corazón, más o menos?','Como tu puño','Como una pelota de fútbol','Como un frijol'],
+['¿Qué hace el corazón?','Bombea sangre','Hace la comida','Piensa'],
+['¿Qué lleva la sangre a todo el cuerpo?','Oxígeno y alimento','Piedras','Aire caliente'],
+['¿Por qué late más rápido cuando corres?','Los músculos necesitan más oxígeno','Porque tiene miedo','Porque se cansa'],
+['¿Dónde puedes sentir tus latidos?','En la muñeca o el cuello','En el pelo','En las uñas'],
+['¿Qué hace que el corazón se ponga fuerte?','Hacer ejercicio','Comer dulces','Dormir todo el día']]},
+{id:'respirar',e:'🫁',t:'¿Cómo respiramos?',p:[
+'Respiras unas veinte mil veces al día y casi nunca te das cuenta. El aire entra por la nariz o la boca, baja por un tubo llamado tráquea y llega a los pulmones, que son dos, uno de cada lado del pecho.',
+'Debajo de los pulmones hay un músculo llamado diafragma. Cuando baja, los pulmones se inflan como globos y entra el aire. Cuando sube, el aire sale.',
+'En los pulmones, el oxígeno del aire pasa a la sangre, y la sangre suelta un gas que el cuerpo ya no necesita: el dióxido de carbono, que sale cuando exhalas. Por eso es importante respirar aire limpio y nunca fumar.'],
+q:[['¿Cuántos pulmones tenemos?','Dos','Uno','Cuatro'],
+['¿Cómo se llama el tubo que lleva el aire a los pulmones?','Tráquea','Estómago','Vena'],
+['¿Qué músculo ayuda a inflar los pulmones?','El diafragma','El bíceps','El corazón'],
+['¿Qué toma la sangre del aire en los pulmones?','Oxígeno','Agua','Comida'],
+['¿Qué gas sale cuando exhalas?','Dióxido de carbono','Oxígeno puro','Helio'],
+['¿Qué es bueno para tus pulmones?','Respirar aire limpio','Fumar','Respirar humo']]},
+{id:'luna',e:'🌙',t:'Las fases de la Luna',p:[
+'La Luna no tiene luz propia: brilla porque el Sol la ilumina, como una pelota alumbrada por una lámpara. La Luna le da una vuelta a la Tierra más o menos cada mes.',
+'Mientras gira, vemos diferentes partes de su lado iluminado. Por eso parece que cambia de forma. A esas formas se les llama fases: luna nueva (casi no se ve), cuarto creciente (se ve la mitad), luna llena (se ve completa y redonda) y cuarto menguante (otra vez la mitad).',
+'La Luna también mueve el mar: su fuerza jala el agua y forma las mareas, que suben y bajan en las playas. Y como en la Luna no hay viento, las huellas de los astronautas siguen ahí.'],
+q:[['¿La Luna tiene luz propia?','No, la ilumina el Sol','Sí, es como un foco','Solo en la noche'],
+['¿Cuánto tarda la Luna en darle la vuelta a la Tierra?','Más o menos un mes','Un día','Un año'],
+['¿Cómo se ve la Luna en luna llena?','Completa y redonda','No se ve','Como una rayita'],
+['¿Cómo se llaman las formas que vemos de la Luna?','Fases','Estaciones','Mareas'],
+['¿Qué mueve la Luna en el mar?','Las mareas','Los barcos','Los peces'],
+['¿Qué fase casi no se ve?','Luna nueva','Luna llena','Cuarto creciente']]},
+{id:'sismos',e:'🏠',t:'Los sismos',p:[
+'La superficie de la Tierra no es una sola pieza: está partida en placas enormes, como un rompecabezas gigante, que se mueven muy despacito. A veces se atoran y, cuando se sueltan de golpe, el suelo tiembla. Eso es un sismo.',
+'México tiene muchos sismos porque está encima de varias de estas placas. Por eso aquí hay una alerta sísmica que suena antes de que llegue el temblor fuerte, y en las escuelas se hacen simulacros.',
+'Si tiembla: conserva la calma, aléjate de ventanas y cosas que puedan caer, y sigue lo que practicaste en el simulacro. No corras, no grites y no empujes. Ten a la mano la mochila de emergencia con agua, linterna y botiquín.'],
+q:[['¿Qué hay debajo de la superficie de la Tierra?','Placas enormes que se mueven','Un océano de chocolate','Nada'],
+['¿Qué pasa cuando las placas se sueltan de golpe?','El suelo tiembla','Llueve','Sale el sol'],
+['¿Por qué hay muchos sismos en México?','Está encima de varias placas','Porque hace calor','Por los volcanes de juguete'],
+['¿Qué suena antes de que llegue un temblor fuerte?','La alerta sísmica','El timbre de la escuela','El despertador'],
+['¿Qué debes hacer si tiembla?','Conservar la calma y alejarte de las ventanas','Correr y empujar','Esconderte junto a la ventana'],
+['¿Qué lleva una mochila de emergencia?','Agua, linterna y botiquín','Juguetes y dulces','Nada']]},
+{id:'metamorfosis',e:'🐛',t:'De oruga a mariposa',p:[
+'Algunos animales cambian muchísimo mientras crecen. A eso se le llama metamorfosis. La mariposa es el mejor ejemplo.',
+'Primero, la mariposa pone un huevo pequeñito en una hoja. Del huevo sale una oruga, que se dedica a comer y comer hojas, y crece muy rápido. Después la oruga se envuelve y forma una crisálida, como una cajita donde parece que no pasa nada.',
+'Pero adentro su cuerpo se está transformando por completo. Al final sale una mariposa con alas, que espera a que se le sequen para volar. La rana también hace metamorfosis: empieza como renacuajo con cola, vive en el agua y luego le salen patas.'],
+q:[['¿Cómo se llama el gran cambio de algunos animales al crecer?','Metamorfosis','Fotosíntesis','Migración'],
+['¿Qué sale del huevo de una mariposa?','Una oruga','Una mariposa con alas','Un pollito'],
+['¿Qué hace la oruga casi todo el tiempo?','Comer hojas','Volar','Nadar'],
+['¿Cómo se llama la cajita donde se transforma?','Crisálida','Nido','Cueva'],
+['¿Qué otro animal hace metamorfosis?','La rana','El perro','La vaca'],
+['¿Cómo empieza su vida la rana?','Como renacuajo con cola','Como oruga','Con alas']]},
+{id:'electricidad',e:'⚡',t:'La electricidad',p:[
+'La electricidad es una forma de energía que hace funcionar focos, refrigeradores, consolas y celulares. Viaja por cables de metal, como el cobre, porque los metales la dejan pasar fácilmente. A esos materiales se les llama conductores.',
+'Otros materiales, como el plástico, el hule y la madera seca, no la dejan pasar: son aislantes. Por eso los cables están forrados de plástico, para que no nos dé toques.',
+'Para que algo funcione, la electricidad tiene que dar una vuelta completa, llamada circuito. Por eso hay que tener mucho cuidado: nunca metas objetos en los enchufes, no toques cables pelados y no uses aparatos eléctricos con las manos mojadas, porque el agua conduce la electricidad.'],
+q:[['¿Qué hace funcionar la electricidad?','Focos, refrigeradores y celulares','Las plantas','Las nubes'],
+['¿Por dónde viaja bien la electricidad?','Por metales como el cobre','Por el plástico','Por la madera seca'],
+['¿Cómo se llaman los materiales que no dejan pasar la electricidad?','Aislantes','Conductores','Imanes'],
+['¿Por qué los cables están forrados de plástico?','Para que no nos dé toques','Para que se vean bonitos','Para que pesen más'],
+['¿Cómo se llama la vuelta completa que da la electricidad?','Circuito','Carrera','Círculo polar'],
+['¿Por qué no debes usar aparatos con las manos mojadas?','El agua conduce la electricidad','Porque se ensucian','Porque se enfrían']]},
+{id:'gravedad',e:'🍎',t:'La gravedad',p:[
+'¿Por qué si sueltas una pelota siempre cae hacia abajo? Por una fuerza invisible llamada gravedad. La Tierra jala todas las cosas hacia su centro: a ti, a la pelota, al agua de los ríos y hasta a la Luna.',
+'Se cuenta que el científico Isaac Newton pensó en la gravedad hace más de trescientos años, cuando vio caer una manzana de un árbol. Se preguntó por qué la manzana caía derechito y no hacia un lado.',
+'Entre más grande es un planeta, más fuerte jala. En la Luna, que es más pequeña que la Tierra, la gravedad es mucho más débil: allá podrías saltar unas seis veces más alto. Y la gravedad del Sol es la que mantiene a los planetas girando a su alrededor.'],
+q:[['¿Cómo se llama la fuerza que hace que las cosas caigan?','Gravedad','Electricidad','Magnetismo'],
+['¿Hacia dónde jala la Tierra las cosas?','Hacia su centro','Hacia el cielo','Hacia un lado'],
+['¿Qué científico pensó en la gravedad al ver caer una manzana?','Isaac Newton','Neil Armstrong','Walt Disney'],
+['¿Cómo es la gravedad en la Luna?','Más débil que en la Tierra','Más fuerte','No hay nada de gravedad'],
+['¿Qué tan alto podrías saltar en la Luna?','Unas seis veces más alto','Igual','Más bajito'],
+['¿Qué mantiene a los planetas girando alrededor del Sol?','La gravedad del Sol','El viento','Los imanes']]}];
+const CUL=[
+{id:'futorigen',e:'⚽',t:'¿Quién inventó el fútbol?',p:[
+'Hace miles de años, en muchos lugares del mundo, la gente ya pateaba pelotas. En China jugaban un juego llamado cuju, en el que había que meter una pelota de cuero por un hoyo en una red.',
+'El fútbol como lo conocemos nació en Inglaterra. En 1863 se juntaron varios clubes y escribieron las primeras reglas oficiales. La más importante: no se puede tocar el balón con las manos, menos el portero.',
+'Hoy es el deporte más popular del planeta. Cada cuatro años se juega la Copa del Mundo, y el primer Mundial fue en Uruguay, en 1930. ¡Lo ganó el equipo de casa!'],
+q:[['¿En qué país se escribieron las primeras reglas del fútbol?','Inglaterra','México','China'],
+['¿En qué año fueron esas reglas?','1863','2010','1500'],
+['¿Quién puede tocar el balón con las manos?','Solo el portero','Todos','Nadie, ni el portero'],
+['¿Cómo se llamaba el juego de pelota de la antigua China?','Cuju','Béisbol','Ulama'],
+['¿Dónde fue el primer Mundial?','Uruguay','Brasil','España']]},
+{id:'ulama',e:'🏟️',t:'El juego de pelota de los mayas',p:[
+'Mucho antes de que existiera el fútbol, los pueblos antiguos de México jugaban con una pelota de hule. Los mayas y los mexicas tenían canchas de piedra con paredes inclinadas y, a veces, un aro de piedra en lo alto.',
+'La pelota era pesada y no se podía tocar con las manos ni con los pies: se pegaba con la cadera. Meterla por el aro era dificilísimo. Por eso, cuando alguien lo lograba, era una gran hazaña.',
+'Para los antiguos mexicanos, este juego era más que un deporte: era parte de sus ceremonias. En Chichén Itzá está una de las canchas más grandes. Y hoy, en Sinaloa, todavía se juega una versión llamada ulama.'],
+q:[['¿De qué era la pelota?','De hule','De plástico','De papel'],
+['¿Con qué parte del cuerpo se pegaba la pelota?','Con la cadera','Con las manos','Con la cabeza'],
+['¿Qué había en lo alto de algunas canchas?','Un aro de piedra','Una canasta','Una red'],
+['¿En qué zona arqueológica hay una cancha muy grande?','Chichén Itzá','Paris','Cancún'],
+['¿Cómo se llama la versión que todavía se juega en Sinaloa?','Ulama','Cuju','Pádel']]},
+{id:'olimpicos',e:'🥇',t:'Los Juegos Olímpicos',p:[
+'Los primeros Juegos Olímpicos se hicieron en Grecia hace casi tres mil años, en un lugar llamado Olimpia. Los atletas corrían, saltaban y luchaban, y los ganadores recibían una corona de hojas de olivo.',
+'Los Juegos modernos empezaron en 1896 en Atenas, también en Grecia. Desde entonces se hacen cada cuatro años en una ciudad diferente. La bandera olímpica tiene cinco aros de colores entrelazados, que representan a los continentes unidos por el deporte.',
+'México organizó los Juegos Olímpicos en 1968, en la Ciudad de México. Antes de empezar, una antorcha viaja desde Grecia hasta la ciudad sede, y con ella se enciende el pebetero que arde mientras duran los Juegos.'],
+q:[['¿En qué país empezaron los Juegos Olímpicos?','Grecia','Japón','Estados Unidos'],
+['¿Qué recibían los ganadores antiguos?','Una corona de hojas de olivo','Un coche','Una medalla de chocolate'],
+['¿Cuántos aros tiene la bandera olímpica?','Cinco','Tres','Diez'],
+['¿En qué año fueron los Juegos en México?','1968','2000','1810'],
+['¿Cada cuánto se hacen los Juegos Olímpicos?','Cada cuatro años','Cada año','Cada diez años']]},
+{id:'consola',e:'🕹️',t:'¿Qué hay dentro de una consola?',p:[
+'Por fuera, una consola de videojuegos es una caja con botones. Por dentro, es una computadora pequeña. Su parte más importante es el procesador, un chip que hace millones de cálculos cada segundo.',
+'La consola también tiene memoria, donde guarda lo que está pasando en el juego, y un chip especial para las gráficas que dibuja la imagen en la pantalla muchas veces por segundo. Si lo hace 60 veces por segundo, el movimiento se ve suave.',
+'Cuando aprietas un botón del control, este manda una señal a la consola. El procesador revisa las instrucciones del juego y decide qué pasa: tu personaje salta, corre o dispara. ¡Todo eso en menos de un parpadeo!'],
+q:[['¿Qué es una consola por dentro?','Una computadora pequeña','Una caja vacía','Un radio'],
+['¿Cómo se llama el chip que hace los cálculos?','Procesador','Batería','Botón'],
+['¿Para qué sirve la memoria?','Para guardar lo que pasa en el juego','Para hacer ruido','Para enfriar la consola'],
+['¿Qué manda el control cuando aprietas un botón?','Una señal','Una carta','Agua'],
+['Si la imagen se dibuja 60 veces por segundo, ¿cómo se ve el movimiento?','Suave','Muy lento','No se ve']]},
+{id:'animacion',e:'🎬',t:'Cómo se hace una película animada',p:[
+'Una película animada empieza con una idea y un guion, que es la historia escrita. Después, los artistas dibujan el storyboard: una tira de dibujos, como un cómic, que muestra cada escena antes de animarla.',
+'Luego los actores graban las voces de los personajes en un estudio. Los animadores escuchan esas voces y hacen que los personajes se muevan y hablen al mismo tiempo. Hoy casi todo se hace en computadora, con personajes construidos en 3D.',
+'Al final se agregan la música, los efectos de sonido y la luz de cada escena. Hacer una película animada puede tardar cuatro años o más, y en ella trabajan cientos de personas.'],
+q:[['¿Qué es el guion?','La historia escrita','La música','Un personaje'],
+['¿Qué es el storyboard?','Una tira de dibujos que muestra cada escena','Un tipo de cámara','El cine donde se ve'],
+['¿Qué se graba antes de animar?','Las voces de los personajes','Los créditos','Las palomitas'],
+['¿Cuánto puede tardar hacer una película animada?','Cuatro años o más','Una tarde','Un día'],
+['¿Cuántas personas trabajan en ella?','Cientos','Una','Dos']]},
+{id:'folio',e:'📓',t:'Haz tu propia caricatura',p:[
+'¿Sabías que puedes hacer una caricatura con un cuaderno? Se llama folioscopio. En la esquina de cada hoja dibujas lo mismo, pero cambiando un poquito: una pelota un poco más abajo en cada hoja, por ejemplo.',
+'Cuando pasas las hojas muy rápido con el dedo, ¡la pelota parece que rebota! Esto pasa porque tus ojos y tu cerebro juntan las imágenes que ven muy seguido y las ven como si fueran un solo movimiento.',
+'Así funcionan todas las películas: son muchas imágenes quietas que pasan rapidísimo, unas 24 por segundo. Inténtalo con una pelota, un monito que salta o un cohete que despega.'],
+q:[['¿Cómo se llama el cuaderno que hace caricaturas al pasar las hojas?','Folioscopio','Telescopio','Microscopio'],
+['¿Qué debe tener cada dibujo?','Un pequeño cambio','Un color diferente','Nada'],
+['¿Qué parece hacer la pelota al pasar las hojas rápido?','Moverse','Desaparecer','Crecer mucho'],
+['¿Quiénes juntan las imágenes y las ven como movimiento?','Tus ojos y tu cerebro','Tus pies','Tus orejas'],
+['¿Cuántas imágenes por segundo pasan en una película?','Unas 24','Una','Mil']]},
+{id:'robots',e:'🤖',t:'Robots de verdad',p:[
+'Un robot es una máquina que puede hacer tareas por sí sola, siguiendo instrucciones que le dan las personas con un programa. No todos parecen personas: muchos son brazos mecánicos.',
+'En las fábricas, los robots arman coches, pintan y cargan cosas pesadas sin cansarse. En los hospitales, algunos ayudan a los doctores en operaciones muy delicadas. Y hay aspiradoras robot que limpian la casa solas.',
+'Los robots también exploran lugares donde las personas no pueden ir. En Marte hay robots con ruedas, llamados rovers, que toman fotos, recogen piedras y mandan información a la Tierra. ¡Están a millones de kilómetros!'],
+q:[['¿Qué necesita un robot para saber qué hacer?','Un programa con instrucciones','Comida','Dormir'],
+['¿Todos los robots parecen personas?','No, muchos son brazos mecánicos','Sí, todos','Solo los rojos'],
+['¿Qué hacen los robots en las fábricas?','Arman coches y cargan cosas pesadas','Venden helados','Juegan fútbol'],
+['¿Cómo se llaman los robots que exploran Marte?','Rovers','Drones','Dinos'],
+['¿Qué mandan los robots de Marte a la Tierra?','Fotos e información','Pizza','Arena por correo']]},
+{id:'internet',e:'🌐',t:'¿Cómo viaja un mensaje por internet?',p:[
+'Cuando mandas un mensaje o ves un video, la información viaja convertida en señales. Esas señales van por el aire hasta una antena o el módem de tu casa, y de ahí por cables.',
+'Muchos de esos cables cruzan el fondo del mar. Son cables de fibra óptica, tan delgados como un pelo por dentro, que llevan la información en forma de luz. ¡Unen a todos los continentes!',
+'La información llega a computadoras gigantes llamadas servidores, que guardan videos, juegos y páginas. Todo esto pasa en menos de un segundo. Por eso es importante usar internet con cuidado: lo que subes puede viajar muy lejos y quedarse ahí.'],
+q:[['¿Por dónde cruzan el mar muchos cables de internet?','Por el fondo del mar','Por las nubes','Por la Luna'],
+['¿Cómo viaja la información en la fibra óptica?','En forma de luz','En cartas','En botellas'],
+['¿Cómo se llaman las computadoras que guardan videos y páginas?','Servidores','Consolas','Calculadoras'],
+['¿Cuánto tarda un mensaje en viajar?','Menos de un segundo','Un mes','Un año'],
+['¿Por qué hay que tener cuidado con lo que subes?','Puede viajar muy lejos y quedarse ahí','Porque se borra solo','Porque cuesta mucho']]},
+{id:'maravillas',e:'🗺️',t:'Las siete maravillas del mundo moderno',p:[
+'En 2007, millones de personas votaron para escoger siete construcciones increíbles del mundo. Una de ellas está en México: Chichén Itzá, la ciudad maya de Yucatán.',
+'Las otras son: la Gran Muralla China, que mide miles de kilómetros; Petra, una ciudad tallada en la roca en Jordania; el Cristo Redentor, una estatua enorme en Río de Janeiro, Brasil; Machu Picchu, una ciudad inca en las montañas de Perú; el Coliseo de Roma, donde se hacían espectáculos hace casi dos mil años; y el Taj Mahal, un palacio blanco en la India.',
+'Todas fueron construidas sin las máquinas modernas que tenemos hoy. ¿Cuál te gustaría visitar?'],
+q:[['¿Cuál de las siete maravillas está en México?','Chichén Itzá','El Coliseo','El Taj Mahal'],
+['¿En qué país está la Gran Muralla?','China','Perú','Brasil'],
+['¿Dónde está el Cristo Redentor?','En Río de Janeiro, Brasil','En Roma','En Yucatán'],
+['¿Qué es Machu Picchu?','Una ciudad inca en las montañas de Perú','Un palacio en la India','Un estadio'],
+['¿Cómo se escogieron las siete maravillas?','Millones de personas votaron','Las sorteó un niño','Las escogió un robot']]},
+{id:'aviones',e:'✈️',t:'¿Cómo vuela un avión?',p:[
+'Un avión pesa muchísimo, a veces más que cien coches juntos. Entonces, ¿cómo se queda en el aire? El secreto está en sus alas.',
+'Las alas tienen una forma especial. Cuando el avión avanza muy rápido, el aire pasa por arriba y por abajo de las alas y las empuja hacia arriba. A esa fuerza se le llama sustentación.',
+'Para avanzar rápido, el avión usa motores muy potentes. Por eso, antes de despegar, corre a toda velocidad por la pista. Los primeros en volar un avión con motor fueron los hermanos Wright, en Estados Unidos, en 1903. Su primer vuelo duró solo doce segundos.'],
+q:[['¿Qué parte del avión lo mantiene en el aire?','Las alas','Las ventanas','Las llantas'],
+['¿Cómo se llama la fuerza que empuja las alas hacia arriba?','Sustentación','Gravedad','Frenado'],
+['¿Por qué el avión corre por la pista antes de despegar?','Necesita mucha velocidad','Porque se le olvidó algo','Para calentar las llantas'],
+['¿Quiénes volaron el primer avión con motor?','Los hermanos Wright','Los hermanos Mario','Cristóbal Colón'],
+['¿Cuánto duró ese primer vuelo?','Doce segundos','Doce horas','Un día']]},
+{id:'popo',e:'🌋',t:'Popocatépetl e Iztaccíhuatl',p:[
+'Cerca de la Ciudad de México y de Puebla hay dos volcanes muy famosos. El Popocatépetl, al que mucha gente llama Don Goyo, es un volcán activo: a veces echa humo y ceniza. Su nombre en náhuatl quiere decir "montaña que humea".',
+'A su lado está el Iztaccíhuatl, que quiere decir "mujer blanca". Desde lejos parece una mujer acostada cubierta de nieve: se le ven la cabeza, el pecho y los pies.',
+'Una leyenda cuenta que eran dos enamorados: una princesa y un guerrero. Ella se quedó dormida para siempre y él se quedó a cuidarla con una antorcha encendida. Los científicos vigilan al Popocatépetl todos los días para avisar si hay peligro.'],
+q:[['¿Qué quiere decir Popocatépetl?','Montaña que humea','Mujer blanca','Agua grande'],
+['¿Qué quiere decir Iztaccíhuatl?','Mujer blanca','Montaña que humea','Sol rojo'],
+['¿Cómo le dice mucha gente al Popocatépetl?','Don Goyo','Don Pepe','Don Volcán'],
+['¿A qué se parece el Iztaccíhuatl desde lejos?','A una mujer acostada','A un perro','A una pirámide'],
+['¿Por qué vigilan al Popocatépetl todos los días?','Para avisar si hay peligro','Para ver si crece','Para pintarlo']]},
+{id:'tenochtitlan',e:'🦅',t:'Tenochtitlan, la ciudad en el lago',p:[
+'Cuenta la historia que los mexicas caminaron muchos años buscando una señal: un águila parada sobre un nopal. La encontraron en una isla en medio de un lago, y ahí fundaron su ciudad, Tenochtitlan, en el año 1325.',
+'Para tener más tierra, hicieron chinampas: islas artificiales de lodo y plantas donde sembraban maíz, frijol, chile y flores. Se movían por la ciudad en canoas, por canales, como si las calles fueran de agua.',
+'Tenochtitlan llegó a ser una de las ciudades más grandes del mundo en su tiempo. Encima de ella está hoy la Ciudad de México. Y aquella águila sobre el nopal es la que vemos en nuestra bandera.'],
+q:[['¿Qué señal buscaban los mexicas?','Un águila sobre un nopal','Un arcoíris','Una estrella fugaz'],
+['¿Dónde fundaron Tenochtitlan?','En una isla en medio de un lago','En la playa','En un desierto'],
+['¿Qué eran las chinampas?','Islas artificiales para sembrar','Barcos grandes','Pirámides'],
+['¿Cómo se movían por la ciudad?','En canoas, por canales','En coche','En tren'],
+['¿Qué ciudad está hoy encima de Tenochtitlan?','La Ciudad de México','Monterrey','Cancún']]},
+{id:'muertos',e:'💀',t:'El Día de Muertos',p:[
+'El 1 y el 2 de noviembre, en México recordamos a las personas queridas que ya murieron. No es un día triste: es una fiesta para recordarlas con cariño.',
+'Las familias ponen ofrendas con fotos, velas, papel picado, calaveritas de azúcar, pan de muerto y la comida favorita de quien se recuerda. Las flores de cempasúchil, de color naranja, forman caminos para que, según la tradición, las almas encuentren el camino a casa.',
+'Esta tradición mezcla costumbres de los pueblos antiguos de México con costumbres que llegaron de España. Es tan especial que en 2008 la UNESCO la reconoció como Patrimonio Cultural de la Humanidad.'],
+q:[['¿Qué días se celebra el Día de Muertos?','1 y 2 de noviembre','25 de diciembre','16 de septiembre'],
+['¿Qué flor naranja se usa en las ofrendas?','Cempasúchil','Rosa','Girasol'],
+['¿Para qué sirven los caminos de flores, según la tradición?','Para que las almas encuentren el camino a casa','Para decorar la calle','Para que no se pierdan los gatos'],
+['¿Cuál de estas cosas se pone en una ofrenda?','Pan de muerto','Un árbol de Navidad','Huevos de Pascua'],
+['¿Qué organización reconoció esta tradición en 2008?','La UNESCO','La FIFA','La NASA']]},
+{id:'sonido',e:'🎵',t:'¿Cómo se hace el sonido?',p:[
+'Todo sonido empieza con algo que vibra, o sea, que se mueve muy rápido de un lado a otro. Cuando tocas una cuerda de guitarra, la ves temblar: eso es una vibración.',
+'Esa vibración empuja el aire, y el aire lleva el sonido hasta tus oídos, como las ondas que se forman cuando tiras una piedra al agua. Dentro del oído, una pielecita llamada tímpano vibra también, y el cerebro lo entiende como sonido.',
+'Si algo vibra muy rápido, el sonido es agudo, como un silbato. Si vibra más lento, es grave, como un tambor grande. En el espacio no hay aire, así que allá no se oye nada.'],
+q:[['¿Con qué empieza todo sonido?','Con algo que vibra','Con la luz','Con el frío'],
+['¿Qué lleva el sonido hasta tus oídos?','El aire','La tierra','La luz'],
+['¿Cómo se llama la pielecita del oído que vibra?','Tímpano','Pupila','Uña'],
+['Un silbato hace un sonido…','Agudo','Grave','Silencioso'],
+['¿Por qué no se oye nada en el espacio?','No hay aire','Hace calor','Está muy oscuro']]},
+{id:'superpoderes',e:'🦸',t:'Animales con superpoderes',p:[
+'Algunos animales tienen habilidades que parecen de superhéroe. El murciélago "ve" en la oscuridad con sonidos: grita, escucha el eco que rebota en las cosas y así sabe dónde están. Se llama ecolocalización.',
+'El camarón mantis da un golpe tan rápido que puede romper la concha de un caracol. El camaleón dispara su lengua a gran velocidad para atrapar insectos. Y el pulpo cambia de color en un instante para esconderse.',
+'El tardígrado, un animalito tan pequeño que solo se ve con microscopio, puede sobrevivir sin agua por años y aguantar frío y calor extremos. ¡Hasta ha sobrevivido a viajes al espacio!'],
+q:[['¿Cómo encuentra las cosas el murciélago en la oscuridad?','Con el eco de sus sonidos','Con una linterna','Con el olfato del agua'],
+['¿Cómo se llama ese superpoder?','Ecolocalización','Fotosíntesis','Evaporación'],
+['¿Qué puede romper el golpe del camarón mantis?','La concha de un caracol','Un coche','Una montaña'],
+['¿Qué animal dispara su lengua para atrapar insectos?','El camaleón','El perro','El caballo'],
+['¿Con qué se puede ver un tardígrado?','Con un microscopio','A simple vista','Con binoculares']]},
+{id:'deportistas',e:'🏅',t:'Grandes deportistas mexicanos',p:[
+'México ha tenido deportistas que fueron de los mejores del mundo. Hugo Sánchez jugó fútbol en el Real Madrid de España y fue cinco veces el máximo goleador de la liga española. Era famoso por festejar sus goles con una voltereta.',
+'Lorena Ochoa fue la mejor golfista del mundo durante varios años. Ana Guevara fue campeona del mundo en la carrera de 400 metros en 2003. Y Fernando Valenzuela, un pitcher de Sonora, se volvió famosísimo en el béisbol de Estados Unidos en 1981.',
+'Todos tienen algo en común: empezaron de niños, entrenaron muchísimo y no se rindieron cuando perdían. El talento ayuda, pero la práctica es lo que hace campeones.'],
+q:[['¿En qué equipo de España jugó Hugo Sánchez?','Real Madrid','Barcelona','América'],
+['¿Cómo festejaba sus goles Hugo Sánchez?','Con una voltereta','Bailando','Cantando'],
+['¿En qué deporte fue la mejor del mundo Lorena Ochoa?','Golf','Natación','Tenis'],
+['¿En qué fue campeona del mundo Ana Guevara?','En la carrera de 400 metros','En ajedrez','En box'],
+['¿Qué tienen en común estos deportistas?','Entrenaron mucho y no se rindieron','Nunca practicaban','Todos jugaban fútbol']]},
+{id:'idiomas',e:'🗣️',t:'Las lenguas del mundo y de México',p:[
+'En el mundo se hablan más de siete mil idiomas. El que más personas hablan como primera lengua es el chino mandarín. El español es de los más hablados: lo hablan cientos de millones de personas.',
+'En México, además del español, se hablan 68 lenguas indígenas, como el náhuatl, el maya, el zapoteco y el mixteco. El náhuatl es la que más gente habla, y era la lengua de los mexicas.',
+'Usamos palabras del náhuatl todos los días sin darnos cuenta: chocolate, tomate, aguacate, chicle, cacahuate y elote. ¡Y también la palabra México viene del náhuatl!'],
+q:[['¿Cuántos idiomas se hablan en el mundo, más o menos?','Más de siete mil','Diez','Cien'],
+['¿Cuántas lenguas indígenas se hablan en México?','68','2','500'],
+['¿Cuál es la lengua indígena más hablada en México?','El náhuatl','El inglés','El latín'],
+['¿Cuál de estas palabras viene del náhuatl?','Aguacate','Computadora','Pizza'],
+['¿Qué lengua hablaban los mexicas?','Náhuatl','Maya','Francés']]},
+{id:'cardinales',e:'🧭',t:'Norte, sur, este y oeste',p:[
+'Para no perderse, las personas usan los puntos cardinales: norte, sur, este y oeste. Son como las cuatro direcciones principales de un mapa.',
+'Hay un truco fácil: el Sol sale por el este, en la mañana, y se mete por el oeste, en la tarde. Si te paras con tu brazo derecho apuntando hacia donde sale el Sol, enfrente de ti está el norte, atrás el sur y a tu izquierda el oeste.',
+'En casi todos los mapas, el norte está hacia arriba. Así, en un mapa de México, Chihuahua y Sonora están al norte, y Chiapas y Oaxaca al sur. La brújula también ayuda, porque su aguja siempre apunta al norte.'],
+q:[['¿Cuántos puntos cardinales hay?','Cuatro','Dos','Diez'],
+['¿Por dónde sale el Sol?','Por el este','Por el oeste','Por el norte'],
+['¿Por dónde se mete el Sol?','Por el oeste','Por el este','Por el sur'],
+['En casi todos los mapas, ¿dónde está el norte?','Arriba','Abajo','A la izquierda'],
+['¿Qué estado está al sur de México?','Chiapas','Chihuahua','Sonora']]},
+{id:'dinero',e:'🪙',t:'La historia del dinero',p:[
+'Hace mucho tiempo no existía el dinero. La gente hacía trueque: cambiaba una cosa por otra, como un costal de maíz por unas gallinas. Pero era complicado, porque no siempre querías lo que el otro tenía.',
+'Por eso se empezaron a usar cosas valiosas como dinero. En el México antiguo se usaban semillas de cacao y mantas de algodón. En otros lugares se usaban conchas o sal. Después aparecieron las monedas de metal y, más tarde, los billetes de papel.',
+'Hoy también pagamos con tarjetas y con el celular, y el dinero viaja como información. Pero la idea sigue siendo la misma: el dinero sirve para cambiarlo por las cosas que necesitamos, y vale la pena ahorrar una parte.'],
+q:[['¿Qué es el trueque?','Cambiar una cosa por otra','Pagar con tarjeta','Guardar dinero en el banco'],
+['¿Qué semillas se usaban como dinero en el México antiguo?','Cacao','Girasol','Manzana'],
+['¿Qué apareció después de las monedas?','Los billetes de papel','Las conchas','El trueque'],
+['¿Cómo se puede pagar hoy, además de efectivo?','Con tarjeta o celular','Solo con piedras','Con dibujos'],
+['¿Qué es bueno hacer con una parte del dinero?','Ahorrarla','Tirarla','Esconderla en la basura']]},
+{id:'inventos',e:'💡',t:'Inventos que cambiaron el mundo',p:[
+'La rueda se inventó hace unos cinco mil quinientos años en Mesopotamia, una región de Asia. Primero se usó para hacer vasijas de barro y luego para carretas. ¡Imagina el mundo sin ruedas: sin coches, bicis ni patinetas!',
+'El papel se inventó en China hace casi dos mil años. Mucho después, alrededor de 1450, un alemán llamado Gutenberg inventó la imprenta, una máquina para hacer muchos libros rápido. Antes, cada libro se copiaba a mano.',
+'En 1876 se patentó el teléfono, y hoy llevamos uno en el bolsillo que también es cámara, mapa y videojuego. Cada invento empezó con alguien que se hizo una pregunta y no se rindió hasta encontrar la respuesta.'],
+q:[['¿Para qué se usó primero la rueda?','Para hacer vasijas de barro','Para bicicletas','Para aviones'],
+['¿Dónde se inventó el papel?','En China','En México','En la Luna'],
+['¿Quién inventó la imprenta?','Gutenberg','Edison','Pelé'],
+['¿Cómo se hacían los libros antes de la imprenta?','Se copiaban a mano','Con computadora','No había libros'],
+['¿Qué tienen en común los inventores?','Se hicieron preguntas y no se rindieron','Todos eran ricos','Todos vivían en el mar']]},
+{id:'oceano',e:'🌊',t:'El fondo del océano',p:[
+'El océano cubre casi tres cuartas partes de la Tierra, y la mayor parte de su fondo nadie la ha visto. El lugar más profundo es la Fosa de las Marianas, en el océano Pacífico: mide unos once kilómetros de profundidad. ¡El Everest cabría adentro y sobraría agua!',
+'Allá abajo no llega la luz del sol. Es oscuro, muy frío, y el agua aprieta con muchísima fuerza. Aun así hay vida: peces con lucecitas propias, como el pez linterna, calamares enormes y gusanos que viven cerca de chimeneas de agua caliente.',
+'Para explorar el fondo del mar, los científicos usan submarinos especiales y robots. Cada vez que bajan, descubren animales nuevos. ¡El océano es el lugar menos explorado de nuestro planeta!'],
+q:[['¿Cómo se llama el lugar más profundo del océano?','La Fosa de las Marianas','El Mar Muerto','El Golfo de México'],
+['¿Qué tan profunda es, más o menos?','Once kilómetros','Diez metros','Un kilómetro'],
+['¿Cómo es el fondo del océano?','Oscuro y muy frío','Caliente y con mucho sol','Lleno de arena dorada y luz'],
+['¿Qué tiene de especial el pez linterna?','Tiene luz propia','Vuela','Habla'],
+['¿Qué usan los científicos para explorar el fondo?','Submarinos especiales y robots','Bicicletas','Globos']]},
+{id:'castillos',e:'🏰',t:'Castillos y caballeros',p:[
+'Hace unos mil años, en Europa, los reyes y señores vivían en castillos. Los hacían de piedra, con muros gruesos y torres altas para vigilar. Muchos tenían alrededor un foso con agua y un puente levadizo que se subía para que nadie entrara.',
+'Los caballeros eran guerreros que peleaban a caballo y usaban armaduras de metal que podían pesar unos veinte kilos. Desde niños aprendían a montar, a usar la espada y a portarse con honor.',
+'En los torneos, los caballeros competían en justas: corrían uno contra otro con una lanza larga. Hoy muchos castillos son museos, y se pueden visitar en países como España, Francia e Inglaterra.'],
+q:[['¿De qué estaban hechos los castillos?','De piedra','De madera delgada','De cartón'],
+['¿Para qué servía el foso con agua?','Para que nadie entrara','Para nadar','Para pescar'],
+['¿Qué usaban los caballeros para protegerse?','Armaduras de metal','Chamarras','Cascos de bici'],
+['¿Cómo se llamaba la competencia con lanzas a caballo?','Justa','Carrera de sacos','Maratón'],
+['¿Qué son hoy muchos castillos?','Museos','Escuelas de natación','Centros comerciales']]}];
+
+/* textos con preguntas (ciencia y cultura general): papá elige de una lista de 20 que se renueva */
+const WIN=20;
+const PK={cie:{data:SCI,st:'cie',sel:'cieSel',pk:'ciePick',lbl:'Ciencia',uno:'tema',visto:'visto'},
+  cult:{data:CUL,st:'cult',sel:'cultSel',pk:'cultPick',lbl:'Cultura general',uno:'texto',visto:'leído'}};
+const pkDone=(k,x)=>(S[PK[k].st]||{})[x.id]!=null;
+const pkWin=k=>PK[k].data.map((x,j)=>j).filter(j=>!pkDone(k,PK[k].data[j])).slice(0,WIN);
+function pkPick(k){const P=PK[k],D=P.data,R=dayRec();if(R[P.pk]==null||!D[R[P.pk]]){
+  const c=D.findIndex(x=>x.id===S[P.sel]);
+  if(c>=0)R[P.pk]=c;else{const U=pkWin(k);R[P.pk]=U.length?U[Math.floor(Math.random()*U.length)]:dayNum()%D.length}}
+  return R[P.pk]}
+let pkCur={k:'cie',i:0,reto:false};
+function pkOpen(k,i,reto){pkCur={k,i,reto:!!reto};const s=PK[k].data[i];
+  $('cieEm').textContent=s.e;$('cieT').textContent=s.t;$('cieInfo').textContent=`${PK[k].lbl} · lee con calma y luego contesta ${s.q.length} preguntas`;
   $('cieTxt').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');show('cie');tone(660,.06)}
-const cieQuiz=i=>numLab(SCI[i].q.map(x=>mkQ(0,`<span class="rq">${x[0]}</span>`,x[1],x.slice(2),{tx:true,noMsg:`Era: <b>${x[1]}</b>`})));
-$('cieGo').addEventListener('click',()=>qzStart('gen',cieQuiz(cieCur),{act:'cie',reto:cieReto,si:cieCur}));
+const pkQuiz=(k,i)=>numLab(PK[k].data[i].q.map(x=>mkQ(0,`<span class="rq">${x[0]}</span>`,x[1],x.slice(2),{tx:true,noMsg:`Era: <b>${x[1]}</b>`})));
+$('cieGo').addEventListener('click',()=>qzStart('gen',pkQuiz(pkCur.k,pkCur.i),{act:pkCur.k,reto:pkCur.reto,si:pkCur.i}));
 $('cieQuit').addEventListener('click',()=>{show('home');renderHome()});
-function cieSelRender(){const o=x=>`<option value="${x.id}">${x.e} ${x.t}${cieDone(x)?` (ya lo vio: ${S.cie[x.id]}/${x.q.length})`:''}</option>`;
-  const U=SCI.filter(x=>!cieDone(x)),D=SCI.filter(cieDone);
-  $('cieSel').innerHTML=`<option value="">Al azar (uno que no haya visto)</option><optgroup label="Sin ver (${U.length})">${U.map(o).join('')}</optgroup>${D.length?`<optgroup label="Ya vistos (${D.length})">${D.map(o).join('')}</optgroup>`:''}`;
-  $('cieSel').value=SCI.some(x=>x.id===S.cieSel)?S.cieSel:'';
-  const R=dayRec(),cur=SCI[ciePick()],x=R.ex&&R.ex.cie;
-  $('cieSelNote').textContent=x&&x.ok?`Hoy ya hizo «${cur.t}». Lo que elijas aquí le aparecerá mañana.`:`Tema de hoy: «${cur.t}». Escoge otro en la lista para leerlo antes de ponérselo. Si no eliges, cada día sale uno al azar de los que no ha visto.`;ciePrevRender()}
-function ciePrevRender(){const v=$('cieSel').value,x=SCI.find(y=>y.id===v),cur=SCI.some(y=>y.id===S.cieSel)?S.cieSel:'',P=$('ciePrev'),B=$('cieAssign');
-  if(!x){P.hidden=true;P.innerHTML=''}
-  else{P.hidden=false;P.innerHTML=`<details><summary>Leer «${x.t}» antes de elegirlo</summary>${x.p.map(t=>`<p>${t}</p>`).join('')}<p><b>Preguntas</b> (la respuesta correcta en negritas):</p><ol>${x.q.map(q=>`<li>${q[0]}<br><b>${q[1]}</b> · ${q[2]} · ${q[3]}</li>`).join('')}</ol></details>`}
+function pkSelRender(k){const P=PK[k],D=P.data,o=x=>`<option value="${x.id}">${x.e} ${x.t}${pkDone(k,x)?` (ya lo ${P.visto}: ${S[P.st][x.id]}/${x.q.length})`:''}</option>`;
+  const U=pkWin(k).map(j=>D[j]),Dn=D.filter(x=>pkDone(k,x));
+  $(k+'Sel').innerHTML=`<option value="">Al azar (de los que no ha ${P.visto})</option><optgroup label="Para elegir (${U.length})">${U.map(o).join('')}</optgroup>${Dn.length?`<optgroup label="Ya ${P.visto}s (${Dn.length})">${Dn.map(o).join('')}</optgroup>`:''}`;
+  $(k+'Sel').value=D.some(x=>x.id===S[P.sel])?S[P.sel]:'';
+  const R=dayRec(),cur=D[pkPick(k)],x=R.ex&&R.ex[k];
+  $(k+'SelNote').textContent=x&&x.ok?`Hoy ya hizo «${cur.t}». Lo que elijas aquí le aparecerá mañana.`:`Hoy le toca: «${cur.t}». Escoge otro en la lista para leerlo antes de ponérselo. Si no eliges, sale uno al azar. Cuando lo termina, entra uno nuevo a la lista.`;pkPrevRender(k)}
+function pkPrevRender(k){const P=PK[k],v=$(k+'Sel').value,x=P.data.find(y=>y.id===v),cur=P.data.some(y=>y.id===S[P.sel])?S[P.sel]:'',Pv=$(k+'Prev'),B=$(k+'Assign');
+  if(!x){Pv.hidden=true;Pv.innerHTML=''}
+  else{Pv.hidden=false;Pv.innerHTML=`<details><summary>Leer «${x.t}» antes de elegirlo</summary>${x.p.map(t=>`<p>${t}</p>`).join('')}<p><b>Preguntas</b> (la respuesta correcta en negritas):</p><ol>${x.q.map(q=>`<li>${q[0]}<br><b>${q[1]}</b> · ${q[2]} · ${q[3]}</li>`).join('')}</ol></details>`}
   B.hidden=v===cur;B.textContent=x?`Ponerle «${x.t}»`:'Dejar que salga al azar'}
-$('cieSel').addEventListener('change',ciePrevRender);
-$('cieAssign').addEventListener('click',()=>{S.cieSel=$('cieSel').value;const R=dayRec();if(!(R.ex&&R.ex.cie&&R.ex.cie.ok))R.ciePick=null;ciePick();save();renderHome();tone(660,.06)});
+['cie','cult'].forEach(k=>{$(k+'Sel').addEventListener('change',()=>pkPrevRender(k));
+  $(k+'Assign').addEventListener('click',()=>{const P=PK[k];S[P.sel]=$(k+'Sel').value;const R=dayRec();if(!(R.ex&&R.ex[k]&&R.ex[k].ok))R[P.pk]=null;pkPick(k);save();renderHome();tone(660,.06)})});
 
 /* ===== Fracciones con pizza ===== */
 const DEN={2:['medio','medios'],3:['tercio','tercios'],4:['cuarto','cuartos'],6:['sexto','sextos'],8:['octavo','octavos']};
@@ -1742,14 +2022,6 @@ const CULT=[
 ['¿Qué semilla mexicana se usa para hacer tortillas?','El maíz','El arroz','El trigo']];
 function cultQuiz(){return numLab(pickN(CULT,10).map(x=>mkQ(0,`<span class="rq">${x[0]}</span>`,x[1],x.slice(2),{tx:true,noMsg:`Era: <b>${x[1]}</b>`})))}
 
-/* ===== Arma oraciones ===== */
-const ORA=[['🐶','El perro corre en el parque.'],['🍦','Mi hermana come un helado.'],['⚽','Los niños juegan fútbol en la escuela.'],['📚','Yo leo un libro antes de dormir.'],['🌧️','Hoy llueve mucho en la ciudad.'],['🐱','El gato duerme en el sillón.'],['🚲','Mi papá me enseñó a andar en bici.'],['🎂','Mañana es el cumpleaños de mi abuela.'],['🍎','Me gustan las manzanas rojas.'],['🏫','Mi maestra se llama Rosa.'],['🐦','Los pájaros cantan en la mañana.'],['🧸','Mi oso de peluche es muy suave.'],['🎮','Después de la tarea juego videojuegos.'],['🌮','El domingo comimos tacos con mis tíos.'],['🌙','En la noche salen las estrellas.'],['🐢','La tortuga camina muy despacio.'],['🎨','Ayer pinté un dibujo para mi mamá.'],['🏊','En verano vamos a nadar a la alberca.'],['🦷','Me lavo los dientes tres veces al día.'],['🚌','El camión de la escuela es amarillo.'],['🌳','El árbol de mi casa es muy alto.'],['🍕','Mis amigos y yo compartimos una pizza.'],['🦖','El tiranosaurio tenía dientes enormes.'],['🧱','Construí un castillo con mis bloques.'],['🐟','Los peces nadan en el agua.']];
-const ORAOK=[['Los perros corren rápido.','Los perros corre rápido.','El perros corren rápido.'],['Yo fui al parque ayer.','Yo fuimos al parque ayer.','Yo va al parque ayer.'],['Mi mamá y yo cocinamos.','Mi mamá y yo cocina.','Mi mamá y yo cocinan.'],['Las flores son bonitas.','Las flores es bonitas.','La flores son bonitas.'],['Mañana voy a la escuela.','Mañana fui a la escuela.','Mañana voy en la escuela.'],['Ayer comí pizza.','Ayer como pizza.','Ayer comeré pizza.'],['El niño está contento.','El niño está contenta.','El niño están contento.'],['Nosotros jugamos fútbol.','Nosotros juego fútbol.','Nosotros juegan fútbol.'],['Me gustan los dulces.','Me gusta los dulces.','Me gustan el dulces.'],['Tengo dos gatos negros.','Tengo dos gato negros.','Tengo dos gatos negro.'],['Ella se llama Ana.','Ella me llama Ana.','Ella se llamo Ana.'],['Hoy hace mucho calor.','Hoy hacen mucho calor.','Hoy hace mucha calor.'],['Mis amigos vinieron a mi casa.','Mis amigos vino a mi casa.','Mis amigo vinieron a mi casa.'],['La mesa es grande.','La mesa es grando.','El mesa es grande.'],['¿Quieres jugar conmigo?','¿Quieres jugar con mí?','¿Quieres jugar con yo?']];
-const ORACU=[['Me desperté.','Me lavé los dientes.','Desayuné.','Me fui a la escuela.'],['Sembré una semilla.','La regué todos los días.','Salió una plantita.','Creció una flor.'],['Saqué el pan.','Le puse jamón.','Cerré el sándwich.','Me lo comí.'],['Llegué a la fiesta.','Cantamos las mañanitas.','Partimos el pastel.','Abrimos los regalos.'],['Se ponchó la llanta.','Mi papá sacó la llanta de repuesto.','Cambió la llanta.','Seguimos el viaje.'],['Empezó a llover.','Abrí mi paraguas.','Salté en los charcos.','Llegué a casa mojado.']];
-function oraQuiz(){const B=pickN(ORA,5).map(([e,t])=>({k:0,lab:'',q:`<span class="em">${e}</span><span class="rq">Ordena las palabras para formar la oración</span>`,build:t.split(' '),okMsg:`¡Muy bien! <b>${t}</b>`,noMsg:`Era: <b>${t}</b>`}));
-  const C=pickN(ORAOK,3).map(x=>mkQ(0,'<span class="rq">¿Cuál está bien dicha?</span>',x[0],x.slice(1),{tx:true,noMsg:`Se dice: <b>${x[0]}</b>`}));
-  const H=pickN(ORACU,2).map(x=>({k:0,lab:'',q:'<span class="rq">Ordena lo que pasó, de primero a último</span>',build:x.slice(),okMsg:'¡Así pasó!',noMsg:'El orden era: '+x.join(' → ')}));
-  return numLab([B[0],C[0],B[1],H[0],B[2],C[1],B[3],H[1],B[4],C[2]])}
 
 /* ===== Lectura ===== */
 const STORIES=[
@@ -2117,7 +2389,7 @@ const rdRead=s=>(S.rd||{})[s.id]!=null;
 const rdMins=s=>Math.max(1,Math.round(s.p.join(' ').split(/\s+/).length/90));
 function rdPick(){const R=dayRec();if(R.rdPick==null||!STORIES[R.rdPick]){
   const c=STORIES.findIndex(x=>x.id===S.rdSel);
-  if(c>=0)R.rdPick=c;else{const U=STORIES.map((x,j)=>j).filter(j=>!rdRead(STORIES[j]));R.rdPick=U.length?U[Math.floor(Math.random()*U.length)]:dayNum()%STORIES.length}}
+  if(c>=0)R.rdPick=c;else{const U=STORIES.map((x,j)=>j).filter(j=>!rdRead(STORIES[j])).slice(0,20);R.rdPick=U.length?U[Math.floor(Math.random()*U.length)]:dayNum()%STORIES.length}}
   return R.rdPick}
 function renderRD(){
   const i=rdPick(),s=STORIES[i],R=dayRec(),sc=(S.rd||{})[s.id],D=STORIES.map((x,j)=>j).filter(j=>rdRead(STORIES[j])&&j!==i);
