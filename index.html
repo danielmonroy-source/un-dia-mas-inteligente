@@ -129,6 +129,15 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .op.good::after{content:' ✓';font-weight:800}.op.bad::after{content:' ✗';font-weight:800}
 @media (prefers-reduced-motion:reduce){#mark.go{animation-duration:1.2s}}
 .rdprev details{background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:6px 12px;margin:4px 0 10px}#rdPrev summary{cursor:pointer;font-weight:700;min-height:40px;line-height:1.3;padding:8px 0}.rdprev p,.rdprev li{font-size:15px;line-height:1.45}.rdprev ol{padding-left:20px}
+.clk{width:min(210px,56vw);height:auto;display:block;margin:0 auto;color:var(--ink)}.clk .cf{fill:var(--card);stroke:var(--ink);stroke-width:4}.clk text{font:700 17px "Baloo 2",system-ui,sans-serif;fill:var(--ink)}.clk line{stroke:var(--ink)}.clk .hh{stroke:var(--pink);stroke-width:8;stroke-linecap:round}.clk .mh{stroke:#1d6fd8;stroke-width:5;stroke-linecap:round}.clk .cc{fill:var(--ink)}
+.qp .gw{font-size:clamp(38px,11vw,56px);letter-spacing:1px}.qp .gw u{text-decoration:none;border-bottom:4px solid var(--pink);color:var(--pink)}
+.qp .seq{font-size:clamp(26px,7.5vw,36px)}.qp .seq.emo{letter-spacing:2px;line-height:1.3;font-size:clamp(28px,8vw,38px)}.qp .seq u{text-decoration:none;color:var(--pink)}
+.mon{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+.cn{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:18px;font-weight:800;background:radial-gradient(circle at 35% 30%,#f1f3f6,#aab3bf);color:#222;border:3px solid #8a939e}
+.cn.c10{background:radial-gradient(circle,#e8c45a 0 45%,#c9ced6 46%);border-color:#9aa1aa}
+.bl{min-width:96px;height:50px;border-radius:8px;display:grid;place-items:center;font-size:20px;font-weight:800;color:#fff;border:3px solid rgba(0,0,0,.15)}
+.b20{background:#2a8fa8}.b50{background:#c2408f}.b100{background:#d1453b}.b200{background:#3d9a4f}.b500{background:#3b6fc4}
+.cfgh{font-weight:800;margin:14px 0 4px}.cfg{display:grid;gap:6px}.cr{display:flex;align-items:center;gap:6px;background:light-dark(#eaf4ff,#14213d);border-radius:12px;padding:4px 8px}.cr label{flex:1;margin:0}.cr:not(.on){opacity:.75}.cr .mini{min-width:44px}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 /* suma y resta */
 .worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
@@ -287,7 +296,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div class="tabs" id="tabs"><button data-t="reto">⭐ Reto del día</button><button data-t="libre">Practicar libre</button></div>
     <div class="daily" id="daily"></div>
     <div id="libre">
-    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button></div>
+    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button><button data-w="orto">🔤 Ortografía</button><button data-w="log">🧩 Lógica</button><button data-w="reloj">🕒 Reloj</button><button data-w="din">💰 Dinero</button></div>
     <div id="wX">
     <h2>Tu camino</h2>
     <div class="path" id="path"></div>
@@ -301,6 +310,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     </div>
     <div id="wEN" hidden></div>
     <div id="wRD" hidden></div>
+    <div id="wG" hidden></div>
     </div>
     <details class="papas" id="papas">
       <summary>Para papás</summary>
@@ -327,6 +337,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
         <option value="sin3">3 cifras, sin llevar ni prestar</option>
         <option value="con3">3 cifras, llevando/prestando</option>
       </select></label>
+      <div id="cfgBox"></div>
       <label>Lectura del reto: <select id="rdSel"></select></label>
       <p class="note" id="rdSelNote"></p>
       <div id="rdPrev" class="rdprev" hidden></div>
@@ -537,9 +548,9 @@ function renderHome(){
   <table class="pt"><tr><th>Tabla</th><th class="r">Medallas</th><th class="r">Dominio</th></tr>${range().map(t=>`<tr><td>×${t}</td><td class="r">${medals(t)}/5</td><td class="r">${Math.round(tsum(t)/30*100)}%</td></tr>`).join('')}</table>
   <p class="note">Las que más ha fallado:</p><div class="fails">${fails.length?fails.map(([k,c])=>`<span>${k.replace('x',' × ')} (${c})</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
   flame('m1',curStreak()?3:0);
-  const wd=['sr','en','rd'].includes(S.world)?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';
+  const wd=['sr','en','rd','orto','log','reloj','din'].includes(S.world)?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';$('wG').hidden=!GEN[wd];
   [...$('worlds').children].forEach(b=>b.classList.toggle('on',b.dataset.w===wd));
-  renderSR();renderDaily();renderEN();renderRD();renderXProg();
+  renderSR();renderDaily();renderEN();renderRD();renderGen();renderXProg();
 }
 let curT=1;
 function openTable(t){
@@ -1037,43 +1048,45 @@ function pickRetoT(){
   const y=(S.daily||{})[yday()],prev=y&&y.t;
   return c.find(t=>t!==prev)||c[0]}
 function dayRec(){const d=today();S.daily=S.daily||{};let R=S.daily[d];
-  if(!R){R=S.daily[d]={t:pickRetoT(),tOk:false,tTries:0,col:false,colOk:0,en:false,enOk:0,enSet:S.enIdx||0,rd:null,rdOk:0,rdPick:null,bonus:false};
+  if(!R){R=S.daily[d]={t:pickRetoT(),tOk:false,tTries:0,col:false,colOk:0,en:false,enOk:0,enSet:S.enIdx||0,rd:null,rdOk:0,rdPick:null,bonus:false,cfg:retoCfg()};
     const ks=Object.keys(S.daily).sort();while(ks.length>60)delete S.daily[ks.shift()]}
   return R}
 const r1=x=>Math.round(x*10)/10;
 const calCls=c=>c==null?'':c>=8?'hi':c>=6?'mid':'lo';
 /* calificaciones del día (sobre 10, primer intento de cada parte) */
-function dayCals(R){const c=[['Tabla del '+R.t,R.tCal],['Cuentas en columna',R.colCal],['Inglés',R.enCal],['Lectura',R.rdCal]];
-  const v=c.map(x=>x[1]).filter(x=>x!=null);return{c,avg:v.length===4?r1(v.reduce((a,b)=>a+b,0)/4):null}}
+function dayCals(R){const K=dayKeys(R),c=K.map(k=>[kName(k,R),kCal(k,R)]);
+  const v=c.map(x=>x[1]).filter(x=>x!=null);return{c,K,avg:v.length===c.length?r1(v.reduce((a,b)=>a+b,0)/v.length):null}}
 function boleta(R){const {c,avg}=dayCals(R);
   return `<div class="boleta"><b class="bt">Tu calificación de hoy</b>${c.map(([n,v])=>`<div class="br"><span>${n}</span><b class="cal ${calCls(v)}">${v??'–'}</b></div>`).join('')}
   <div class="br tot"><span>Promedio</span><b class="cal ${calCls(avg)}">${avg??'–'}</b></div></div>`}
 function retoBonus(){const R=dayRec();if(retoParts(R).every(Boolean)&&!R.bonus){R.bonus=true;S.pts+=50;S.retoDays=(S.retoDays||0)+1;return '¡<b>Reto del día completo</b>! Te ganaste <b>50 puntos</b> de premio'+boleta(R)}return null}
-function retoParts(R){return[R.tOk,R.col,R.en,!!R.rd]}
+function retoParts(R){return dayKeys(R).map(k=>kDone(k,R))}
 function renderDaily(){
-  const R=dayRec(),P=retoParts(R),n=P.filter(Boolean).length,full=n===4,st=STORIES[rdPick()];
+  const R=dayRec(),P=retoParts(R),NP=P.length,n=P.filter(Boolean).length,full=n===NP,st=STORIES[rdPick()];
   const tab=S.tab==='libre'?'libre':'reto';
   $('daily').hidden=tab!=='reto';$('libre').hidden=tab!=='libre';
-  [...$('tabs').children].forEach(b=>{b.classList.toggle('on',b.dataset.t===tab);if(b.dataset.t==='reto')b.innerHTML=`⭐ Reto del día <small>${full?'✓':n+'/4'}</small>`});
+  [...$('tabs').children].forEach(b=>{b.classList.toggle('on',b.dataset.t===tab);if(b.dataset.t==='reto')b.innerHTML=`⭐ Reto del día <small>${full?'✓':n+'/'+NP}</small>`});
   $('daily').className='daily'+(full?' full':'');
   const rq=R.redo||{};
   const row=(k,ic,ok,t,d)=>`<button class="mode ${ok?'ok':''}" data-d="${k}"><span class="n">${ok?'✓':ic}</span><span><b>${t}</b><span>${!ok&&rq[k]?'<em class="redo">Papá pidió repetirla</em> ':''}${d}</span></span><span class="ck">${ok?'¡Listo!':'›'}</span></button>`;
   const enSub=R.en?'¡Listo! Palabras y frases':`Palabras ${R.enWd?'✓':'pendientes'} · Frases ${R.enPd?'✓':'pendientes'}`;
-  $('daily').innerHTML=`<div class="dh">Reto de hoy <span>${full?'¡Completo! +50':n+' de 4'}</span></div>
-    <div class="dbar"><i style="width:${n*25}%"></i></div>
-    <div class="modes">
-    ${row('t','1',R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden y luego en desorden'+(R.tTries?` · intentos: ${R.tTries}`:''))}
-    ${row('c','2',R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc())}
-    ${row('en','3',R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub)}
-    ${row('rd','4',!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de ${R.rdN||5} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`)}</div>
-    <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':'Completa las 4 partes y gana 50 puntos de premio.'}</p>${full?boleta(R):''}`;
+  $('daily').innerHTML=`<div class="dh">Reto de hoy <span>${full?'¡Completo! +50':n+' de '+NP}</span></div>
+    <div class="dbar"><i style="width:${n/NP*100}%"></i></div>
+    <div class="modes">${dayKeys(R).map((k,i)=>{const I=String(i+1);
+    if(k==='t')return row('t',I,R.tOk,`Tabla del ${R.t}`,R.tOk?'¡Lo lograste!':'En orden y luego en desorden'+(R.tTries?` · intentos: ${R.tTries}`:''));
+    if(k==='c')return row('c',I,R.col,'10 cuentas en columna',R.col?`${R.colOk} de 10 sin error`:colDesc());
+    if(k==='en')return row('en',I,R.en,'Inglés: '+EN_N+' palabras y 2 frases',enSub);
+    if(k==='rd')return row('rd',I,!!R.rd,'Lectura: '+(R.rd?(STORIES.find(x=>x.id===R.rd)||st).t:st.t),R.rd?`${R.rdOk} de ${R.rdN||5} preguntas bien`:`Unos 3 minutos y ${st.q.length} preguntas`);
+    const g=GEN[k],x=R.ex&&R.ex[k];return row(k,I,kDone(k,R),`${g.e} ${g.n}`,x&&x.ok?`${x.first} de ${x.n} a la primera`:'10 preguntas')}).join('')}</div>
+    <p class="note">${full?'¡Terminaste todo el reto de hoy! Mañana hay uno nuevo. Puedes seguir en "Practicar libre".':`Completa las ${NP} partes y gana 50 puntos de premio.`}</p>${full?boleta(R):''}`;
   const sel=$('retoSel');
   sel.innerHTML=`<option value="0">Automática (una que no se sabe)</option>`+[2,3,4,5,6,7,8,9,10].map(t=>`<option value="${t}">×${t}</option>`).join('');
-  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-');rdSelRender()}
+  sel.value=String(S.retoT||0);$('sumSel').value=colLv('+');$('resSel').value=colLv('-');rdSelRender();cfgRender()}
 $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const k=b.dataset.d;tone(660,.06);
   if(k==='t')start('reto',dayRec().t);else if(k==='c')srReto();
   else if(k==='rd')rdOpen(rdPick());
   else if(k==='en')openEnx();
+  else if(GEN[k])genStart(k,true);
   else{S.tab='libre';S.world=k;save();renderHome();window.scrollTo(0,0)}});
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.tab=b.dataset.t;save();tone(660,.06);renderHome()});
 const toReto=()=>{S.tab='reto';show('home');renderHome()};
@@ -1294,12 +1307,12 @@ $('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[Q
     return}
   const b=e.target.closest('.op');if(!b||b.disabled)return;
   const ok=q.opts[+b.dataset.i].v===q.ans;
-  if(!ok&&QZ.kind==='en'){ // no avanza hasta acertar; ya no cuenta como acierto y se repite al final
+  if(!ok&&(QZ.kind==='en'||QZ.kind==='gen')){ // no avanza hasta acertar; ya no cuenta como acierto y se repite al final
     if(!q.retry&&!q.wrong){QZ.res[q.k]='no';QZ.list.push(Object.assign({},q,{retry:true,wrong:0,opts:shuffle(q.opts.slice())}))}
     q.wrong=(q.wrong||0)+1;QZ.combo=0;b.classList.add('bad');b.disabled=true;mark(false);mood('m5','oops');tone(220,.25,'triangle');
     $('qzmsg').innerHTML='No es esa. Intenta otra vez.';$('qzcombo').hidden=true;flame('m5',0);qzDots();save();return}
   qzResolve(ok,b,q)});
-$('qzquit').addEventListener('click',()=>{if(QZ)clearTimeout(QZ.to);if(QZ&&QZ.kind==='rd')rdOpen(QZ.si);else if(S.tab!=='libre')openEnx();else{show('home');renderHome()}});
+$('qzquit').addEventListener('click',()=>{if(QZ)clearTimeout(QZ.to);if(QZ&&QZ.kind==='rd')rdOpen(QZ.si);else if(QZ&&QZ.kind==='gen'){show('home');renderHome()}else if(S.tab!=='libre')openEnx();else{show('home');renderHome()}});
 function qzFinish(){
   const b=bookRound(QZ.pts,QZ.maxc),R=dayRec(),news=[],N=QZ.n;
   if(QZ.kind==='en'){
@@ -1307,6 +1320,11 @@ function qzFinish(){
     if(R.enCal==null&&R.enWf!=null&&R.enPf!=null)R.enCal=r1((R.enWf+R.enPf)/(R.enWn+R.enPn)*10);
     if(!R.en&&R.enWd&&R.enPd){R.en=true;if(!R.enCounted){R.enCounted=true;S.enIdx=(S.enIdx||0)+1}enS();(R.enW||[]).forEach(w=>S.enLearned[w]=1);news.push('¡Terminaste el <b>inglés de hoy</b>! Mañana tendrás palabras y frases nuevas.')}
     else if(!R.en)news.push(QZ.part==='w'?'¡Palabras listas! Ahora sigue <b>Practicar frases</b>.':'¡Frases listas! Ahora sigue <b>Practicar palabras</b>.');
+  }else if(QZ.kind==='gen'){const k=QZ.act,g=GEN[k];S.gx=S.gx||{};const x=S.gx[k]=S.gx[k]||{n:0,best:0,log:[]};
+    x.n++;x.best=Math.max(x.best,QZ.first);x.log.unshift({d:today(),ok:QZ.first,n:N,reto:!!QZ.reto});if(x.log.length>30)x.log.length=30;
+    R.ex=R.ex||{};
+    if(QZ.reto&&!(R.ex[k]&&R.ex[k].ok)){R.ex[k]={ok:true,cal:r1(QZ.first/N*10),first:QZ.first,n:N};news.push(`¡Terminaste <b>${g.n}</b> del reto de hoy!`)}
+    news.push(QZ.first===N?'¡Todas bien a la primera!':`Contestaste bien <b>${QZ.first} de ${N}</b> a la primera.`);
   }else{
     const st=STORIES[QZ.si];S.rd=S.rd||{};S.rdLog=S.rdLog||[];
     const tries=S.rdLog.filter(x=>x.id===st.id).length+1;
@@ -1325,10 +1343,134 @@ function qzFinish(){
   if(QZ.kind==='en'){const pt=QZ.part,Rd=dayRec();againAct=pt==='w'?enQuizW:enQuizP;
     if(!Rd.en){nextAct=pt==='w'?enQuizP:enQuizW;$('nextb').textContent=pt==='w'?'Practicar frases':'Practicar palabras'}
     else{nextAct=toReto;$('nextb').textContent='Al reto del día'}}
+  else if(QZ.kind==='gen'){const k=QZ.act,rt=QZ.reto;againAct=()=>genStart(k,rt);if(rt){nextAct=toReto;$('nextb').textContent='Al reto del día'}else{nextAct=()=>{show('home');renderHome()};$('nextb').textContent='Volver'}}
   else{const si=QZ.si;againAct=()=>rdOpen(si);nextAct=toReto;$('nextb').textContent='Al reto del día'}
   show('end');mood('m3',QZ.first>=N*.6?'happy':null);flame('m3',QZ.maxc);
   [0,.12,.24].forEach((w,i)=>tone([523,659,784][i],.2,'sine',w));
   if(QZ.first>=N*.8)confetti()}
+
+/* ===== Actividades nuevas: ortografía, lógica, reloj y dinero ===== */
+const rint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pickOne=a=>a[Math.floor(Math.random()*a.length)];
+const pickN=(a,n)=>shuffle(a.slice()).slice(0,n);
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function mkQ(k,q,ans,others,extra){const v=[String(ans)];for(const c of others){if(v.length>=4)break;const s=String(c);if(c!=null&&c!==''&&!v.includes(s))v.push(s)}
+  return Object.assign({k,lab:'',q,opts:shuffle(v.map((h,i)=>({h,v:i===0?1:0}))),ans:1},extra||{})}
+const numLab=L=>{L.forEach((q,i)=>{q.k=i;q.lab=`Pregunta ${i+1} de ${L.length}`});return L};
+
+/* --- Ortografía: [correcta|incorrecta] --- */
+const ORTO=['ca[b|v]allo','[v|b]aca','[b|v]urro','[v|b]entana','nu[b|v]e','[v|b]iernes','[b|v]arco','hier[b|v]a','[v|b]olcán','la[v|b]ar','a[b|v]eja','nue[v|b]o','[v|b]erde','[b|v]otella','[b|v]osque','[v|b]aso',
+'[z|s]apato','ta[z|s]a','[c|s]ielo','cora[z|s]ón','pe[z|s]','[c|s]ebolla','[s|c]illa','lu[z|s]','[c|s]ine','[z|s]orro','man[z|s]ana','do[c|s]e','[s|c]emana','cabe[z|s]a','[c|s]erdo','[c|s]iudad',
+'[ll|y]ave','ca[ll|y]e','po[ll|y]o','ga[ll|y]ina','[ll|y]uvia','pla[y|ll]a','[y|ll]egua','es[t|]re[ll|y]a','to[ll|y]a','pa[y|ll]aso',
+'[g|j]irafa','[g|j]irasol','ore[j|g]a','[j|g]ugo','[g|j]ente','vie[j|g]o','[g|j]elatina','[j|g]ardín','ma[g|j]o','relo[j|g]','[j|g]uguete','[g|j]igante',
+'[h|]elado','[h|]uevo','[h|]ormiga','[h|]ospital','[h|]ielo','[h|]oja','[h|]ermano','[h|]ora','[|h]oso','[|h]amigo','[|h]árbol','[|h]ojo',
+'pe[rr|r]o','ca[rr|r]o','ma[r|rr]iposa','go[rr|r]a','tie[rr|r]a','[r|rr]atón','to[rr|r]e','pe[r|rr]a','gui[t|]a[rr|r]a','[r|rr]ojo',
+'[á|a]rbol','l[á|a]piz','cami[ó|o]n','m[ú|u]sica','p[á|a]jaro','tel[é|e]fono','beb[é|e]','caf[é|e]','mam[á|a]','pap[á|a]','ma[í|i]z','sof[á|a]','m[é|e]dico','n[ú|u]mero','l[á|a]mpara','pl[á|a]tano',
+'[M|m]éxico','[O|o]axaca','[M|m]aría','[l|L]unes','[e|E]nero','[J|j]uan','[m|M]artes','[C|c]hiapas','[d|D]iciembre','[L|l]uis'].filter(s=>(s.match(/\[/g)||[]).length===1);
+function ortoParse(s){const m=s.match(/^(.*)\[([^\]]*)\](.*)$/),al=m[2].split('|');return{pre:m[1],post:m[3],ok:al[0],alt:al.slice(1)}}
+const ortoLet=x=>x===''?'ninguna':x;
+function ortoQuiz(){return numLab(pickN(ORTO,10).map((s,i)=>{const o=ortoParse(s),w=o.pre+o.ok+o.post,ex={noMsg:`Se escribe <b>${w}</b>`,okMsg:`¡Sí! Se escribe <b>${w}</b>`};
+  if(i%2===0)return mkQ(i,`<span class="rq">¿Qué letra va en el hueco?</span><span class="gw">${o.pre}<u>&#8199;?&#8199;</u>${o.post}</span>`,ortoLet(o.ok),o.alt.map(ortoLet),ex);
+  return mkQ(i,'<span class="rq">¿Cuál está bien escrita?</span>',w,o.alt.map(a=>o.pre+a+o.post),Object.assign({tx:true},ex))}))}
+
+/* --- Lógica --- */
+const LCAT=[['frutas',['🍎','🍌','🍇','🍓','🍉','🍍']],['animales',['🐶','🐱','🐮','🐷','🐴','🐔']],['transportes',['🚗','🚌','🚲','✈️','🚂','🚀']],['deportes',['⚽','🏀','🎾','⚾','🏈']],['ropa',['👕','👖','🧦','🧢','👟']],['el clima',['☀️','🌧️','❄️','🌈','⛈️']]];
+const LSH=['🔴','🔵','🟢','🟡','⭐','🔺','🟣','🟠','❤️','🌙'];
+const ACERT=[['Ana es más alta que Beto. Beto es más alto que Caro. ¿Quién es la más bajita?','Caro','Ana','Beto'],
+['Si hoy es lunes, ¿qué día será pasado mañana?','Miércoles','Martes','Jueves'],
+['Si ayer fue viernes, ¿qué día es hoy?','Sábado','Jueves','Domingo'],
+['Tengo 3 gatos y cada gato tiene 4 patas. ¿Cuántas patas hay?','12','7','10'],
+['Un pastel se parte en 4 pedazos iguales y te comes 1. ¿Cuántos pedazos quedan?','3','4','5'],
+['En una fila, Leo está antes que Mía y Mía está antes que Teo. ¿Quién está en medio?','Mía','Leo','Teo'],
+['Hay 5 pájaros en un árbol. Llegan 3 y se van 2. ¿Cuántos quedan?','6','10','4'],
+['Pedro tiene el doble de canicas que Juan. Juan tiene 4. ¿Cuántas tiene Pedro?','8','6','2'],
+['Soy un número. Si me sumas 5, da 12. ¿Qué número soy?','7','17','5'],
+['Todos los perros ladran. Firulais es un perro. ¿Firulais ladra?','Sí','No','No se sabe'],
+['Luis llegó antes que Ana, y Ana llegó antes que Sofi. ¿Quién llegó al último?','Sofi','Luis','Ana'],
+['Una araña tiene 8 patas. ¿Cuántas patas tienen 2 arañas?','16','10','8'],
+['Si un mes tiene 4 semanas, ¿cuántos días son, más o menos?','28','14','40'],
+['Tengo 10 pesos y compro un dulce de 4. ¿Cuánto me queda?','6','14','4'],
+['¿Qué pesa más: un kilo de algodón o un kilo de piedras?','Pesan lo mismo','Las piedras','El algodón'],
+['Mi hermano tiene 2 años más que yo. Yo tengo 8. ¿Cuántos tiene él?','10','6','8'],
+['En una caja hay 3 pelotas rojas y 2 azules. ¿Cuántas pelotas hay en total?','5','3','6'],
+['Si me pongo los calcetines, ¿qué me pongo después: los zapatos o los calcetines?','Los zapatos','Los calcetines','Nada'],
+['Un triángulo tiene 3 lados. ¿Cuántos lados tienen 3 triángulos?','9','6','3'],
+['Carlos está a la izquierda de Rosa y Rosa está a la izquierda de Paco. ¿Quién está más a la derecha?','Paco','Carlos','Rosa']];
+function logSerie(kind){let s,ans,oth;
+  if(kind===0){const d=pickOne([2,3,4,5,10]),a=rint(1,20);s=[0,1,2,3].map(i=>a+i*d);ans=a+4*d;oth=[ans+d,ans-1,ans+1,ans-d]}
+  else if(kind===1){const d=pickOne([2,3,5,10]),a=d*rint(6,10)+rint(0,d-1);s=[0,1,2,3].map(i=>a-i*d);ans=a-4*d;oth=[ans-d,ans+1,ans-1,ans+d]}
+  else{const a=pickOne([1,2,3,5]);s=[a,2*a,4*a,8*a];ans=16*a;oth=[12*a,ans+2,10*a,ans-2]}
+  return mkQ(0,`<span class="rq">¿Qué número sigue?</span><span class="seq">${s.join(', ')}, <u>?</u></span>`,ans,oth,{noMsg:`Seguía el <b>${ans}</b>`})}
+function logPat(){const pt=pickOne(['AB','ABC','AAB','ABB','ABCD']),L=[...new Set(pt)],E=pickN(LSH,L.length+1),m={};L.forEach((c,i)=>m[c]=E[i]);
+  const n=pt.length>=4?8:7,seq=Array.from({length:n},(_,i)=>m[pt[i%pt.length]]),ans=m[pt[n%pt.length]];
+  return mkQ(0,`<span class="rq">¿Qué figura sigue?</span><span class="seq emo">${seq.join(' ')} <u>?</u></span>`,ans,shuffle(E.filter(x=>x!==ans)),{noMsg:`Seguía ${ans}`})}
+function logOdd(){const [A,B]=pickN(LCAT,2),three=pickN(A[1],3),odd=pickOne(B[1]),all=shuffle([...three,odd]);
+  return mkQ(0,`<span class="rq">¿Cuál no va con las demás?</span><span class="seq emo">${all.join(' ')}</span>`,odd,three,{noMsg:`Era ${odd}: los demás son ${A[0]}.`,okMsg:`¡Sí! Los demás son ${A[0]}.`})}
+function logAcert(x){return mkQ(0,`<span class="rq">${x[0]}</span>`,x[1],x.slice(2),{tx:true,noMsg:`Era: <b>${x[1]}</b>`})}
+function logQuiz(){const A=pickN(ACERT,3);return numLab([logSerie(0),logPat(),logOdd(),logAcert(A[0]),logSerie(pickOne([1,2])),logPat(),logAcert(A[1]),logOdd(),logSerie(0),logAcert(A[2])])}
+
+/* --- Reloj --- */
+const HN=['doce','una','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce'];
+const hh=h=>((h-1+12)%12)+1;
+const hd=(h,m)=>`${hh(h)}:${String(m).padStart(2,'0')}`;
+function clockSVG(h,m){const ha=(h%12+m/60)*30,ma=m*6;let t='';
+  for(let i=1;i<=12;i++){const a=i*Math.PI/6;t+=`<text x="${100+74*Math.sin(a)}" y="${100-74*Math.cos(a)+8}" text-anchor="middle">${i}</text>`}
+  for(let i=0;i<60;i++){const a=i*Math.PI/30,r1=i%5?88:84;t+=`<line x1="${100+r1*Math.sin(a)}" y1="${100-r1*Math.cos(a)}" x2="${100+92*Math.sin(a)}" y2="${100-92*Math.cos(a)}" stroke-width="${i%5?1.5:3}"/>`}
+  return `<svg class="clk" viewBox="0 0 200 200" aria-label="Reloj"><circle cx="100" cy="100" r="96" class="cf"/>${t}
+  <line x1="100" y1="100" x2="${100+46*Math.sin(ha*Math.PI/180)}" y2="${100-46*Math.cos(ha*Math.PI/180)}" class="hh"/>
+  <line x1="100" y1="100" x2="${100+72*Math.sin(ma*Math.PI/180)}" y2="${100-72*Math.cos(ma*Math.PI/180)}" class="mh"/><circle cx="100" cy="100" r="6" class="cc"/></svg>`}
+function horaTxt(h,m){const art=x=>(hh(x)===1?'la ':'las ')+HN[hh(x)];
+  if(m===0)return cap(art(h))+' en punto';if(m===15)return cap(art(h))+' y cuarto';if(m===30)return cap(art(h))+' y media';return 'Cuarto para '+art(h+1)}
+function relojLeer(){const h=rint(1,12),m=pickOne([0,0,15,30,30,45,5,10,20,25,35,40,50,55]);
+  const oth=[hd(h+1,m),hd(h-1,m),hd(h,(m+30)%60)];if(m%5===0&&m!==0&&m/5!==h)oth.unshift(hd(m/5,(h*5)%60));
+  return mkQ(0,`<span class="rq">¿Qué hora es?</span>${clockSVG(h,m)}`,hd(h,m),oth,{noMsg:`Eran las <b>${hd(h,m)}</b>. La manecilla corta marca la hora y la larga los minutos.`})}
+function relojDecir(){const h=rint(1,12),m=pickOne([0,15,30,45]),ok=horaTxt(h,m);
+  const oth=[horaTxt(h-1,m),horaTxt(h+1,m),...[0,15,30,45].filter(x=>x!==m).map(x=>horaTxt(h,x))];
+  return mkQ(0,`<span class="rq">¿Cómo se dice esta hora?</span><span class="gw">${hd(h,m)}</span>`,ok,shuffle(oth),{tx:true,noMsg:`Se dice: <b>${ok}</b>`})}
+function relojSuma(){const h=rint(1,11),m=pickOne([0,15,30,45]),[ad,txt]=pickOne([[15,'15 minutos'],[30,'media hora'],[60,'1 hora'],[120,'2 horas']]);
+  const tot=h*60+m+ad,H=Math.floor(tot/60),M=tot%60;
+  return mkQ(0,`<span class="rq">Son las ${hd(h,m)}. ¿Qué hora será en ${txt}?</span>${clockSVG(h,m)}`,hd(H,M),[hd(H+1,M),hd(H-1,M),hd(H,(M+15)%60),hd(h,m)],{noMsg:`Será la${hh(H)===1?'':'s'} <b>${hd(H,M)}</b>`})}
+function relojQuiz(){return numLab([relojLeer(),relojLeer(),relojDecir(),relojLeer(),relojSuma(),relojDecir(),relojLeer(),relojSuma(),relojDecir(),relojLeer()])}
+
+/* --- Dinero --- */
+const mny=v=>v<20?`<span class="cn${v===10?' c10':''}">$${v}</span>`:`<span class="bl b${v}">$${v}</span>`;
+const COSAS=[['📒','un cuaderno'],['🍦','un helado'],['🧃','un jugo'],['⚽','un balón'],['🍫','un chocolate'],['✏️','un lápiz'],['🧸','un peluche'],['🍕','una rebanada de pizza'],['🎈','un globo'],['🚗','un carrito']];
+function dinContar(){let it,tot;do{it=Array.from({length:rint(3,5)},()=>pickOne([1,2,5,10,10,20,50]));tot=it.reduce((a,b)=>a+b,0)}while(tot>150);
+  it.sort((a,b)=>b-a);return mkQ(0,`<span class="rq">¿Cuánto dinero hay?</span><span class="mon">${it.map(mny).join('')}</span>`,'$'+tot,shuffle([tot+5,tot-5,tot+10,tot+1,tot-1].filter(x=>x>0)).map(x=>'$'+x),{noMsg:`Hay <b>$${tot}</b>`})}
+function dinCambio(){const M=pickOne([20,50,50,100,100]),P=Math.random()<.5?5*rint(1,M/5-1):rint(M===20?3:M===50?11:25,M-1),c=pickOne(COSAS),ans=M-P;
+  return mkQ(0,`<span class="rq">Compras ${c[1]} ${c[0]} que cuesta <b>$${P}</b> y pagas con:</span><span class="mon">${mny(M)}</span><span class="rq">¿Cuánto te dan de cambio?</span>`,'$'+ans,shuffle([ans+10,ans-10,ans+1,ans-1,ans+5].filter(x=>x>0)).map(x=>'$'+x),{noMsg:`$${M} − $${P} = <b>$${ans}</b>`})}
+function dinAlcanza(){let it,W;do{it=Array.from({length:rint(2,4)},()=>pickOne([1,2,5,10,20]));W=it.reduce((a,b)=>a+b,0)}while(W<8);
+  it.sort((a,b)=>b-a);const P=Math.max(2,W+pickOne([-6,-3,-1,0,1,3,6])),c=pickOne(COSAS),ok=W>=P;
+  return mkQ(0,`<span class="rq">Tienes:</span><span class="mon">${it.map(mny).join('')}</span><span class="rq">¿Te alcanza para ${c[1]} ${c[0]} de <b>$${P}</b>?</span>`,ok?'Sí':'No',[ok?'No':'Sí'],{noMsg:`Tienes $${W} y cuesta $${P}: <b>${ok?'sí':'no'} alcanza</b>.`})}
+function dinQuiz(){return numLab([dinContar(),dinCambio(),dinAlcanza(),dinContar(),dinCambio(),dinContar(),dinCambio(),dinAlcanza(),dinContar(),dinCambio()])}
+
+const GEN={orto:{n:'Ortografía',e:'🔤',d:'Letras que se confunden: b/v, c/s/z, ll/y, g/j, h, r/rr, acentos y mayúsculas.',f:ortoQuiz},
+  log:{n:'Lógica',e:'🧩',d:'Series de números, figuras que siguen, ¿cuál no va? y acertijos.',f:logQuiz},
+  reloj:{n:'El reloj',e:'🕒',d:'Leer la hora en un reloj de manecillas y saber qué hora será.',f:relojQuiz},
+  din:{n:'Dinero',e:'💰',d:'Contar monedas y billetes, dar cambio y saber si alcanza.',f:dinQuiz}};
+function genStart(k,reto){qzStart('gen',GEN[k].f(),{act:k,reto:!!reto})}
+function renderGen(){const k=S.world,g=GEN[k];if(!g){$('wG').innerHTML='';return}const x=(S.gx||{})[k]||{};
+  $('wG').innerHTML=`<h2>${g.e} ${g.n}</h2><p class="note">${g.d}</p><button class="big" id="genGo">Practicar (10 preguntas)</button>
+  <p class="note">${x.n?`Rondas: <b>${x.n}</b> · Mejor resultado: <b>${x.best} de 10</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>`}
+$('wG').addEventListener('click',e=>{if(e.target.closest('#genGo'))genStart(S.world,false)});
+
+/* --- Reto del día configurable --- */
+const RK_ALL=['t','c','en','rd','orto','log','reloj','din'],RK_DEF=['t','c','en','rd'];
+const retoCfg=()=>{const c=(S.retoCfg||RK_DEF).filter(k=>RK_ALL.includes(k));return c.length?c:RK_DEF.slice()};
+const dayKeys=R=>R&&R.cfg&&R.cfg.length?R.cfg:RK_DEF;
+const KS={t:'Tabla',c:'Cuentas',en:'Inglés',rd:'Lectura',orto:'Ortografía',log:'Lógica',reloj:'Reloj',din:'Dinero'};
+const kName=(k,R)=>k==='t'?'Tabla del '+R.t:k==='c'?'Cuentas en columna':GEN[k]?GEN[k].n:KS[k];
+const kDone=(k,R)=>k==='t'?!!R.tOk:k==='c'?!!R.col:k==='en'?!!R.en:k==='rd'?!!R.rd:!!(R.ex&&R.ex[k]&&R.ex[k].ok);
+const kCal=(k,R)=>k==='t'?R.tCal:k==='c'?R.colCal:k==='en'?R.enCal:k==='rd'?R.rdCal:(R.ex&&R.ex[k]?R.ex[k].cal:null);
+function cfgRender(){const on=retoCfg(),off=RK_ALL.filter(k=>!on.includes(k));
+  $('cfgBox').innerHTML=`<p class="cfgh">Actividades del reto del día</p><div class="cfg">${on.map((k,i)=>`<div class="cr on"><label><input type="checkbox" data-ck="${k}" checked> ${i+1}. ${KS[k]}</label><button class="mini" data-up="${k}" ${i?'':'disabled'} aria-label="Subir">↑</button><button class="mini" data-dn="${k}" ${i<on.length-1?'':'disabled'} aria-label="Bajar">↓</button></div>`).join('')}
+  ${off.map(k=>`<div class="cr"><label><input type="checkbox" data-ck="${k}"> ${KS[k]}</label></div>`).join('')}</div>
+  <p class="note">Palomea para agregar, quita la paloma para quitar, y usa las flechas para el orden. El cambio aplica desde hoy.</p>`}
+$('cfgBox').addEventListener('click',e=>{const t=e.target;let on=retoCfg();
+  if(t.dataset.ck){const k=t.dataset.ck;if(t.checked){if(!on.includes(k))on.push(k)}else{if(on.length<=1){t.checked=true;return}on=on.filter(x=>x!==k)}}
+  else if(t.dataset.up||t.dataset.dn){const k=t.dataset.up||t.dataset.dn,i=on.indexOf(k),j=i+(t.dataset.up?-1:1);if(i<0||j<0||j>=on.length)return;[on[i],on[j]]=[on[j],on[i]]}
+  else return;
+  S.retoCfg=on;dayRec().cfg=on.slice();save();renderHome();tone(660,.06)});
 
 /* ===== Lectura ===== */
 const STORIES=[
@@ -1725,8 +1867,9 @@ $('rdQuit').addEventListener('click',()=>{S.tab='libre';S.world='rd';show('home'
 
 /* ===== Para papás ===== */
 /* historial permanente de calificaciones por día */
-function calSnap(){const d=today(),R=(S.daily||{})[d];if(!R)return;const {c,avg}=dayCals(R);if(c.every(x=>x[1]==null))return;S.cal=S.cal||{};S.cal[d]={t:R.t,v:c.map(x=>x[1]),avg}}
-function calBackfill(){S.cal=S.cal||{};Object.entries(S.daily||{}).forEach(([d,R])=>{if(S.cal[d])return;const {c,avg}=dayCals(R);if(c.some(x=>x[1]!=null))S.cal[d]={t:R.t,v:c.map(x=>x[1]),avg}})}
+const calM=(R,c,K)=>{const m={};K.forEach((k,i)=>{if(c[i][1]!=null)m[k]=c[i][1]});return m};
+function calSnap(){const d=today(),R=(S.daily||{})[d];if(!R)return;const {c,K,avg}=dayCals(R);if(c.every(x=>x[1]==null))return;S.cal=S.cal||{};S.cal[d]={t:R.t,m:calM(R,c,K),avg}}
+function calBackfill(){S.cal=S.cal||{};Object.entries(S.daily||{}).forEach(([d,R])=>{if(S.cal[d])return;const {c,K,avg}=dayCals(R);if(c.some(x=>x[1]!=null))S.cal[d]={t:R.t,m:calM(R,c,K),avg}})}
 let histAll=false;
 const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 function calHist(){calBackfill();const E=Object.entries(S.cal).sort((a,b)=>a[0]<b[0]?1:-1);
@@ -1734,15 +1877,17 @@ function calHist(){calBackfill();const E=Object.entries(S.cal).sort((a,b)=>a[0]<
   const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${v}</b>`,fd=d=>{const [y,m,dd]=d.split('-');return `${+dd}/${+m}/${y.slice(2)}`};
   const months={};E.forEach(([d,x])=>{const k=d.slice(0,7);(months[k]=months[k]||[]).push(x)});
   const avg=a=>a.length?r1(a.reduce((s,v)=>s+v,0)/a.length):null;
-  const mrows=Object.entries(months).map(([k,a])=>{const col=i=>avg(a.map(x=>x.v[i]).filter(v=>v!=null));const full=a.filter(x=>x.avg!=null);
-    return `<tr><td>${MES[+k.slice(5)-1]} ${k.slice(0,4)}</td><td class="r">${cv(col(0))}</td><td class="r">${cv(col(1))}</td><td class="r">${cv(col(2))}</td><td class="r">${cv(col(3))}</td><td class="r">${cv(avg(full.map(x=>x.avg)))}</td><td class="r">${full.length}</td></tr>`}).join('');
+  const MV=x=>x.m||(x.v?{t:x.v[0],c:x.v[1],en:x.v[2],rd:x.v[3]}:{});
+  const COLS=RK_ALL.filter(k=>E.some(([d,x])=>MV(x)[k]!=null)),th=COLS.map(k=>`<th class="r">${KS[k]}</th>`).join('');
+  const mrows=Object.entries(months).map(([k,a])=>{const col=c=>avg(a.map(x=>MV(x)[c]).filter(v=>v!=null));const full=a.filter(x=>x.avg!=null);
+    return `<tr><td>${MES[+k.slice(5)-1]} ${k.slice(0,4)}</td>${COLS.map(c=>`<td class="r">${cv(col(c))}</td>`).join('')}<td class="r">${cv(avg(full.map(x=>x.avg)))}</td><td class="r">${full.length}</td></tr>`}).join('');
   const list=histAll?E:E.slice(0,14);
-  const rows=list.map(([d,x])=>`<tr><td>${fd(d)}</td><td class="r">×${x.t} ${cv(x.v[0])}</td><td class="r">${cv(x.v[1])}</td><td class="r">${cv(x.v[2])}</td><td class="r">${cv(x.v[3])}</td><td class="r">${cv(x.avg)}</td></tr>`).join('');
+  const rows=list.map(([d,x])=>`<tr><td>${fd(d)}</td>${COLS.map(c=>`<td class="r">${c==='t'&&MV(x).t!=null?'×'+x.t+' ':''}${cv(MV(x)[c])}</td>`).join('')}<td class="r">${cv(x.avg)}</td></tr>`).join('');
   return `<h3 class="ph">Historial de calificaciones</h3>
   <p class="note">Promedio por mes (la última columna son los días con el reto completo):</p>
-  <div class="tw"><table class="pt hs"><tr><th>Mes</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th><th class="r">Prom.</th><th class="r">Días</th></tr>${mrows}</table></div>
+  <div class="tw"><table class="pt hs"><tr><th>Mes</th>${th}<th class="r">Prom.</th><th class="r">Días</th></tr>${mrows}</table></div>
   <p class="note">Por día (${E.length} ${E.length===1?'día':'días'} guardados):</p>
-  <div class="tw"><table class="pt hs"><tr><th>Fecha</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th><th class="r">Prom.</th></tr>${rows}</table></div>
+  <div class="tw"><table class="pt hs"><tr><th>Fecha</th>${th}<th class="r">Prom.</th></tr>${rows}</table></div>
   ${E.length>14?`<button class="mini" id="histMore">${histAll?'Ver solo los últimos 14 días':'Ver todos los días'}</button>`:''}`}
 const mmss=x=>`${Math.floor(x/60)}:${String(x%60).padStart(2,'0')}`;
 const calif=l=>Math.round(l.ok/l.n*100)/10;
@@ -1762,18 +1907,20 @@ function rdReport(){
   ${miss?`<p class="note">Preguntas que falló en las últimas lecturas:</p>${miss}`:''}`}
 function renderXProg(){
   const D=S.daily||{},L=['D','L','M','M','J','V','S'];let rows='';
-  for(let i=6;i>=0;i--){const ms=Date.now()-i*864e5,d=dstr(ms),r=D[d];
+  const W7=[];for(let i=6;i>=0;i--){const ms=Date.now()-i*864e5;W7.push([ms,D[dstr(ms)]])}
+  const C7=RK_ALL.filter(k=>W7.some(([ms,r])=>r&&dayKeys(r).includes(k)));
+  for(const [ms,r] of W7){
     const cv=v=>v==null?'–':`<b class="cal ${calCls(v)}">${v}</b>`,dc=r?dayCals(r):null;
-    rows+=`<tr><td>${L[new Date(ms).getDay()]} ${new Date(ms).getDate()}</td><td class="r">${r&&(r.tOk||r.tTries)?`×${r.t} ${cv(r.tCal)}${r.tOk?'':' ('+r.tTries+')'}`:'–'}</td><td class="r">${cv(r&&r.colCal)}</td><td class="r">${cv(r&&r.enCal)}</td><td class="r">${cv(r&&r.rdCal)}</td><td class="r">${cv(dc&&dc.avg)}</td></tr>`}
+    rows+=`<tr><td>${L[new Date(ms).getDay()]} ${new Date(ms).getDate()}</td>${C7.map(k=>`<td class="r">${k==='t'?(r&&(r.tOk||r.tTries)?`×${r.t} ${cv(r.tCal)}${r.tOk?'':' ('+r.tTries+')'}`:'–'):cv(r&&kCal(k,r))}</td>`).join('')}<td class="r">${cv(dc&&dc.avg)}</td></tr>`}
   const done=STORIES.filter(rdRead);
-  const Rt=dayRec(),parts=[['t','Tabla del '+Rt.t,Rt.tOk,Rt.tCal],['c','Cuentas',Rt.col,Rt.colCal],['en','Inglés',Rt.en,Rt.enCal],['rd','Lectura',!!Rt.rd,Rt.rdCal]];
+  const Rt=dayRec(),parts=dayKeys(Rt).map(k=>[k,kName(k,Rt),kDone(k,Rt),kCal(k,Rt)]);
   $('xprog').innerHTML=`${calHist()}<h3 class="ph">Pedir que repita una actividad de hoy</h3>
   <p class="note">La actividad vuelve a quedar pendiente en su reto y se califica de nuevo.</p>
   <div class="eng">${parts.map(([k,n,ok,c])=>`<button data-redo="${k}" ${ok?'':'disabled'}><span>${n}</span><small>${ok?`Hecha (${c??'–'}) · tocar para repetir`:(Rt.redo||{})[k]?'Pendiente: pediste repetirla':'Todavía no la hace'}</small></button>`).join('')}</div>
   <h3 class="ph">Reto del día, inglés y lectura</h3>
   <p class="note">Retos del día completos: <b>${S.retoDays||0}</b> · Palabras de inglés: <b>${enCount()}</b> de ${WALL.length}</p>
-  <table class="pt"><tr><th>Día</th><th class="r">Tabla</th><th class="r">Cuentas</th><th class="r">Inglés</th><th class="r">Lectura</th><th class="r">Prom.</th></tr>${rows}</table>
-  <p class="note">Calificaciones sobre 10, con el primer intento de cada parte del día. El promedio sale cuando completa las 4. En "Tabla", el número entre paréntesis son los intentos sin lograr el reto.</p>
+  <div class="tw"><table class="pt hs"><tr><th>Día</th>${C7.map(k=>`<th class="r">${KS[k]}</th>`).join('')}<th class="r">Prom.</th></tr>${rows}</table></div>
+  <p class="note">Calificaciones sobre 10, con el primer intento de cada parte del día. El promedio sale cuando completa todas las del día. En "Tabla", el número entre paréntesis son los intentos sin lograr el reto.</p>
   ${rdReport()}
   <h3 class="ph">Inglés: cambiar palabras</h3>
   <p class="note">Toca una palabra de hoy que ya sepa y se cambia por la siguiente.</p>
@@ -1789,7 +1936,8 @@ $('xprog').addEventListener('click',e=>{enS();const R=dayRec();
     if(k==='t'){R.prevCal.t=R.tCal;R.tOk=false;R.tCal=null;R.tTries=0}
     else if(k==='c'){R.prevCal.c=R.colCal;R.col=false;R.colCal=null;R.colOk=0}
     else if(k==='en'){R.prevCal.en=R.enCal;R.en=false;R.enWd=R.enPd=false;R.enWf=R.enPf=R.enCal=null;R.enOk=R.enPOk=0}
-    else{R.prevCal.rd=R.rdCal;R.rd=null;R.rdCal=null;R.rdOk=0}
+    else if(k==='rd'){R.prevCal.rd=R.rdCal;R.rd=null;R.rdCal=null;R.rdOk=0}
+    else if(GEN[k]){R.ex=R.ex||{};R.prevCal[k]=R.ex[k]?R.ex[k].cal:null;R.ex[k]=null}
     save();renderHome();return}
   const w=e.target.closest('[data-kw]');if(w){S.enKnown[w.dataset.kw]=1;save();renderHome();return}
   if(e.target.closest('#phNext')){R.ph=(R.ph==null?(S.enIdx||0):R.ph)+1;save();renderHome();return}
