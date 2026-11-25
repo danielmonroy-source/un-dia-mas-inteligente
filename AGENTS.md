@@ -16,11 +16,11 @@ npx playwright install chromium --only-shell
 npm test
 ```
 
-Para ver la aplicación, sirve el directorio con `python3 -m http.server 3000 --bind 127.0.0.1` y abre `http://localhost:3000`. En desarrollo usa un origen separado y una sesión sin código real. Las pruebas de navegador sirven los archivos localmente e interceptan las solicitudes de nube. `index.html` y `motor.js` son suficientes para servir el frontend.
+Para ver la aplicación, sirve el directorio con `python3 -m http.server 3000 --bind 127.0.0.1` y abre `http://localhost:3000`. En desarrollo usa un origen separado y una sesión sin código real. Las pruebas de navegador sirven los archivos localmente e interceptan las solicitudes de nube. El código fuente puede servirse como `index.html` y `motor.js`. Para distribución estática, usa el artefacto de `npm run build` y el procedimiento de HANDOFF.
 
 ## Criterios antes de revisión
 
-- Conserva las 29 pruebas de base y añade regresiones para los cambios que lo requieran.
+- Conserva las 32 pruebas de base de Fase 0 y añade regresiones para los cambios que lo requieran.
 - Confirma que se pueden leer datos anteriores, que los fallos de importación no alteran el progreso y que el diff carece de datos personales introducidos y cambios ajenos.
 - Ejecuta `git diff --check`. Registra versión probada, resultados, decisiones y pendientes en [HANDOFF.md](HANDOFF.md).
 - Consulta [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) para arquitectura y operaciones y [ROADMAP.md](ROADMAP.md) para prioridades y criterios por fase.

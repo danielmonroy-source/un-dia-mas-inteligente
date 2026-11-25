@@ -88,3 +88,11 @@ test('junta el resumen por conocimiento y migra el lado que todavía no lo tiene
   }
   delete globalThis.Motor;
 });
+
+test('reconoce la misma base aunque JSONB reordene sus claves', () => {
+  const day='2024-03-01', common=base(), local=base(), remote=base();
+  common.daily[day]={t:4,ex:{log:{cal:7,ok:true,n:10}}};
+  local.daily[day]={t:4,ex:{log:{cal:9,ok:true,n:10}}};
+  remote.daily[day]={t:4,ex:{log:{n:10,ok:true,cal:7}}};
+  assert.equal(nubeMerge(local,remote,common).daily[day].ex.log.cal,9);
+});

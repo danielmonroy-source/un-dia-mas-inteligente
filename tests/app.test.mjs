@@ -10,29 +10,43 @@ import { join } from 'node:path';
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
-const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
+const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8')
+  .replace("if(CODE)pull();else pinMigrate();", `window.syntheticProgress = ({day, record, points, attempt}) => {
+    S.daily[day] = {...S.daily[day], ...record};
+    S.pts += points;
+    if(attempt)mot(attempt);
+    save();
+  };
+  if(CODE)pull();else pinMigrate();`);
 const motor = readFileSync(fileURLToPath(new URL('../motor.js', import.meta.url)), 'utf8');
 const CODE = 'a'.repeat(32);
 const datosIniciales = () => ({ pts: 240, best: 20, streak: 1, last: '2024-02-29', days: { '2024-02-29': 5 }, facts: { '4x1': 3 }, med: {}, miss: {},
   sr: { med: {}, err: {}, fails: [] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {}, cal: { '2024-02-29': { m: { t: 10 }, t: 4, avg: 7.2 } },
-  ts: 179562043207, nombre: 'Persona de prueba', pin: '2580', mute: false, open: false, retoCfg: ['t', 'c', 'en', 'rd'] });
+  ts: Date.UTC(2024, 1, 29, 16), nombre: 'Persona de prueba', pin: '2580', mute: false, open: false, retoCfg: ['t', 'c', 'en', 'rd'] });
 
-function nubeFalsa({ sinV2 = false, sinIntentos = false } = {}) {
+function nubeFalsa({ sinV3 = false, sinIntentos = false, code = CODE } = {}) {
   let n = 0; const stamp = () => new Date(Date.UTC(2024, 2, 1, 16, 0, 0, ++n)).toISOString();
-  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [] };
+  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [], escrituras: new Map(), offline: false };
   db.cambiarDesdeOtroDispositivo = f => { f(db.datos); db.actualizado = stamp(); };
   db.ruta = async route => {
     const fn = route.request().url().split('/rpc/')[1]; const b = JSON.parse(route.request().postData() || '{}'); db.llamadas.push(fn);
+    if (db.offline) return route.abort();
     const json = x => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(x) });
-    if (b.p_codigo !== CODE) return route.fulfill({ status: 400, body: '{}' });
+    if (b.p_codigo !== code) return route.fulfill({ status: 400, body: '{}' });
     const respaldar = motivo => db.respaldos.unshift({ id: db.respaldos.length + 1, creado: new Date().toISOString(), motivo, datos: JSON.parse(JSON.stringify(db.datos)) });
     switch (fn) {
       case 'tt_cargar': return json({ datos: db.datos, actualizado: db.actualizado });
       case 'tt_guardar': db.datos = b.p_datos; db.actualizado = stamp(); return json(db.actualizado);
-      case 'tt_guardar2':
-        if (sinV2) return route.fulfill({ status: 404, body: '{}' });
-        if (b.p_base && b.p_base !== db.actualizado) return json({ ok: false, conflicto: true, actualizado: db.actualizado });
-        db.datos = b.p_datos; db.actualizado = stamp(); return json({ ok: true, actualizado: db.actualizado });
+      case 'tt_guardar3':
+        if (sinV3) return route.fulfill({ status: 404, body: '{}' });
+        if (db.beforeWrite) await db.beforeWrite(b);
+        if (db.escrituras.has(b.p_id)) return json(db.escrituras.get(b.p_id));
+        if (b.p_base !== db.actualizado) return json({ ok: false, conflicto: true, actualizado: db.actualizado });
+        db.datos = b.p_datos; db.actualizado = stamp();
+        const receipt = { ok: true, actualizado: db.actualizado };
+        db.escrituras.set(b.p_id, receipt);
+        if (db.dropReply) { db.dropReply = false; return route.abort(); }
+        return json(receipt);
       case 'tt_respaldo_crear': respaldar(b.p_motivo); return json(true);
       case 'tt_respaldos_listar': return json(db.respaldos.map(r => ({ id: r.id, creado: r.creado, motivo: r.motivo, pts: r.datos.pts })));
       case 'tt_respaldo_cargar': return json((db.respaldos.find(r => r.id === b.p_id) || {}).datos ?? null);
@@ -126,11 +140,12 @@ test('contraseña cifrada, guardado sin pisarse, borrar y restaurar, exportar', 
   await ctx.close();
 });
 
-test('si la nube todavía no tiene el guardado nuevo, sigue guardando como antes', async () => {
-  const db = nubeFalsa({ sinV2: true }); const { ctx, page, errores } = await abrir(db);
-  await esperar(() => db.datos.pinH && db.llamadas.includes('tt_guardar'), 'usa tt_guardar como respaldo');
+test('si la nube todavía no tiene el guardado nuevo, conserva el avance local sin usar la escritura antigua', async () => {
+  const db = nubeFalsa({ sinV3: true }); const { ctx, page, errores } = await abrir(db);
+  await page.waitForFunction(() => document.querySelector('#cloud').textContent.includes('guardado seguro'));
   await page.click('#snd');
-  await esperar(() => db.datos.mute === true, 'guarda el cambio');
+  assert.equal(db.datos.mute, false);
+  assert.ok(!db.llamadas.includes('tt_guardar'));
   assert.deepEqual(errores, []);
   await ctx.close();
 });
@@ -171,7 +186,7 @@ test('cada respuesta queda registrada y sube a la nube; el avance anterior se mi
   assert.equal(db.datos.ku['en:dog'].mig, 1, 'las palabras aprendidas se migran');
   assert.equal(db.datos.pts > 240 || db.datos.pts === 240, true);
   assert.equal(db.datos.rk[4], 1, 'las medallas del reto no cambian');
-  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('tt-cola')).length), 0, 'la cola queda vacía');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('tt-profile-v1:' + localStorage.getItem('tt-codigo'))).queue.length), 0, 'la cola queda vacía');
   // panel de papás
   await page.goto(url); await page.click('#papas > summary');
   await page.fill('#pin', '2580'); await page.click('#pinGo');
@@ -187,7 +202,7 @@ test('sin la tabla de intentos en la nube, las respuestas esperan en el disposit
   await esperar(() => db.datos.pinH, 'carga inicial');
   await contestarTabla(page, 2);
   await esperar(() => db.llamadas.includes('tt_intentos_agregar'), 'intenta subirlas');
-  assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('tt-cola')).length) >= 3);
+  assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('tt-profile-v1:' + localStorage.getItem('tt-codigo'))).queue.length) >= 3);
   assert.deepEqual(errores, []);
   await ctx.close();
 });
@@ -220,7 +235,7 @@ test('un navegador nuevo sin código no pierde nada: al poner el código carga l
   assert.match(await page.textContent('#codeMsg'), /no es válido/);
   await page.fill('#codeIn', url.split('?')[0] + '?p=' + CODE); await page.click('#codeGo');
   await page.waitForFunction(() => document.getElementById('sPts').textContent === '240');
-  const S = await page.evaluate(() => JSON.parse(localStorage.getItem('tablas-turbo-v2')));
+  const S = await page.evaluate(() => JSON.parse(localStorage.getItem('tt-profile-v1:' + (localStorage.getItem('tt-codigo') || 'local'))).state);
   assert.deepEqual(S.retoCfg, ['t', 'rd'], 'la configuración de la nube no se pisa');
   assert.equal(S.colSum, 'sin3');
   await page.waitForTimeout(2500);
@@ -239,7 +254,7 @@ test('rechaza copias inválidas antes de hacer un respaldo o reemplazar el progr
     await page.fill('#pin', '2580');
     await page.click('#pinGo');
     await page.waitForSelector('#pbody', { state: 'visible' });
-    const before = await page.evaluate(() => localStorage.getItem('tablas-turbo-v2'));
+    const before = await page.evaluate(() => localStorage.getItem('tt-profile-v1:' + (localStorage.getItem('tt-codigo') || 'local')));
     const invalid = [
       '{',
       '{"app":"otra-app","v":1,"datos":{"pts":1}}',
@@ -254,7 +269,7 @@ test('rechaza copias inválidas antes de hacer un respaldo o reemplazar el progr
     for (const buffer of invalid) {
       await page.setInputFiles('#impFile', { name: 'copia.json', mimeType: 'application/json', buffer: Buffer.from(buffer) });
       await page.waitForFunction(() => document.querySelector('#bkMsg').textContent.includes('No se cambió nada'));
-      assert.equal(await page.evaluate(() => localStorage.getItem('tablas-turbo-v2')), before);
+      assert.equal(await page.evaluate(() => localStorage.getItem('tt-profile-v1:' + (localStorage.getItem('tt-codigo') || 'local'))), before);
       // Esperar el mensaje de cada archivo por separado.
       await page.locator('#bkMsg').evaluate(el => { el.textContent = ''; });
     }
@@ -263,8 +278,11 @@ test('rechaza copias inválidas antes de hacer un respaldo o reemplazar el progr
     const compat = { pts: 14, nombre: 'Perfil de muestra', facts: { '2x2': 2 }, datoFuturo: { etiqueta: 'muestra' } };
     await page.setInputFiles('#impFile', { name: 'avance.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(compat)) });
     await page.waitForFunction(() => document.querySelector('#bkMsg').textContent.includes('Se cargó la copia'));
-    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('tablas-turbo-v2')));
-    for (const key of Object.keys(compat)) assert.deepEqual(restored[key], compat[key]);
+    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('tt-profile-v1:' + (localStorage.getItem('tt-codigo') || 'local'))).state);
+    assert.equal(restored.pts, 240, 'la copia antigua no sustituye los puntos actuales');
+    assert.equal(restored.nombre, 'Persona de prueba');
+    assert.equal(restored.facts['2x2'], 2);
+    assert.deepEqual(restored.datoFuturo, compat.datoFuturo);
     assert.equal(restored.pinH, db.datos.pinH);
   } finally { await ctx.close(); }
 });
@@ -317,5 +335,145 @@ test('el respaldo de voz en línea utiliza una frase genérica y conserva el aud
     const requests = await page.evaluate(() => window.audioUrls);
     assert.deepEqual(requests.map(u => new URL(u).searchParams.get('q')), ['My name is Alex.', vocab]);
     assert.ok(requests.every(u => new URL(u).hostname === 'translate.google.com'));
+  } finally { await ctx.close(); }
+});
+
+test('dos dispositivos concilian partes, puntos, boleta e intentos concurrentes', async () => {
+  const db = nubeFalsa();
+  const a = await abrir(db);
+  await esperar(() => db.datos.pinH, 'perfil inicial');
+  const b = await abrir(db);
+  const start = ctx => ctx.page.waitForFunction(() => document.querySelector('#cloud').textContent.includes('Al día'));
+  try {
+    await Promise.all([start(a),start(b)]);
+    const day = '2024-03-02';
+    const attempt = {k:'mul:2x2',ok:true,primero:true,fmt:'rcl',dia:day};
+    await Promise.all([
+      a.page.evaluate(v => window.syntheticProgress(v), {day,record:{t:2,tOk:true,tCal:8,cfg:['t','c']},points:10,attempt}),
+      b.page.evaluate(v => window.syntheticProgress(v), {day,record:{t:2,col:true,colCal:9,cfg:['t','c']},points:20,attempt})
+    ]);
+    await esperar(() => db.datos.daily[day]?.bonus && db.intentos.length===2, 'las dos partes y sus intentos');
+    assert.equal(db.datos.daily[day].tOk,true);
+    assert.equal(db.datos.daily[day].col,true);
+    assert.equal(db.datos.pts,320);
+    assert.equal(db.datos.cal[day].avg,8.5);
+    assert.equal(db.datos.ku['mul:2x2'].n,2);
+    assert.equal(new Set(db.intentos.map(i=>i.id)).size,2);
+  } finally { await Promise.all([a.ctx.close(),b.ctx.close()]); }
+});
+
+test('edición durante una escritura y respuesta perdida conservan progreso sin duplicados', async () => {
+  const db = nubeFalsa();
+  const {page,ctx} = await abrir(db);
+  try {
+    await esperar(() => db.datos.pinH, 'perfil inicial');
+    let unblock,started;
+    const waiting = new Promise(resolve => { started=resolve; });
+    db.beforeWrite = async () => { db.beforeWrite=null; started(); await new Promise(resolve => {unblock=resolve;}); };
+    db.dropReply=true;
+    const write = points=>page.evaluate(points=>window.syntheticProgress({day:'2024-03-02',record:{t:2},points}),points);
+    await write(10);
+    await waiting;
+    await write(20);
+    unblock();
+    await esperar(() => db.datos.pts===270,'se conserva la edición durante la escritura');
+    assert.equal(db.escrituras.size,3,'el reintento reutiliza el comprobante de la primera escritura');
+  } finally { await ctx.close(); }
+});
+
+test('avances sin conexión se reintentan al recuperar red', async () => {
+  const db = nubeFalsa();
+  const {page,ctx}=await abrir(db);
+  try {
+    await esperar(()=>db.datos.pinH,'perfil inicial');
+    db.offline=true;
+    await page.click('#snd');
+    await page.waitForFunction(()=>document.querySelector('#cloud').textContent.includes('Sin conexión'));
+    assert.equal(db.datos.mute,false);
+    db.offline=false;
+    await page.evaluate(()=>window.dispatchEvent(new Event('online')));
+    await esperar(()=>db.datos.mute===true,'cambio pendiente recuperado');
+  } finally { await ctx.close(); }
+});
+
+test('migra estado y cola antiguos al perfil de origen y aísla un código nuevo', async () => {
+  const second='b'.repeat(32), source=nubeFalsa(), dest=nubeFalsa({code:second});
+  dest.datos.pts=74;
+  const ctx=await browser.newContext();
+  try {
+    const page=await ctx.newPage();
+    await page.addInitScript(({code,datos})=>{
+      if(localStorage.getItem('tt-profile-migrated'))return;
+      localStorage.setItem('tt-codigo',code);
+      localStorage.setItem('tablas-turbo-v2',JSON.stringify(datos));
+      localStorage.setItem('tt-cola',JSON.stringify([{id:crypto.randomUUID(),k:'en:dog',ok:true,primero:true}]));
+    },{code:CODE,datos:source.datos});
+    await page.route('**/*',r=>r.request().url().startsWith('http://127.0.0.1')?r.continue():r.abort());
+    await page.route('https://*.supabase.co/rest/v1/rpc/*',r=>{
+      return r.request().postDataJSON().p_codigo===second?dest.ruta(r):source.ruta(r)
+    });
+    await page.goto(url.replace(CODE,second));
+    await page.waitForFunction(()=>document.querySelector('#sPts').textContent==='74');
+    const migrated=await page.evaluate(code=>JSON.parse(localStorage.getItem('tt-profile-v1:'+code)),CODE);
+    assert.equal(migrated.state.pts,240);
+    assert.equal(migrated.queue.length,1);
+    assert.equal(dest.intentos.length,0);
+    await page.goto(url);
+    await esperar(()=>source.intentos.length===1,'la cola vuelve solo al perfil inicial');
+    assert.equal(dest.intentos.length,0);
+  } finally { await ctx.close(); }
+});
+
+test('evita dos escritores para el mismo perfil en pestañas del mismo navegador', async () => {
+  const db=nubeFalsa();
+  const {ctx,page}=await abrir(db);
+  try {
+    await esperar(()=>db.datos.pinH,'perfil inicial');
+    const other=await ctx.newPage();
+    await other.goto(url);
+    assert.match(await other.locator('body').innerText(),/ya está abierto en otra pestaña/);
+    await page.close();
+    await other.reload();
+    await other.waitForFunction(()=>document.querySelector('#sPts')?.textContent==='240');
+  } finally { await ctx.close(); }
+});
+
+test('transfiere la copia portable entre orígenes sin exportar la cola ni las credenciales', async () => {
+  const ctx=await browser.newContext({acceptDownloads:true});
+  try {
+    const page=await ctx.newPage();
+    const source=new URL(url);
+    source.search='';
+    const target=new URL(source);
+    target.hostname='localhost';
+    await page.addInitScript(origin=>{
+      if(location.origin===origin&&!localStorage.getItem('tablas-turbo-v2')){
+        localStorage.setItem('tablas-turbo-v2',JSON.stringify({pts:47,datosFuturos:{access_token:'sintetico'}}));
+        localStorage.setItem('tt-cola',JSON.stringify([{id:crypto.randomUUID(),k:'en:dog',ok:true}]));
+      }
+    },source.origin);
+    await page.route('**/*',route=>{
+      const origin=new URL(route.request().url()).origin;
+      return [source.origin,target.origin].includes(origin)?route.continue():route.abort()
+    });
+    const openParents=async()=>{
+      await page.click('#papas > summary');
+      await page.fill('#pin','2580');
+      await page.click('#pinGo');
+    };
+    await page.goto(source.href);
+    await openParents();
+    const [download]=await Promise.all([page.waitForEvent('download'),page.click('#expBtn')]);
+    const file=join(mkdtempSync(join(tmpdir(),'udmi-transfer-')),'progreso.json');
+    await download.saveAs(file);
+    const backup=JSON.parse(readFileSync(file,'utf8'));
+    assert.equal(backup.datos.pts,47);
+    assert.deepEqual(backup.datos.datosFuturos,{});
+    assert.ok(!('pinH' in backup.datos)&&!('intentos' in backup));
+    await page.goto(target.href);
+    await page.waitForFunction(()=>document.querySelector('#sPts')?.textContent==='0');
+    await openParents();
+    await page.setInputFiles('#impFile',file);
+    await page.waitForFunction(()=>document.querySelector('#sPts').textContent==='47');
   } finally { await ctx.close(); }
 });

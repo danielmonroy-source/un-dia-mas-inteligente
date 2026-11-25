@@ -476,7 +476,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 <script>window.onerror=function(m,u,l){var d=document.createElement("div");d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fff3cd;color:#000;padding:8px;font:13px sans-serif";d.textContent="Error: "+m+" (línea "+l+")";(document.body||document.documentElement).appendChild(d)};</script>
 <script src="motor.js?v=1"></script>
 <script>
-{
+(async()=>{
 const K='tablas-turbo-v2',LV=150,HARD=[4,6,7,8,9];
 const MODES=[
   {id:'esc',name:'Escalera',d:'En orden, del 1 al 10'},
@@ -484,28 +484,75 @@ const MODES=[
   {id:'tec',name:'Teclado',d:'Escribe tú el resultado'},
   {id:'falta',name:'¿Qué falta?',d:'Encuentra el número escondido'},
   {id:'sino',name:'¿Sí o no?',d:'¿Está bien o está mal?'}];
-let S=null;
-try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
-if(!S){try{const o=JSON.parse(localStorage.getItem('tablas-turbo-v1'));if(o)S={pts:o.pts,best:o.best,streak:o.streak,last:o.last,days:o.days,facts:o.facts,mute:o.mute}}catch(e){}}
 const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'',colSum:'con2',colRes:'sin2'});
-S=Object.assign(DEF(),S||{});
-const save=()=>{try{calSnap()}catch(e){}S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
-/* ---- nube (Supabase) ---- */
-const SB='https://rrnuxiadvqqwzrhpdwpl.supabase.co',SBK='sb_publishable_S3kfMHOQsui0EruQbm9QrA_I-D6GNMZ';
-let CODE='';
-const setCode=p=>{if(localStorage.getItem('tt-codigo')!==p){localStorage.removeItem('tt-base');localStorage.removeItem('tt-sync-ts')}localStorage.setItem('tt-codigo',p)};
-try{const p=new URLSearchParams(location.search).get('p');if(p&&/^[a-f0-9]{24,64}$/.test(p)){setCode(p);history.replaceState(null,'',location.pathname)}CODE=localStorage.getItem('tt-codigo')||''}catch(e){}
+/* Cada origen conserva un espacio independiente por perfil y otro para práctica local. */
+const readLocal=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
+const stored=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}};
+const isCode=p=>/^[a-f0-9]{24,64}$/.test(p);
+const profileKey=code=>'tt-profile-v1:'+(code||'local');
+const oldCode=stored('tt-codigo');
+const linkCode=new URLSearchParams(location.search).get('p')||'';
+const CODE=isCode(linkCode)?linkCode:isCode(oldCode)?oldCode:'';
+if(navigator.locks){
+  const allowed=await new Promise((resolve,reject)=>{
+    navigator.locks.request(profileKey(CODE),{ifAvailable:true},lock=>{
+      resolve(!!lock);
+      if(lock)return new Promise(release=>addEventListener('pagehide',release,{once:true}))
+    }).catch(reject)
+  });
+  if(!allowed){
+    const notice=document.createElement('p');
+    notice.textContent='Este perfil ya está abierto en otra pestaña. Ciérrala y vuelve a cargar esta página.';
+    document.body.replaceChildren(notice);return
+  }
+  addEventListener('pageshow',e=>{if(e.persisted)location.reload()})
+}
+let storageFailed=false;
+function writeProfile(key,data){
+  try{localStorage.setItem(key,JSON.stringify(data));storageFailed=false;return true}
+  catch(e){storageFailed=true;return false}
+}
+const legacyProfile=profileKey(isCode(oldCode)?oldCode:'');
+const setCode=p=>localStorage.setItem('tt-codigo',p);
+if(!stored(legacyProfile)&&!stored('tt-profile-migrated')){
+  const old=readLocal(K)||readLocal('tablas-turbo-v1');
+  const queue=readLocal('tt-cola')||[];
+  if((!old&&!queue.length)||writeProfile(legacyProfile,{
+    state:old,queue,backup:readLocal('tt-respaldo-local'),
+    dirty:!!old&&(!stored('tt-sync-ts')||(old.ts||0)>Number(stored('tt-sync-ts')))
+  })){try{localStorage.setItem('tt-profile-migrated','1')}catch(e){}}
+}
+if(isCode(linkCode)){try{setCode(linkCode);history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
+const profileData=readLocal(profileKey(CODE));
+if(stored(profileKey(CODE))&&(!profileData||typeof profileData!=='object'||Array.isArray(profileData))){
+  const notice=document.createElement('p');
+  notice.textContent='La copia local no se puede leer. Conserva este almacenamiento para recuperarla antes de continuar.';
+  document.body.replaceChildren(notice);return
+}
+const profile=profileData||{};
+let S=Object.assign(DEF(),profile.state||{});
+const SB=window.UDMI_CONFIG?.url||'https://rrnuxiadvqqwzrhpdwpl.supabase.co';
+const SBK=window.UDMI_CONFIG?.key||'sb_publishable_S3kfMHOQsui0EruQbm9QrA_I-D6GNMZ';
 let pushT=null,cloudMsg=CODE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
-const rpc=async(fn,body)=>{const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json()};
+async function rpc(fn,body){
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+    const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',signal:controller.signal,
+      headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(r.status);
+    return await r.json()
+  }finally{clearTimeout(timeout)}
+}
 const setCloud=m=>{cloudMsg=m;const el=document.getElementById('cloud');if(el)el.textContent=m};
 const hhmm=()=>new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
 /* NUBE-INICIO: juntar el avance de dos dispositivos sin perder nada (función pura, con pruebas en tests/) */
-function nubeMerge(L,R){
+function nubeMerge(L,R,B,preferRemote=false){
   L=L||{};R=R||{};
   const cp=x=>JSON.parse(JSON.stringify(x));
   const rs=Math.max(L.resetAt||0,R.resetAt||0);
   if(rs){if((L.resetAt||0)<rs&&(L.ts||0)<rs)return cp(R);if((R.resetAt||0)<rs&&(R.ts||0)<rs)return cp(L)}
-  const newer=(L.ts||0)>=(R.ts||0)?L:R,older=newer===L?R:L;
+  const newer=!preferRemote&&(L.ts||0)>=(R.ts||0)?L:R,older=newer===L?R:L;
   const o=cp(Object.assign({},older,newer));
   const mx=(a,b)=>Math.max(+a||0,+b||0);
   const maxMap=(a,b)=>{const r=Object.assign({},a||{});for(const k in (b||{}))r[k]=mx(r[k],b[k]);return r};
@@ -517,65 +564,185 @@ function nubeMerge(L,R){
   if(la!==lb){const w=la>lb?L:R;o.last=w.last;o.streak=w.streak}else o.streak=mx(L.streak,R.streak);
   if(L.sr||R.sr){const a=L.sr||{},b=R.sr||{},n=newer.sr||{},ol=older.sr||{};
     o.sr=Object.assign({},ol,n,{med:maxMap(a.med,b.med),err:maxMap(a.err,b.err),fails:uniq([...(n.fails||[]),...(ol.fails||[])]).slice(0,12)})}
-  const done=r=>{if(!r)return -1;let n=0;['tOk','col','en','rd','bonus','enWd','enPd'].forEach(k=>{if(r[k])n++});if(r.ex)for(const k in r.ex)if(r.ex[k]&&r.ex[k].ok)n++;return n+(r.tTries||0)/100};
-  if(L.daily||R.daily){o.daily={};const D=new Set([...Object.keys(L.daily||{}),...Object.keys(R.daily||{})]);
-    D.forEach(d=>{const a=(newer.daily||{})[d],b=(older.daily||{})[d];o.daily[d]=cp(done(b)>done(a)?b:a)})}
-  if(L.cal||R.cal)o.cal=Object.assign({},cp(older.cal||{}),cp(newer.cal||{}));
+  const equal=(a,b)=>{
+    if(a===b)return true;
+    if(!a||!b||typeof a!=='object'||typeof b!=='object'||Array.isArray(a)!==Array.isArray(b))return false;
+    const keys=Object.keys(a);
+    return keys.length===Object.keys(b).length&&keys.every(k=>Object.prototype.hasOwnProperty.call(b,k)&&equal(a[k],b[k]))
+  };
+  const choose=(a,b,base)=>equal(a,base)?b:equal(b,base)?a:b;
+  const mapJoin=(l={},r={},base={},merge=choose)=>Object.fromEntries(
+    [...new Set([...Object.keys(l),...Object.keys(r),...Object.keys(base)])]
+      .map(k=>[k,merge(l[k],r[k],base[k])]).filter(([,v])=>v!==undefined));
+  const add=(a,b,base)=>Math.max(0,(a||0)+(b||0)-(base||0));
+  if(B){
+    for(const k of ['nombre','mute','open','world','tab','pinH','pinDef','retoCfg','retoT','colSum','colRes','rdSel','cieSel','cultSel']){
+      const v=choose(L[k],R[k],B[k]);if(v===undefined)delete o[k];else o[k]=v
+    }
+    o.enKnown=mapJoin(L.enKnown,R.enKnown,B.enKnown);
+    for(const k of ['miss','days'])o[k]=mapJoin(L[k],R[k],B[k],add);
+    o.facts=mapJoin(L.facts,R.facts,B.facts,(a,b,c)=>{
+      if(a===c||b===c)return choose(a,b,c);
+      if(a===0||b===0)return 0;
+      return Math.min(3,add(a,b,c))
+    });
+    if(o.sr)o.sr.err=mapJoin(L.sr?.err,R.sr?.err,B.sr?.err,add)
+  }
+  const activities=[
+    ['tOk',['t','tCal','tTries']],['col',['colCal','colOk']],
+    ['enWd',['enW','enWf','enWn','enOk']],['enPd',['ph','enPf','enPn','enPOk']],
+    ['rd',['rdPick','rdCal','rdOk','rdN']]
+  ];
+  const joinActivity=(l,r,b,flag,keys)=>{
+    const fields=[flag,...keys],take=x=>Object.fromEntries(fields.filter(k=>x[k]!==undefined).map(k=>[k,x[k]]));
+    const a=take(l),z=take(r),base=take(b);
+    if(B&&(equal(a,base)||equal(z,base)))return choose(a,z,base);
+    return a[flag]&&!z[flag]?a:z[flag]?z:Object.assign({},a,z)
+  };
+  const joinedDays=mapJoin(L.daily,R.daily,B?.daily,(l,r,b={})=>{
+    if(!l||!r)return l||r;
+    const d=B?mapJoin(l,r,b):Object.assign({},l,r);
+    for(const [flag,keys] of activities){
+      for(const k of [flag,...keys])delete d[k];
+      Object.assign(d,joinActivity(l,r,b,flag,keys))
+    }
+    d.ex=mapJoin(l.ex,r.ex,b.ex,(a,z,base)=>{
+      if(B&&(equal(a,base)||equal(z,base)))return choose(a,z,base);
+      return z?.ok?z:a?.ok?a:z??a
+    });
+    if(d.enWd&&d.enPd){
+      d.en=true;
+      if(d.enWn+d.enPn>0)d.enCal=Math.round(100*(d.enWf+d.enPf)/(d.enWn+d.enPn))/10;
+      else d.enCal=r.enCal??l.enCal
+    }else if(l.enWd!==undefined||r.enWd!==undefined||l.enPd!==undefined||r.enPd!==undefined){d.en=false;d.enCal=null}
+    d.enCounted=!!(d.en||l.enCounted||r.enCounted);
+    d.bonus=!!(l.bonus||r.bonus);
+    return d
+  });
+  if(L.daily||R.daily)o.daily=joinedDays;
+  if(L.cal||R.cal)o.cal=mapJoin(L.cal,R.cal,B?.cal,(l,r,b)=>{
+    if(!l||!r)return l||r;
+    return {...l,...r,m:{...l.m,...r.m,...(B?mapJoin(l.m,r.m,b?.m):{})}}
+  });
+  if(B){
+    let bonusDiff=0,newEnglish=0;
+    const defaultCfg=['t','c','en','rd'],flags={t:'tOk',c:'col',en:'en',rd:'rd'};
+    const grades={t:'tCal',c:'colCal',en:'enCal',rd:'rdCal'};
+    for(const [day,d] of Object.entries(joinedDays)){
+      const b=B.daily?.[day],l=L.daily?.[day]||b,r=R.daily?.[day]||b;
+      const cfg=d.cfg?.length?d.cfg:defaultCfg;
+      if(cfg.every(k=>flags[k]?d[flags[k]]:d.ex?.[k]?.ok))d.bonus=true;
+      bonusDiff+=Number(!!d.bonus)-Number(!!l?.bonus)-Number(!!r?.bonus)+Number(!!b?.bonus);
+      if(d.enCounted&&!l?.enCounted&&!r?.enCounted){newEnglish++;for(const w of d.enW||[])(o.enLearned??={})[w]=1}
+      if(l&&r){
+        const m=Object.fromEntries(cfg.map(k=>[k,grades[k]?d[grades[k]]:d.ex?.[k]?.cal]).filter(([,v])=>Number.isFinite(v)));
+        const v=Object.values(m);
+        if(v.length)(o.cal??={})[day]={t:d.t,m,avg:v.length===cfg.length?Math.round(10*v.reduce((a,n)=>a+n,0)/v.length)/10:null}
+      }
+    }
+    o.pts=add(L.pts,R.pts,B.pts)+50*bonusDiff;
+    o.retoDays=add(L.retoDays,R.retoDays,B.retoDays)+bonusDiff;
+    o.enIdx=mx(L.enIdx,R.enIdx)+newEnglish;
+  }
   if(L.rdLog||R.rdLog)o.rdLog=uniq([...(L.rdLog||[]),...(R.rdLog||[])],x=>[x.d,x.h,x.id,x.try].join('|')).sort((x,y)=>(y.d+y.h)>(x.d+x.h)?1:(y.d+y.h)<(x.d+x.h)?-1:0).slice(0,60);
   if(L.gx||R.gx){o.gx={};const G=new Set([...Object.keys(L.gx||{}),...Object.keys(R.gx||{})]);
     G.forEach(k=>{const a=(L.gx||{})[k]||{},b=(R.gx||{})[k]||{};o.gx[k]={n:mx(a.n,b.n),best:mx(a.best,b.best),log:uniq([...(a.log||[]),...(b.log||[])]).sort((x,y)=>x.d<y.d?1:x.d>y.d?-1:0).slice(0,30)}})}
   if(L.ku||R.ku){const M=typeof Motor!=='undefined'?Motor:null; // un lado sin resumen todavía: se migra antes de juntar
     const mk=X=>{if(X.ku||!M)return X.ku;const c={facts:X.facts,miss:X.miss,enLearned:X.enLearned,daily:X.daily,last:X.last};M.migrar(c,M.hoyDe(Date.now()));return c.ku};
-    o.ku=M?M.unir(mk(L),mk(R)):cp(newer.ku||older.ku)}
+    o.ku=M?M.unir(mk(L),mk(R)):cp(newer.ku||older.ku);
+    if(B&&L.ku&&R.ku)for(const [k,v] of Object.entries(o.ku)){
+      const l=L.ku[k],r=R.ku[k],b=B.ku?.[k];
+      if(l&&r){
+        for(const field of ['n','c','ap'])v[field]=add(l[field],r[field],b?.[field]);
+        v.e=mapJoin(l.e,r.e,b?.e,add)
+      }
+    }
+  }
   if(o.pinH)delete o.pin; // la contraseña en texto ya no se conserva cuando existe la cifrada
   o.ts=Math.max(L.ts||0,R.ts||0);
   return o}
 /* NUBE-FIN */
-let BASE=null,SYNCED=0,V2=true;
-try{BASE=localStorage.getItem('tt-base');SYNCED=+localStorage.getItem('tt-sync-ts')||0}catch(e){}
-const setBase=(b,ts)=>{BASE=b;SYNCED=ts;try{localStorage.setItem('tt-base',b);localStorage.setItem('tt-sync-ts',String(ts))}catch(e){}};
-const lsave=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
-/* ---- motor de aprendizaje (fase T1): guarda cada respuesta; no cambia cómo se juega ---- */
-const MQ='tt-cola';let COLA=[],colaOn=true,colaBusy=false;
-try{COLA=JSON.parse(localStorage.getItem(MQ))||[]}catch(e){}
-const colaSave=()=>{try{localStorage.setItem(MQ,JSON.stringify(COLA))}catch(e){}};
-function mot(a){try{if(!window.Motor)return;if(!S.ku)Motor.migrar(S,today());const r=Motor.registrar(S,a);
-  COLA.push(r);if(COLA.length>Motor.CFG.maxCola)COLA.splice(0,COLA.length-Motor.CFG.maxCola);colaSave()}catch(e){}}
-async function flushCola(){if(!CODE||!colaOn||colaBusy||!COLA.length)return;colaBusy=true;
-  try{while(COLA.length){const lote=COLA.slice(0,200),ids=new Set(lote.map(x=>x.id));
-    await rpc('tt_intentos_agregar',{p_codigo:CODE,p_intentos:lote});COLA=COLA.filter(x=>!ids.has(x.id));colaSave()}}
-  catch(e){if(String(e.message)==='404')colaOn=false} // sin la tabla en Supabase, los intentos esperan en este dispositivo
-  finally{colaBusy=false}}
+let BASE=profile.version||null, ANCHOR=profile.anchor||null, dirty=profile.dirty||false;
+let COLA=profile.queue||[],pending=profile.pending||null,lastBackup=profile.backup||null;
+let pushing=false,failures=0,safeWriteMissing=false;
+const lsave=()=>writeProfile(profileKey(CODE),{state:S,queue:COLA,version:BASE,anchor:ANCHOR,dirty,pending,backup:lastBackup});
+const save=()=>{try{calSnap()}catch(e){}S.ts=Math.max(Date.now(),(S.ts||0)+1);dirty=true;lsave();schedulePush()};
+function mot(a){try{if(!window.Motor)return;if(!S.ku)Motor.migrar(S,today());COLA.push(Motor.registrar(S,a));dirty=true;lsave()}catch(e){}}
+async function flushCola(){
+  while(COLA.length){
+    const lote=COLA.slice(0,200),ids=new Set(lote.map(x=>x.id));
+    try{await rpc('tt_intentos_agregar',{p_codigo:CODE,p_intentos:lote})}
+    catch(e){if(String(e.message)==='404')return;throw e}
+    COLA=COLA.filter(x=>!ids.has(x.id));lsave()
+  }
+}
 const rehome=()=>{try{if(!$('home').hidden)renderHome()}catch(e){}};
-const offMsg='Sin conexión: se guarda en este dispositivo y se sube después.';
-function schedulePush(){if(!CODE)return;clearTimeout(pushT);pushT=setTimeout(push,1500)}
-let pushing=false;
-async function push(){if(!CODE||pushing)return;pushing=true;
+const offMsg='Sin conexión: el avance queda en este dispositivo y se reintentará.';
+function schedulePush(delay=1500){
+  if(!CODE||safeWriteMissing)return;
+  clearTimeout(pushT);pushT=setTimeout(push,delay)
+}
+const copy=x=>JSON.parse(JSON.stringify(x));
+function receive(remote){
+  if(!remote?.datos||!remote.actualizado)throw new Error('perfil no disponible');
+  if(remote.actualizado===BASE)return;
+  const state=remote.datos;
+  if(dirty&&ANCHOR&&S.resetAt!==ANCHOR.resetAt&&S.resetAt!==state.resetAt)
+    throw new Error('restauración en conflicto');
+  if(dirty&&ANCHOR&&S.resetAt===ANCHOR.resetAt&&state.resetAt!==ANCHOR.resetAt){
+    lastBackup={fecha:new Date().toISOString(),motivo:'conflicto después de reinicio',datos:copy(S),intentos:copy(COLA)};
+    S=Object.assign(DEF(),state);dirty=false
+  }else if(dirty){
+    S=Object.assign(DEF(),nubeMerge(S,state,ANCHOR||(!profile.state?DEF():undefined)))
+  }else{
+    S=Object.assign(DEF(),state);dirty=false
+  }
+  ANCHOR=copy(state);BASE=remote.actualizado;lsave();rehome()
+}
+async function push(){
+  if(!CODE||pushing||safeWriteMissing)return;
+  pushing=true;
+  let retry=true;
   try{
-    if(V2&&!BASE){pushing=false;return pull()}
-    if(V2){let r;
-      try{r=await rpc('tt_guardar2',{p_codigo:CODE,p_datos:S,p_base:BASE})}
-      catch(e){if(String(e.message)==='404'){V2=false;pushing=false;return push()}throw e}
-      if(r&&r.conflicto){ // otro dispositivo guardó después: juntar y volver a guardar
-        const rem=await rpc('tt_cargar',{p_codigo:CODE});S=Object.assign(DEF(),nubeMerge(S,(rem&&rem.datos)||{}));lsave();setBase(rem.actualizado,SYNCED);rehome();
-        r=await rpc('tt_guardar2',{p_codigo:CODE,p_datos:S,p_base:BASE});if(!r||!r.ok)throw new Error('conflicto')}
-      setBase(r.actualizado,S.ts)}
-    else{await rpc('tt_guardar',{p_codigo:CODE,p_datos:S});SYNCED=S.ts}
-    setCloud('Guardado en la nube a las '+hhmm());flushCola()}
-  catch(e){setCloud(offMsg)}
-  finally{pushing=false}}
-async function pull(){if(!CODE)return;try{const r=await rpc('tt_cargar',{p_codigo:CODE});
-  if(!r){setCloud('El código de jugador no es válido.');return}
-  const remote=r.datos||{},localDirty=(S.ts||0)>SYNCED,remoteChanged=!BASE||r.actualizado!==BASE;
-  if(!BASE&&!(S.pts>0)&&(remote.pts>0)){ // dispositivo nuevo sin avance propio: se toma el de la nube completo, sin mezclar
-    try{localStorage.setItem('tt-respaldo-local',JSON.stringify({fecha:new Date().toISOString(),motivo:'antes de cargar el código',datos:S}))}catch(e){}
-    S=Object.assign(DEF(),remote);lsave();setBase(r.actualizado,S.ts);rehome();setCloud('Avance cargado de la nube a las '+hhmm());pinMigrate();return}
-  if(remoteChanged&&localDirty&&(S.ts||0)!==(remote.ts||0)){S=Object.assign(DEF(),nubeMerge(S,remote));lsave();setBase(r.actualizado,0);rehome();setCloud('Se juntó el avance de este dispositivo con el de la nube ('+hhmm()+')');push();return}
-  if(remoteChanged&&(remote.ts||0)>=(S.ts||0)){S=Object.assign(DEF(),remote);lsave();setBase(r.actualizado,S.ts);rehome();setCloud('Avance cargado de la nube a las '+hhmm());pinMigrate();return}
-  setBase(r.actualizado,remoteChanged?0:SYNCED);
-  if((S.ts||0)>SYNCED)push();else setCloud('Al día con la nube ('+hhmm()+')');
-}catch(e){setCloud(offMsg)}}
-addEventListener('online',()=>push());
+    if(!pending){
+      receive(await rpc('tt_cargar',{p_codigo:CODE}));
+      await pinMigrate()
+    }
+    for(let tries=0;(dirty||pending)&&tries<4;tries++){
+      if(!pending){
+        pending={id:crypto.randomUUID(),state:copy(S),base:BASE};
+        if(!lsave()){pending=null;throw new Error('almacenamiento lleno')}
+      }
+      const sent=pending;
+      const result=await rpc('tt_guardar3',{p_codigo:CODE,p_datos:sent.state,p_base:sent.base,p_id:sent.id});
+      if(result?.conflicto){
+        pending=null;lsave();
+        receive(await rpc('tt_cargar',{p_codigo:CODE}));
+        continue
+      }
+      if(!result?.ok||!result.actualizado)throw new Error('respuesta de guardado inválida');
+      BASE=result.actualizado;ANCHOR=sent.state;pending=null;
+      dirty=JSON.stringify(S)!==JSON.stringify(sent.state);
+      lsave()
+    }
+    await flushCola();failures=0;
+    setCloud(storageFailed?'El almacenamiento local no está disponible. Revisa el espacio del dispositivo.':
+      dirty?'Hay progreso pendiente de sincronizar.':'Al día con la nube ('+hhmm()+')')
+  }catch(e){
+    if(String(e.message)==='404'){
+      safeWriteMissing=true;retry=false;
+      setCloud('La nube no tiene guardado seguro. El progreso queda en este dispositivo.')
+    }else if(e.message==='restauración en conflicto'||e.message==='perfil no disponible'){
+      retry=false;
+      setCloud('Revisa el acceso o el conflicto de recuperación antes de sincronizar.')
+    }else{failures++;setCloud(storageFailed?'El almacenamiento local no está disponible. Revisa el espacio del dispositivo.':offMsg)}
+  }finally{
+    pushing=false;
+    if(retry&&(dirty||pending||failures))schedulePush(failures?Math.min(60000,1500*2**Math.min(failures,6)):1500)
+  }
+}
+const pull=push;
+addEventListener('online',()=>{safeWriteMissing=false;push()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&$('play').hidden&&$('srplay').hidden&&$('qz').hidden)pull()});
 const $=id=>document.getElementById(id);
 const dstr=ms=>{const x=new Date(ms);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
@@ -669,7 +836,7 @@ const rstClose=()=>{$('rstBox').hidden=true;$('reset').hidden=false;$('rstPin').
 $('reset').addEventListener('click',()=>{$('rstBox').hidden=false;$('reset').hidden=true;$('rstPin').focus()});
 $('rstNo').addEventListener('click',rstClose);
 async function doReset(){if(!(await pinOk($('rstPin').value))){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
-  await backupNow('antes de borrar todo');
+  if(!await backupNow('antes de borrar todo')){$('rstMsg').textContent='No se pudo guardar una copia local. No se borró el avance.';return}
   const keep={pinH:S.pinH,pinDef:S.pinDef,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep,{resetAt:Date.now()});save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
 $('codeGo').addEventListener('click',()=>{const v=$('codeIn').value.trim().toLowerCase().replace(/^.*[?&]p=/,'').replace(/[^a-f0-9].*$/,'');
@@ -1206,8 +1373,11 @@ async function pinHash(p){try{const b=await crypto.subtle.digest('SHA-256',new T
 async function pinOk(v){v=String(v||'');if(S.pinH){const h=await pinHash(v);return !!h&&h===S.pinH}return v===String(S.pin||'2580')}
 async function pinMigrate(){if(S.pinH)return;const p=String(S.pin||'2580'),h=await pinHash(p);if(!h)return;S.pinH=h;S.pinDef=p==='2580';delete S.pin;save()}
 /* copias de seguridad */
-async function backupNow(motivo){try{localStorage.setItem('tt-respaldo-local',JSON.stringify({fecha:new Date().toISOString(),motivo,datos:S}))}catch(e){}
-  if(CODE){try{await rpc('tt_respaldo_crear',{p_codigo:CODE,p_motivo:motivo})}catch(e){}}}
+async function backupNow(motivo){lastBackup={fecha:new Date().toISOString(),motivo,datos:copy(S),intentos:copy(COLA),
+    version:BASE,ancla:ANCHOR,pending};if(!lsave())return false;
+  if(CODE){try{await rpc('tt_respaldo_crear',{p_codigo:CODE,p_motivo:motivo})}catch(e){}}
+  return true
+}
 const htmlText=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const bkMsg=t=>{$('bkMsg').textContent=t};
 const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -1260,10 +1430,22 @@ function validBackup(d){
 }
 async function applyData(d,motivo){
   if(!validBackup(d)){bkMsg('Ese archivo no parece una copia del avance. No se cambió nada.');return false}
-  await backupNow(motivo);
-  const keep={pinH:S.pinH,pinDef:S.pinDef};delete d.pin;S=Object.assign(DEF(),d,keep,{resetAt:Date.now()});save();renderHome();
+  if(!await backupNow(motivo)){bkMsg('No se pudo respaldar la copia actual. No se cambió nada.');return false}
+  const keep={pinH:S.pinH,pinDef:S.pinDef,resetAt:S.resetAt};
+  const incoming={...d};delete incoming.pin;delete incoming.pinH;delete incoming.resetAt;delete incoming.ts;
+  // Una copia carece de una base común verificable. Conserva máximos y une evidencia.
+  const current={...S};delete current.resetAt;
+  const recovered=S.pts===0?{...current,...incoming}:nubeMerge(incoming,current,undefined,true);
+  S=Object.assign(DEF(),recovered,keep);save();renderHome();
   bkMsg('Listo. Se cargó la copia; el avance que había antes quedó respaldado.');return true}
-$('expBtn').addEventListener('click',()=>{const d=JSON.parse(JSON.stringify(S));delete d.pinH;delete d.pin;
+function portable(value){
+  if(Array.isArray(value))return value.map(portable);
+  if(!record(value))return value;
+  return Object.fromEntries(Object.entries(value).filter(([k])=>
+    !/^(pin|pinH|pinDef|password|contrase(?:ñ|n)a|token|(?:access|refresh)[_-]?token|authorization|jwt|api[_-]?key|session[_-]?id|secret|service[_-]?role|session|code|codigo)$/i.test(k)
+  ).map(([k,v])=>[k,portable(v)]))
+}
+$('expBtn').addEventListener('click',()=>{const d=portable(S);
   const blob=new Blob([JSON.stringify({app:'un-dia-mas-inteligente',v:1,fecha:new Date().toISOString(),datos:d},null,1)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='avance-'+today()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);bkMsg('Copia descargada.')});
 $('impBtn').addEventListener('click',()=>$('impFile').click());
@@ -2694,8 +2876,8 @@ $('exitNo').addEventListener('click',()=>{$('exitAsk').hidden=true;exitBtn=null}
 $('exitYes').addEventListener('click',()=>{$('exitAsk').hidden=true;if(exitBtn){exitOK=true;exitBtn.click();exitOK=false;exitBtn=null}});
 try{if(window.Motor&&!S.ku&&Motor.migrar(S,today()))lsave()}catch(e){}
 renderHome();
-pinMigrate().finally(()=>pull());
-}
+if(CODE)pull();else pinMigrate();
+})().catch(e=>window.onerror(e.message));
 </script>
 </body>
 </html>
