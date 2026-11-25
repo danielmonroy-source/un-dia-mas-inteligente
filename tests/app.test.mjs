@@ -19,12 +19,27 @@ const datosIniciales = () => ({ pts: 1089, best: 20, streak: 1, last: '2026-11-2
 
 function nubeFalsa({ sinV2 = false, sinIntentos = false } = {}) {
   let n = 0; const stamp = () => new Date(Date.UTC(2026, 10, 25, 16, 0, 0, ++n)).toISOString();
-  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [] };
+  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [], solo: false, familia: false, correos: [] };
   db.cambiarDesdeOtroDispositivo = f => { f(db.datos); db.actualizado = stamp(); };
+  db.auth = async route => {
+    const path = route.request().url().split('/auth/v1/')[1]; const b = JSON.parse(route.request().postData() || '{}');
+    const json = (x, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(x) });
+    if (path === 'otp') { db.correos.push(b.email); return json({}); }
+    if (path === 'verify') return b.token === '123456' ? json({ access_token: 'tok1', refresh_token: 'r1', expires_in: 3600, user: { email: b.email } }) : json({ msg: 'Token has expired or is invalid' }, 403);
+    if (path.startsWith('token')) return json({ access_token: 'tok1', refresh_token: 'r1', expires_in: 3600 });
+    if (path === 'logout') return route.fulfill({ status: 204, body: '' });
+    return json({}, 404);
+  };
   db.ruta = async route => {
     const fn = route.request().url().split('/rpc/')[1]; const b = JSON.parse(route.request().postData() || '{}'); db.llamadas.push(fn);
     const json = x => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(x) });
+    const conSesion = (route.request().headers()['authorization'] || '') === 'Bearer tok1';
+    if (fn === 'tt_mis_jugadores') return conSesion ? json(db.familia ? [{ codigo: CODE, nombre: 'Adolfo', solo_cuenta: db.solo }] : []) : route.fulfill({ status: 401, body: '{}' });
     if (b.p_codigo !== CODE) return route.fulfill({ status: 400, body: '{}' });
+    const permitido = !db.solo || (conSesion && db.familia);
+    if (fn === 'tt_vincular') { if (!conSesion || !permitido) return route.fulfill({ status: 400, body: '{}' }); db.familia = true; return json(true); }
+    if (fn === 'tt_solo_cuenta') { if (!conSesion || !db.familia) return route.fulfill({ status: 400, body: '{}' }); db.solo = b.p_on; return json(b.p_on); }
+    if (!permitido) return fn === 'tt_cargar' ? json({ login: true }) : route.fulfill({ status: 400, body: '{"message":"sin permiso"}' });
     const respaldar = motivo => db.respaldos.unshift({ id: db.respaldos.length + 1, creado: new Date().toISOString(), motivo, datos: JSON.parse(JSON.stringify(db.datos)) });
     switch (fn) {
       case 'tt_cargar': return json({ datos: db.datos, actualizado: db.actualizado });
@@ -63,6 +78,7 @@ async function abrir(db, { sinMotor = false } = {}) {
   page.on('pageerror', e => errores.push(String(e)));
   await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
   await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
+  await page.route('https://*.supabase.co/auth/v1/**', db.auth);
   if (sinMotor) await page.route('**/motor.js*', r => r.fulfill({ status: 404, body: '' }));
   await page.goto(url);
   return { ctx, page, errores };
@@ -228,4 +244,56 @@ test('un navegador nuevo sin código no pierde nada: al poner el código carga l
   assert.deepEqual(db.datos.retoCfg, ['t', 'rd']);
   assert.deepEqual(errores, []);
   await ctx.close();
+});
+
+async function abrirPapas(page, pin = '2580') {
+  await page.click('#papas > summary');
+  await page.fill('#pin', pin); await page.click('#pinGo');
+  await page.waitForSelector('#pbody', { state: 'visible' });
+}
+async function entrar(page) {
+  await page.fill('#mailIn', 'papa@ejemplo.com'); await page.click('#mailGo');
+  await page.waitForSelector('#otpIn');
+  await page.fill('#otpIn', '111111'); await page.click('#otpGo');
+  await page.waitForFunction(() => /no es correcto/.test(document.getElementById('acctMsg').textContent));
+  await page.fill('#otpIn', '123456'); await page.click('#otpGo');
+}
+
+test('cuenta de papás: entrar con correo, ligar a Adolfo, proteger y abrir en otro dispositivo sin enlace', async () => {
+  const db = nubeFalsa();
+  // 1) el teléfono de papá, que ya tiene el código
+  const A = await abrir(db);
+  await esperar(() => db.datos.pinH, 'carga inicial');
+  await abrirPapas(A.page);
+  await entrar(A.page);
+  await esperar(() => db.familia, 'la cuenta se liga sola al jugador de este dispositivo');
+  await A.page.waitForSelector('#soloOn');
+  await A.page.click('#soloOn');
+  await esperar(() => db.solo === true, 'queda protegido');
+  await A.page.waitForSelector('#soloOff');
+  // sigue guardando con la sesión
+  await A.page.click('#snd');
+  await esperar(() => db.datos.mute === true, 'guarda con sesión iniciada');
+
+  // 2) una tableta nueva, sin enlace: entra papá y aparece el avance
+  const ctx = await A.page.context().browser().newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage(); const errores = [];
+  page.on('pageerror', e => errores.push(String(e)));
+  await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
+  await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
+  await page.route('https://*.supabase.co/auth/v1/**', db.auth);
+  await page.goto(url.split('?')[0]); await page.waitForTimeout(500);
+  await abrirPapas(page);
+  await entrar(page);
+  await page.waitForFunction(() => document.getElementById('sPts').textContent === '1089');
+
+  // 3) alguien con solo el enlace ya no puede ver ni pisar el avance
+  const C = await abrir(db);
+  await C.page.waitForFunction(() => /protegido/.test(document.getElementById('cloud').textContent));
+  assert.equal(await C.page.textContent('#sPts'), '0');
+  await C.page.click('#snd'); await C.page.waitForTimeout(2500);
+  assert.equal(db.datos.pts, 1089, 'el avance de la nube no se toca');
+
+  assert.deepEqual([...A.errores, ...errores, ...C.errores], []);
+  await A.ctx.close(); await ctx.close(); await C.ctx.close();
 });
