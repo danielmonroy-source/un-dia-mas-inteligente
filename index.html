@@ -566,7 +566,7 @@ function renderHome(){
   <table class="pt"><tr><th>Tabla</th><th class="r">Medallas</th><th class="r">Dominio</th></tr>${range().map(t=>`<tr><td>×${t}</td><td class="r">${medals(t)}/5</td><td class="r">${Math.round(tsum(t)/30*100)}%</td></tr>`).join('')}</table>
   <p class="note">Las que más ha fallado:</p><div class="fails">${fails.length?fails.map(([k,c])=>`<span>${k.replace('x',' × ')} (${c})</span>`).join(''):'<span>Todavía ninguna</span>'}</div>`;
   flame('m1',curStreak()?3:0);
-  const wd=['sr','en','rd'].includes(S.world)||GEN[S.world]?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';$('wG').hidden=!GEN[wd];
+  const wd=(['sr','en','rd'].includes(S.world)||(GEN[S.world]&&S.world!=='cultq'))?S.world:'x';$('wX').hidden=wd!=='x';$('wSR').hidden=wd!=='sr';$('wEN').hidden=wd!=='en';$('wRD').hidden=wd!=='rd';$('wG').hidden=!GEN[wd];
   [...$('worlds').children].forEach(b=>b.classList.toggle('on',b.dataset.w===wd));
   renderSR();renderDaily();renderEN();renderRD();renderGen();renderXProg();
 }
