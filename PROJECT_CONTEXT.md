@@ -8,6 +8,7 @@ Un Día Más Inteligente es una aplicación de práctica para primaria. El front
 | --- | --- |
 | `index.html` | Interfaz, bancos de contenido, generadores, validación de respuestas, reglas de participación, reto diario, panel parental y sincronización. |
 | `motor.js` | Catálogo de 36 habilidades del plan y ocho complementarias, evidencias por conocimiento, estados, prerrequisitos y repaso espaciado. Migración de hechos y vocabulario y unión de resúmenes. |
+| `diagnostic-bank.js` y `diagnostic.js` | Banco de cinco sesiones, elección adaptativa acotada, estimaciones y recomendaciones familiares. El historial de práctica permanece en Motor y el diagnóstico en un registro con UUID. |
 | `supabase/` | Fase 0 de respaldos y concurrencia y Fase T1 de intentos. Presuponen el esquema original de `tt_progreso`. |
 | `tests/` | Pruebas de motor y unión con Node y de interfaz con Chromium y nube simulada. |
 

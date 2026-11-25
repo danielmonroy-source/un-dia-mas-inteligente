@@ -20,6 +20,8 @@ const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url
   if(CODE)pull();else pinMigrate();`);
 const motor = readFileSync(fileURLToPath(new URL('../motor.js', import.meta.url)), 'utf8');
 const family = readFileSync(fileURLToPath(new URL('../family.js', import.meta.url)), 'utf8');
+const bank = readFileSync(new URL('../diagnostic-bank.js', import.meta.url), 'utf8');
+const diagnostic = readFileSync(new URL('../diagnostic.js', import.meta.url), 'utf8');
 const CODE = 'a'.repeat(32);
 const datosIniciales = () => ({ pts: 240, best: 20, streak: 1, last: '2024-02-29', days: { '2024-02-29': 5 }, facts: { '4x1': 3 }, med: {}, miss: {},
   sr: { med: {}, err: {}, fails: [] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {}, cal: { '2024-02-29': { m: { t: 10 }, t: 4, avg: 7.2 } },
@@ -64,6 +66,9 @@ function nubeFalsa({ sinV3 = false, sinIntentos = false, code = CODE } = {}) {
 let server, url, browser;
 test.before(async () => {
   server = createServer((req, res) => {
+    if (req.url==='/diagnostic-bank.js'||req.url==='/diagnostic.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(req.url.includes('bank')?bank:diagnostic); return;
+    }
     if (req.url==='/family.js') { res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(family); return; }
     if (req.url.startsWith('/motor.js')) { res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(motor); return; }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); });
@@ -478,4 +483,52 @@ test('transfiere la copia portable entre orígenes sin exportar la cola ni las c
     await page.setInputFiles('#impFile',file);
     await page.waitForFunction(()=>document.querySelector('#sPts').textContent==='47');
   } finally { await ctx.close(); }
+});
+
+test('aventura pausa y reanuda; ayuda y primera respuesta llegan al perfil correcto', async()=>{
+  const db=nubeFalsa(),a=await abrir(db);
+  const otherCode='b'.repeat(32),other=nubeFalsa({code:otherCode});
+  const b=await abrir(db);
+  try{
+    await esperar(()=>db.datos.pinH,'perfil inicial recuperado');
+    await a.page.click('#diagLaunch');
+    await a.page.click('[data-diag-session="1"]');
+    const statement=await a.page.textContent('#diagPrompt');
+    await a.page.click('[data-diag-hint]');
+    await a.page.click('[data-diag-pause]');
+    await a.page.reload();
+    await a.page.click('#diagLaunch');
+    await a.page.locator('[data-diag-session="1"]').filter({hasText:'Continuar'}).click();
+    assert.equal(await a.page.textContent('#diagPrompt'),statement);
+    assert.match(await a.page.textContent('#diagNotice'),/paso a paso/);
+    await a.page.locator('[data-diag-option]').first().click();
+    await esperar(()=>db.intentos.some(x=>x.origen==='diagnostico'&&x.pista&&x.primero),'evidencia del primer dispositivo');
+
+    await b.page.click('#diagLaunch');
+    await b.page.click('[data-diag-session="2"]');
+    await b.page.locator('[data-diag-option]').first().click();
+    await esperar(()=>Object.values(db.datos.diag?.answers||{}).some(x=>x.session===1)&&
+      Object.values(db.datos.diag?.answers||{}).some(x=>x.session===2),'unión de evidencias');
+    assert.equal(db.datos.pts,240);
+    assert.ok(db.datos.ku['en:dog']);
+    await esperar(()=>db.intentos.filter(x=>x.origen==='diagnostico'&&x.primero).length===2,'UUID registrados tras confirmar ambas escrituras');
+    await a.page.click('#diagExit');
+    await a.page.click('#papas > summary');
+    await a.page.fill('#pin','2580');await a.page.click('#pinGo');
+    await a.page.click('#diagMapLaunch');
+    assert.match(await a.page.textContent('#diagMapBody'),/Informe para la familia/);
+    await a.page.selectOption('#diagRubric select[name="legibilidad"]','parcial');
+    await a.page.selectOption('#diagRubric select[name="organizacion"]','independiente');
+    await a.page.selectOption('#diagRubric select[name="comprension"]','independiente');
+    await a.page.selectOption('#diagRubric select[name="autonomia"]','con apoyo');
+    await a.page.locator('#diagRubric button').click();
+    await esperar(()=>db.datos.diagRubric?.legibilidad==='parcial','rúbrica guardada');
+
+    await a.page.route('https://*.supabase.co/rest/v1/rpc/*',other.ruta);
+    await a.page.goto(url.replace(CODE,otherCode));
+    await a.page.click('#diagLaunch');
+    assert.equal(await a.page.locator('[data-diag-session]').filter({hasText:'Continuar'}).count(),0);
+    assert.equal(other.datos.diag,undefined);assert.equal(other.intentos.length,0);
+    assert.deepEqual(a.errores,[]);assert.deepEqual(b.errores,[]);
+  }finally{await Promise.all([a.ctx.close(),b.ctx.close()])}
 });

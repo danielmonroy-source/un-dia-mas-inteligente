@@ -2,17 +2,7 @@
 
 El diagnóstico se reparte en **cinco sesiones breves**. Cada sesión puede pausarse y reanudarse. El reto diario posterior tendrá como referencia **20 a 30 minutos**, con pausas y ajuste por desempeño y carga de repaso. En cada objetivo se muestra un ejemplo, se practica con ayudas graduadas, se ofrece una variante independiente y luego se verifica aplicación y retención. Las respuestas rápidas, los puntos y las tareas terminadas son señales de participación.
 
-## Cinco sesiones de diagnóstico
-
-| Sesión | Actividades breves | Decisión que orienta |
-| --- | --- | --- |
-| 1 | Instrucciones de uno y dos pasos, reformular qué se pide, comprender una oración. | Longitud y modalidad inicial de las consignas. Separar una dificultad para leer de una dificultad para seguir el orden. |
-| 2 | Texto breve, información explícita, ordenar hechos y elegir idea principal con evidencia. | Punto de entrada en lectura y tipo de ayuda. |
-| 3 | Representar unidades, decenas y centenas, descomponer y comparar cantidades, comprobar un canje. | Último valor posicional que se maneja sin ayuda y error a trabajar. |
-| 4 | Grupos iguales, arreglos, suma repetida y una aplicación breve. | Diferenciar memorización de productos y comprensión de multiplicación. |
-| 5 | Problemas breves, datos relevantes, elección de operación y verificación. Un ítem paralelo de una habilidad incierta. | Objetivos prioritarios del primer ciclo y evidencias pendientes. |
-
-Pausar una sesión deja habilidades pendientes; ausencia de evidencia queda como **sin evaluar**. El diagnóstico combina ítems paralelos con distintos contextos. La familia puede ver qué se observó y qué se necesita verificar. Para pruebas y ejemplos usar perfiles ficticios.
+Pausar una sesión deja habilidades pendientes. La ausencia de evidencia se registra como **sin evaluar**. El diagnóstico combina variantes de distintos contextos. La familia puede ver qué se observó y qué falta comprobar. Los perfiles y ejemplos de prueba son ficticios.
 
 ## Módulos
 
@@ -26,3 +16,30 @@ Pausar una sesión deja habilidades pendientes; ausencia de evidencia queda como
 | **Razonamiento matemático** | `prob-datos`, `prob-oper`, `prob-sentido`. Faltan explicación y etiquetas de estrategias para problemas de más de un paso. | Lógica, reloj, dinero y cuentas. Una instrucción clara precede a datos, operación y comprobación. | Subrayar pregunta, descartar un dato, elegir operación, predecir rango y comprobar. Registrar cada paso y su ayuda. | De una operación y datos limpios a distractores y dos pasos si se demuestra preparación. Probar enunciados que cambien la operación sin cambiar números. |
 
 Usar las claves de conocimiento que el motor ya admite, `<habilidad>:<detalle>`. Mantener separados diagnóstico, reto y práctica. Antes de marcar dominio, comprobar comprensión, independencia, una variante de aplicación y retención según el programa del motor. Probar accesibilidad por teclado, reanudación, resultados sin red y legibilidad de las evidencias en el panel familiar. Este documento propone comportamiento, sin añadir ejercicios al juego actual.
+
+## Ajustes antes de construir el banco
+
+La distribución implementada sigue la solicitud detallada de Fase 2. La duración de **15 a 25 minutos efectivos** es una referencia de diseño del diagnóstico, con varios bloques y sin reloj de rendimiento. El tiempo real con estudiantes está pendiente de observar. Los **20 a 30 minutos** corresponden al reto adaptativo futuro.
+
+| Sesión implementada | Qué explora |
+| --- | --- |
+| 1 | Uno, dos y tres pasos; qué pide la pregunta; oración, dato, personaje, lugar, orden e idea principal. |
+| 2 | Numeración, posiciones hasta millares, descomposición, comparación y operaciones con y sin canje. |
+| 3 | Grupos, suma repetida, arreglos, productos escritos, datos, elección de operación y comprobación. |
+| 4 | Escritura, observación en papel, comunidades y división territorial, relieve, diversidad y orientación. |
+| 5 | Vocabulario por reconocimiento y recuerdo, escucha, contexto, frases y comprobaciones de sesiones anteriores. |
+
+- **Estimación y dominio.** Se reutilizan las 44 habilidades. Un ítem aislado genera evidencia parcial. Dos ejemplos distintos y consistentes permiten una estimación, y dos producciones correctas sin pistas señalan independencia dentro del banco. Los aciertos por reconocimiento se indican como tales. Respuestas mixtas, ausencia de audio o ejemplos omitidos dejan abierta la interpretación. El estado histórico de Motor se muestra aparte. El diagnóstico no cambia sus contadores, puntos ni escalera de repasos. Una contradicción histórica solicita un contraste, sin borrar ninguna fuente.
+- **Apoyo y acceso.** Texto consultable, fichas y audio de la consigna forman parte del diseño de acceso. Consultar texto no resta independencia lectora. Mostrar una palabra de una prueba auditiva o dar una pista cambia la interpretación. Leer una consigna nunca cuenta como oír una palabra inglesa. El audio usa voces locales. Si el navegador carece de una voz compatible, la escucha queda pendiente. La escritura en papel registra cuatro observaciones categóricas, sin imágenes ni texto del alumno.
+- **Adaptación conservadora.** Se comienza con una variante apropiada del banco y se registra el formato real. Después de evidencias independientes se puede elegir una variante más compleja. Una dificultad puede activar hasta dos comprobaciones de prerrequisitos sin alargar indefinidamente la sesión. Al cubrir las estaciones, se ofrecen hasta tres comprobaciones adicionales por sesión y cinco en la última. El adulto puede dejar un ejercicio disponible para un día posterior si queda un ejemplo adecuado. Escasos ejemplos y variantes agotadas implican evidencia insuficiente.
+- **Retroalimentación y datos.** Se guarda la primera respuesta antes de explicar. Los reintentos con una solución visible no se usan como confirmación. Se registran hechos observables, por ejemplo elegir un detalle en una pregunta de idea principal. Una respuesta compatible con omitir una llevada describe el resultado, jamás un estado mental. No se guardan respuestas escritas libres en el diagnóstico. La aplicación usa identificador de ítem, actividad, modalidad, nivel, ayudas, resultado, fecha y UUID.
+- **Revisión de contenido.** Comprobé las consignas, la coherencia entre historias y respuestas, el cálculo de operaciones, los distractores de posición y agrupación y el tratamiento de comunidades y lenguas como presentes y diversas. La prueba del banco detectó que igualar mayúsculas volvía válidas las opciones incorrectas de ortografía; las opciones ahora comparan su valor literal. Queda una revisión con un docente y observación de sesiones reales para ajustar duración, dificultad, accesibilidad, distractores y variedad regional del inglés.
+
+## Ejemplo sintético de seguimiento
+
+| Habilidad | Evidencia inicial | Estado de práctica | Próximo paso |
+| --- | --- | --- | --- |
+| Idea principal | Eligió un detalle en un texto y la idea en otro. Ejemplos mixtos. | Sin evaluar | Presentar un tercer texto y pedir que señale la oración que respalda su elección. |
+| Agrupación multiplicativa | Dos respuestas construidas correctas sin pista en ejemplos distintos. | En práctica | Comprobar aplicación con objetos diferentes después de un intervalo. |
+
+El informe puede priorizar la idea principal y sugerir como actividad familiar leer un anuncio y buscar la oración que explica de qué trata. La segunda semana propone una variante independiente o una comprobación en contexto, según los registros disponibles. Las cifras son solo ejemplos ficticios.

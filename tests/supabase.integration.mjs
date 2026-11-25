@@ -87,6 +87,22 @@ test('Supabase local: CAS, UUID, acceso de estudio, rechazo administrativo y rev
     assert.equal((await rpc('tt_fase2_guardar_estudio',studentSave,student)).data.ok,true);
     assert.equal((await rpc('tt_fase2_guardar_estudio',{...studentSave,p_id:randomUUID(),
       p_datos:{pts:11}},student)).data.conflicto,true);
+    const diagnosticId=randomUUID();
+    const diag={v:1,seed:'perfil-sintetico',drafts:{},answers:{
+      [diagnosticId]:{q:'idea-0',phase:'base',session:1,ts:new Date().toISOString(),fmt:'rec',
+        ok:true,pista:false,helps:['consultar-texto'],err:null}
+    }};
+    const diagnosis=await rpc('tt_fase2_guardar_estudio',{p_perfil:profile,p_datos:{pts:12,diag,
+      diagRubric:{legibilidad:'independiente'},diagPlan:{'lec-info':'2026-11-26'}},
+      p_base:learnerProgress.data.actualizado,p_id:randomUUID()},student);
+    assert.equal(diagnosis.data.ok,true,'estudio sincroniza evidencias');
+    const diagnosisAgain=await rpc('tt_fase2_guardar_estudio',{p_perfil:profile,p_datos:{pts:12,diag:{...diag,answers:{}}},
+      p_base:diagnosis.data.actualizado,p_id:randomUUID()},student);
+    assert.equal(diagnosisAgain.data.ok,true);
+    const diagnosisRead=await rpc('tt_fase2_estudio',{p_perfil:profile},student);
+    assert.deepEqual(diagnosisRead.data.datos.diag.answers,diag.answers,'se conserva el UUID ya registrado');
+    assert.equal(diagnosisRead.data.datos.diagRubric,undefined);
+    assert.equal(diagnosisRead.data.datos.diagPlan,undefined);
     assert.equal((await rpc('tt_fase2_revocar',{p_perfil:profile,p_dispositivo:child},parent)).status,204);
     assert.equal((await rpc('tt_fase2_estudio',{p_perfil:profile},student)).status,403);
     assert.equal((await rpc('tt_fase2_guardar_estudio',studentSave,student)).status,403);
@@ -116,7 +132,9 @@ test('Recuperación familiar real de navegador a navegador y corte del acceso an
     if(family)familyUi();`);
   const assets={
     '/motor.js':await readFile(new URL('../motor.js',import.meta.url)),
-    '/family.js':await readFile(new URL('../family.js',import.meta.url))
+    '/family.js':await readFile(new URL('../family.js',import.meta.url)),
+    '/diagnostic-bank.js':await readFile(new URL('../diagnostic-bank.js',import.meta.url)),
+    '/diagnostic.js':await readFile(new URL('../diagnostic.js',import.meta.url))
   };
   let otp='';
   const server=createServer(async(req,res)=>{

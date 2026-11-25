@@ -55,6 +55,7 @@ printf 'grant select,insert,update,delete on public.tt_familia to service_role;\
 sql < "$repo/supabase/fase2-estabilidad.sql"
 sql < "$repo/supabase/fase2-acceso-aislado.sql"
 sql < "$repo/supabase/fase15-familia.sql"
+sql < "$repo/supabase/fase2-diagnostico.sql"
 docker run -d --name "$tag-rest" --network "$tag" -p 127.0.0.1:54352:3000 \
   -e PGRST_DB_URI="postgres://authenticator:$dbpass@db:5432/postgres?sslmode=disable" \
   -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon -e PGRST_JWT_SECRET="$secret" \

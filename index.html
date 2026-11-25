@@ -277,6 +277,15 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .eng button.on{border-color:var(--teal);background:var(--selbg)}
 @media(max-width:600px){.week{gap:4px}.week span{width:28px;height:28px;font-size:13px}.hero{grid-template-columns:100px minmax(0,1fr)}.stat b{font-size:26px}h1{font-size:30px}.stage{width:110px}.combo{font-size:16px}.tb b{font-size:22px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.diag-card{background:var(--card);padding:16px;border-radius:16px;margin:12px 0}
+.diag-card button{min-height:48px;margin:4px 0}
+.diag-card .mode{width:100%;text-align:left;padding:12px}
+.diag-card small{display:block}
+.diag-card input,.diag-card select{font:inherit;min-height:44px;margin:5px;max-width:100%}
+.diag-card form label{display:block}
+.diag-card details{margin:10px 0;padding:8px;border:1px solid currentColor;border-radius:8px}
+.diag-visual{white-space:pre-wrap;font:inherit;font-size:1.4rem}
+.diag-skill{border-top:1px solid currentColor;margin-top:12px;padding-top:6px}
 </style>
 </head>
 <body>
@@ -287,6 +296,15 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <button class="snd" id="snd">Sonido: sí</button>
   </header>
 
+  <section id="diagnostico" hidden aria-labelledby="diagTitle">
+    <button class="ghost" id="diagExit">Volver al inicio</button>
+    <h2 id="diagTitle" tabindex="-1">Aventura de habilidades</h2>
+    <div id="diagPanel" class="diag-card"></div>
+  </section>
+  <section id="mapaDiagnostico" hidden>
+    <button class="ghost" id="diagMapExit">Volver a Para papás</button>
+    <div id="diagMapBody" class="diag-card"></div>
+  </section>
   <section id="home">
     <div class="hero">
       <div class="stage" id="m1"></div>
@@ -319,6 +337,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div id="wRD" hidden></div>
     <div id="wG" hidden></div>
     </div>
+    <button class="big" id="diagLaunch" hidden>Aventura de habilidades</button>
+    <button class="ghost" id="diagFollow" hidden>Explorar una actividad corta</button>
     <details class="papas" id="familia" hidden>
       <summary>Para papás · cuenta familiar</summary>
       <a id="familyConsole" href="?familia=1">Abrir solo la cuenta familiar</a>
@@ -417,7 +437,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <h3 class="ph">Cómo va</h3>
       <div id="prog"></div>
       <div id="srprog"></div>
-      <div id="xprog"></div>
+      <div id="xprog"></div><button class="ghost" id="diagMapLaunch" hidden>Mapa de aprendizaje e informe</button>
       <h3 class="ph">Contraseña de papás</h3>
       <div class="row"><input id="newpin" type="password" inputmode="numeric" autocomplete="off" placeholder="Nueva contraseña" aria-label="Nueva contraseña"><button class="ghost" id="setpin">Cambiar</button></div>
       <p class="note" id="setpinMsg"></p>
@@ -520,6 +540,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 <script>window.onerror=function(m,u,l){var d=document.createElement("div");d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fff3cd;color:#000;padding:8px;font:13px sans-serif";d.textContent="Error: "+m+" (línea "+l+")";(document.body||document.documentElement).appendChild(d)};</script>
 <script src="motor.js?v=1"></script>
 <script src="family.js"></script>
+<script src="diagnostic-bank.js"></script>
+<script src="diagnostic.js"></script>
 <script>
 (async()=>{
 const K='tablas-turbo-v2',LV=150,HARD=[4,6,7,8,9];
@@ -721,6 +743,11 @@ function nubeMerge(L,R,B,preferRemote=false){
       }
     }
   }
+  if(L.diag||R.diag){
+    const D=typeof Diagnostico!=='undefined'?Diagnostico:null;
+    o.diag=D?D.union(L.diag,R.diag):cp(newer.diag||older.diag)
+  }
+  if(L.diagPlan||R.diagPlan)o.diagPlan={...L.diagPlan,...R.diagPlan};
   if(o.pinH)delete o.pin; // la contraseña en texto ya no se conserva cuando existe la cifrada
   o.ts=Math.max(L.ts||0,R.ts||0);
   return o}
@@ -729,7 +756,7 @@ let BASE=profile.version||null, ANCHOR=profile.anchor||null, dirty=profile.dirty
 let COLA=profile.queue||[],pending=profile.pending||null,lastBackup=profile.backup||null;
 let pushing=false,failures=0,safeWriteMissing=false;
 const lsave=()=>writeProfile(profileKey(PROFILE),{state:S,queue:COLA,version:BASE,anchor:ANCHOR,dirty,pending,backup:lastBackup});
-const save=()=>{try{calSnap()}catch(e){}S.ts=Math.max(Date.now(),(S.ts||0)+1);dirty=true;lsave();schedulePush()};
+const save=()=>{try{calSnap()}catch(e){}S.ts=Math.max(Date.now(),(S.ts||0)+1);dirty=true;const saved=lsave();schedulePush();return saved};
 function mot(a){try{if(!window.Motor)return;if(!S.ku)Motor.migrar(S,today());COLA.push(Motor.registrar(S,a));dirty=true;lsave()}catch(e){}}
 async function flushCola(){
   while(COLA.length){
@@ -861,7 +888,7 @@ const flame=(id,c)=>mon(id).style.setProperty('--f',c<=0?0:Math.min(.5+c*.08,1.3
 
 let AC=null;
 const tone=(f,d=.12,type='sine',w=0)=>{if(S.mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+w,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}};
-const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz','enx','cie'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
+const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz','enx','cie','diagnostico','mapaDiagnostico'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
 
 function renderTop(){
   $('lv').textContent=Math.floor(S.pts/LV)+1;
@@ -869,6 +896,10 @@ function renderTop(){
   $('snd').textContent='Sonido: '+(S.mute?'no':'sí');
 }
 function renderHome(){
+  const diagnosis=typeof Diagnostico!=='undefined';
+  $('diagLaunch').hidden=!diagnosis;
+  $('diagMapLaunch').hidden=!diagnosis;
+  $('diagFollow').hidden=!diagnosis||!Object.entries(S.diagPlan||{}).some(([h,date])=>date<=today()&&Diagnostico.next(S.diag,6,h));
   renderTop();
   $('hola').textContent=`¡Hola, ${S.nombre||'estudiante'}!`;$('nombre').value=S.nombre||'';
   $('sDays').textContent=curStreak();$('sPts').textContent=S.pts;
@@ -1000,7 +1031,7 @@ function judge(ok,btn){
   G.lock=true;const q=G.list[G.i],{t,n}=q,r=t*n,key=t+'x'+n;
   mot({k:'mul:'+key,ok,primero:!q.retry&&!q.wrong,pista:!!(G.hint||q.hinted),origen:G.mode==='reto'?'reto':'libre',ms:Date.now()-(G.t0||Date.now()),
     fmt:q.type==='tec'?(G.mode==='mix'?'mix':G.mode==='reto'&&q.k<10?'seq':'rcl'):G.mode==='esc'?'seq':'rec',
-    err:ok?null:'otro',extra:ok?null:{d:btn?+btn.dataset.v:+G.typed,ty:q.type}});
+    err:ok?null:'otro',extra:{item:'tabla:'+key+':'+q.type,hab:window.Motor?.habilidadDe('mul:'+key),tipo:q.type,ayudas:G.hint||q.hinted?['pista']:[],...(ok?{}:{d:btn?+btn.dataset.v:+G.typed})}});
   if(!ok&&G.mode==='reto'){ // en el reto: no avanza hasta acertar; ya no cuenta como acierto y se repite al final
     S.facts[key]=0;S.miss[key]=(S.miss[key]||0)+1;G.combo=0;
     if(!q.retry&&!q.wrong){G.res[q.k]='no';G.list.push(Object.assign({},q,{retry:true,wrong:0,hinted:false}))}
@@ -1303,7 +1334,7 @@ function srScore(ok,q,hint,partial){
 }
 function srColDone(){
   SG.lock=true;const C=SG.C,q=SG.list[SG.i];
-  mot({k:srK(q.pr),ok:C.clean,primero:!q.retry,pista:!!(C.hint||SG.hint),origen:SG.mode==='reto'?'reto':'libre',fmt:'rcl',ms:Date.now()-(SG.t0||Date.now()),err:C.clean?null:(C.why||'otro'),extra:{a:q.pr.a,b:q.pr.b}});
+  mot({k:srK(q.pr),ok:C.clean,primero:!q.retry,pista:!!(C.hint||SG.hint),origen:SG.mode==='reto'?'reto':'libre',fmt:'rcl',ms:Date.now()-(SG.t0||Date.now()),err:C.clean?null:(C.why||'otro'),extra:{item:'columna:'+q.pr.a+q.pr.op+q.pr.b,hab:window.Motor?.habilidadDe(srK(q.pr)),tipo:'columna',nivel:SG.lv,ayudas:C.hint||SG.hint?['pista']:[]}});
   srScore(C.clean,q,C.hint,4);srDraw(true);
   if(C.clean){mark(true);srSay(`¡Cuenta resuelta! ${C.a} ${sym(C.op)} ${C.b} = <b>${C.r}</b>`);tone(660,.1);tone(880,.18,'sine',.1);miniConfetti()}
   else srSay(`Lista: ${C.a} ${sym(C.op)} ${C.b} = <b>${C.r}</b>. ¡La que sigue te sale!`);
@@ -1319,7 +1350,7 @@ function srPick(v,btn){
     const E=srS().err,t=typical(pr);why=q.type==='rap'&&t===v?(pr.op==='+'?'llevar':'prestar'):'otro';E[why]=(E[why]||0)+1;
     if(!q.retry)SG.list.push(Object.assign({},q,{retry:true}));
   }
-  mot({k:srK(pr),ok,primero:!q.retry,pista:!!SG.hint,origen:SG.mode==='reto'?'reto':'libre',fmt:'rec',ms:Date.now()-(SG.t0||Date.now()),err:ok?null:why,extra:{a:pr.a,b:pr.b,ty:q.type}});
+  mot({k:srK(pr),ok,primero:!q.retry,pista:!!SG.hint,origen:SG.mode==='reto'?'reto':'libre',fmt:'rec',ms:Date.now()-(SG.t0||Date.now()),err:ok?null:why,extra:{item:'cuentas:'+pr.a+pr.op+pr.b+':'+q.type,hab:window.Motor?.habilidadDe(srK(pr)),tipo:q.type,nivel:SG.lv,ayudas:SG.hint?['pista']:[]}});
   if(ok)tone(520+SG.combo*40,.1),tone(780+SG.combo*40,.16,'sine',.08);else tone(220,.25,'triangle');
   let wait=ok?900:2400;
   if(q.type==='rap'){$('srq').innerHTML=boardHTML(staticSpec(pr,r,true));srSay(ok?'¡Exacto!':(why==='llevar'?'¡Ojo! Se te olvidó lo que se lleva.':why==='prestar'?'¡Ojo! Cuando arriba no alcanza, hay que pedir prestado.':`Era <b>${r}</b>.`))}
@@ -1469,6 +1500,7 @@ const fields=(x,checks)=>record(x)&&Object.entries(checks).every(([k,check])=>x[
 const counts=mapOf(countValue);
 const score=nullable(Number.isFinite);
 const scores=mapOf(score);
+const rubricValue=x=>['con apoyo','parcial','independiente'].includes(x);
 const readingLog=x=>fields(x,{d:dateKey,h:stringValue,id:stringValue,n:countValue,ok:countValue,
   miss:arrayOf(countValue),secs:countValue,peek:booleanValue,try:countValue})&&
   dateKey(x.d)&&stringValue(x.id)&&x.n>0&&countValue(x.ok)&&x.ok<=x.n;
@@ -1500,6 +1532,9 @@ function validBackup(d){
     daily:mapOf(backupDay,dateKey),cal:mapOf(x=>fields(x,{t:countValue,avg:score,m:scores,v:arrayOf(score)}),dateKey),
     rdLog:arrayOf(readingLog),sr:x=>fields(x,{med:counts,err:counts,fails:arrayOf(stringValue)}),
     gx:mapOf(x=>fields(x,{n:countValue,best:countValue,log:arrayOf(v=>fields(v,{d:dateKey,n:countValue,ok:countValue,reto:booleanValue}))})),
+    diag:d=>typeof Diagnostico!=='undefined'&&Diagnostico.valid(d),
+    diagPlan:mapOf(dateKey),
+    diagRubric:x=>fields(x,{fecha:dateKey,legibilidad:rubricValue,organizacion:rubricValue,comprension:rubricValue,autonomia:rubricValue}),
     ku:mapOf(x=>fields(x,{n:countValue,c:countValue,fn:countValue,fo:countValue,sd:arrayOf(dateKey),ap:countValue,
       lv:v=>Number.isInteger(v)&&v>=-1&&v<=5,due:v=>v===''||dateKey(v),dd:v=>v===''||dateKey(v),
       lf:nullable(countValue),pk:Number.isFinite,e:counts,ff:dateKey,mig:countValue})&&Array.isArray(x.sd)&&countValue(x.n))
@@ -1717,7 +1752,10 @@ function enQuizP(){
   PP.forEach(P=>list.push({lab:'Frase: ármala',q:`<span class="rq">Toca las palabras en orden para decir:</span><span>${htmlText(P[1])}</span>`,build:P[0].replace(/…/g,'').trim().split(/\s+/),after:P[0],okMsg:`¡Perfecto! Ahora dila en voz alta: <b>${htmlText(P[0])}</b>`,noMsg:`Bien armada: <b>${htmlText(P[0])}</b>. Dila en voz alta.`}));
   list.forEach((q,k)=>q.k=k);
   qzStart('en',list,{part:'p'})}
-$('qzq').addEventListener('click',e=>{const b=e.target.closest('[data-pk]');if(b){b.outerHTML=`<span>${b.dataset.pk}</span>`}});
+$('qzq').addEventListener('click',e=>{const b=e.target.closest('[data-pk]');if(b&&QZ&&!QZ.lock){
+  QZ.list[QZ.i].revealed=true;
+  const word=document.createElement('span');word.textContent=b.dataset.pk;b.replaceWith(word)
+}});
 
 /* ===== Preguntas (inglés y lectura) ===== */
 let QZ=null;
@@ -1729,6 +1767,7 @@ function qzStart(kind,list,extra){
 function qzDots(){$('qzdots').classList.toggle('many',QZ.n>16);$('qzdots').innerHTML=Array.from({length:QZ.n},(_,i)=>`<i class="${QZ.res[i]||(QZ.list[QZ.i]&&QZ.list[QZ.i].k===i&&!QZ.list[QZ.i].retry?'now':'')}"></i>`).join('')}
 function qzAsk(){
   const q=QZ.list[QZ.i];QZ.lock=false;QZ.t0=Date.now();
+  if(QZ.kind==='rd')q.consulted=$('qzpeek').open;
   $('qzlab').textContent=(q.retry?'Otra vez: ':'')+q.lab;
   $('qzq').innerHTML=`<div class="qp">${q.q}</div>`;$('qzmsg').innerHTML='';
   const tx=q.tx||QZ.kind==='rd';
@@ -1736,11 +1775,23 @@ function qzAsk(){
   $('qzans').innerHTML=`<div class="${tx?'opts1':'opts'}">${q.opts.map((o,i)=>`<button class="op ${tx?'tx':'sm'}" data-i="${i}">${o.h}</button>`).join('')}</div>`;
   if(q.auto)say(q.auto);
   qzDots()}
-function qzKey(q){if(QZ.kind==='rd')return 'lec:info';if(QZ.kind==='gen')return 'gen:'+QZ.act;
-  return QZ.part==='w'?'en:'+q.ans:'enf:'+englishPhraseKey(q.build?q.after:q.ans)}
-function qzLog(ok,q,primero){mot({k:qzKey(q),ok,primero,pista:false,fmt:q.build?'rcl':'rec',ms:Date.now()-(QZ.t0||Date.now()),err:ok?null:'otro',
-  origen:QZ.kind==='gen'?(QZ.reto?'reto':'libre'):(S.tab==='libre'?'libre':'reto'),extra:QZ.kind==='rd'?{s:STORIES[QZ.si]&&STORIES[QZ.si].id,q:q.k}:QZ.kind==='gen'?{q:q.k}:null})}
-function qzResolve(ok,b,q){QZ.lock=true;qzLog(ok,q,!q.retry&&!q.wrong);
+function qzKey(q){
+  if(QZ.kind==='rd')return q.knowledge||'lec:info';
+  if(QZ.kind==='gen')return 'gen:'+QZ.act+':'+(typeof Diagnostico==='undefined'?'practica':Diagnostico.practiceType(QZ.act,q.q));
+  return QZ.part==='w'?'en:'+q.ans:'enf:'+englishPhraseKey(q.build?q.after:q.ans)
+}
+function qzLog(ok,q,primero,err){
+  const k=qzKey(q), aided=Boolean(q.revealed||q.wrong||q.retry||q.miss);
+  const ayudas=[...(q.revealed?['palabra-visible']:[]),...(q.wrong||q.retry||q.miss?['retroalimentacion-previa']:[]),
+    ...(QZ.kind==='rd'&&q.consulted?['consultar-texto']:[])];
+  const exercise=QZ.kind==='rd'?'lectura:'+STORIES[QZ.si].id+':'+q.k:
+    QZ.kind==='en'?k+':'+(q.build?'fichas':q.auto?'escucha':'opciones'):
+    QZ.act+':'+(QZ.si??'libre')+':'+q.k;
+  mot({k,ok,primero,pista:aided,fmt:'rec',ms:Date.now()-(QZ.t0||Date.now()),err:ok?null:err||'opcion',
+    origen:QZ.kind==='gen'?(QZ.reto?'reto':'libre'):(S.tab==='libre'?'libre':'reto'),
+    extra:{item:exercise,hab:window.Motor?.habilidadDe(k),tipo:q.build?'fichas':q.auto?'escucha-con-opciones':'opciones',ayudas}})
+}
+function qzResolve(ok,b,q){QZ.lock=true;qzLog(ok,q,!q.retry&&!q.wrong&&!q.miss);
   if(ok){
     if(!q.retry&&!q.wrong){QZ.first++;QZ.res[q.k]='ok'}
     QZ.combo=q.wrong?0:QZ.combo+1;QZ.maxc=Math.max(QZ.maxc,QZ.combo);const p=q.wrong?0:10+Math.min(QZ.combo,10)*2;QZ.pts+=p;
@@ -1762,7 +1813,7 @@ $('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[Q
   if(q.build){const c=e.target.closest('[data-b]');if(!c||c.disabled)return;
     if(c.dataset.w===q.build[q.pos]){q.pos++;c.disabled=true;$('bldOut').innerHTML=q.build.slice(0,q.pos).map(w=>`<span>${htmlText(w)}</span>`).join('');tone(600+q.pos*50,.06);
       if(q.pos>=q.build.length)qzResolve(!q.miss,null,q)}
-    else{q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');mark(false);tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${htmlText(q.build[q.pos-1]||'…')}»?`}
+    else{if(!q.miss)qzLog(false,q,!q.retry,'orden');q.miss=true;c.classList.remove('bad');void c.offsetWidth;c.classList.add('bad');mark(false);tone(240,.15,'triangle');$('qzmsg').innerHTML=`Esa no va ahí. ¿Qué palabra sigue después de «${htmlText(q.build[q.pos-1]||'…')}»?`}
     return}
   const b=e.target.closest('.op');if(!b||b.disabled)return;
   const ok=q.opts[+b.dataset.i].v===q.ans;
@@ -2852,10 +2903,10 @@ function rdOpen(i){
   $('rdTxt').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');show('rd');tone(660,.06)}
 $('rdGo').addEventListener('click',()=>{
   const s=STORIES[rdCur];
-  const list=s.q.map((x,k)=>({k,lab:`Pregunta ${k+1} de ${s.q.length}`,q:`<span class="rq">${x[0]}</span>`,opts:shuffle([{h:x[1],v:1},{h:x[2],v:2},{h:x[3],v:3}]),ans:1,noMsg:`Era: <b>${x[1]}</b>`}));
+  const list=s.q.map((x,k)=>({k,knowledge:typeof Diagnostico==='undefined'?'lec:info':Diagnostico.readingPractice(x[0]),lab:`Pregunta ${k+1} de ${s.q.length}`,q:`<span class="rq">${x[0]}</span>`,opts:shuffle([{h:x[1],v:1},{h:x[2],v:2},{h:x[3],v:3}]),ans:1,noMsg:`Era: <b>${x[1]}</b>`}));
   $('qzstory').innerHTML=s.p.map(x=>`<p>${x}</p>`).join('');
   qzStart('rd',list,{si:rdCur,secs:Math.round((Date.now()-rdT0)/1000),peek:false,miss:[]})});
-$('qzpeek').addEventListener('toggle',()=>{if(QZ&&QZ.kind==='rd'&&$('qzpeek').open)QZ.peek=true});
+$('qzpeek').addEventListener('toggle',()=>{if(QZ&&QZ.kind==='rd'&&$('qzpeek').open){QZ.peek=true;if(QZ.list[QZ.i])QZ.list[QZ.i].consulted=true}});
 $('rdQuit').addEventListener('click',()=>{S.tab='libre';S.world='rd';show('home');renderHome()});
 
 /* ===== Para papás ===== */
@@ -3120,6 +3171,212 @@ function familyUi(){
   }
   if(family.adult())adultPanel().catch(()=>tell('Vuelve a entrar con el código de tu correo.'));
 }
+
+/* Aventura diagnóstica. El control del dominio permanece en el motor de práctica. */
+let diagSession=0,diagFollow='',diagTask=null,diagOrder=[],diagPaused=false,diagFeedback=false;
+const diagAllowed=()=>ID?access.role==='padre'&&family.adult():papasOK;
+function diagSpeech(text,language,onStart,onUnavailable){
+  const speech=window.speechSynthesis;
+  if(!speech||!window.SpeechSynthesisUtterance){onUnavailable?.();return}
+  const voices=speech.getVoices().filter(v=>v.localService&&v.lang.toLowerCase().startsWith(language.slice(0,2)));
+  if(!voices.length){onUnavailable?.();return}
+  const line=new SpeechSynthesisUtterance(text);
+  line.lang=language;line.voice=voices.find(v=>v.lang.toLowerCase()===language.toLowerCase())||voices[0];
+  line.onstart=()=>onStart?.();line.onerror=()=>onUnavailable?.();
+  speech.cancel();speech.speak(line)
+}
+const diagCopy=['Lee con calma. Puedes volver al texto todas las veces que necesites.',
+  'Puedes apuntar números o dibujar si te ayuda.','Piensa en grupos y comprueba tu respuesta.',
+  'Busca una hoja. Escribe dos oraciones sobre un lugar que conozcas: cómo es y qué haces allí. Un adulto podrá mirar la muestra contigo.',
+  'Explora palabras en inglés y vuelve a algunas actividades de la aventura.'];
+function diagStart(session,follow=''){
+  const d=Diagnostico.startIfNeeded(S);
+  d.resume={session,at:Date.now()};
+  diagSession=session;diagFollow=follow;diagPaused=false;diagFeedback=false;
+  save();diagRenderQuestion()
+}
+function diagRenderMenu(){
+  show('diagnostico');diagPaused=false;diagFeedback=false;diagTask=null;
+  $('diagTitle').textContent='Aventura de habilidades';
+  $('diagPanel').innerHTML='<p>Vamos a descubrir qué actividades te ayudarán a aprender. Puedes hacer una sesión en varios momentos.</p>'+
+    Diagnostico.sessions.map((title,i)=>`<button class="mode" data-diag-session="${i+1}"><span class="n">${i+1}</span><span><b>${htmlText(title)}</b><small>${Diagnostico.completed(S.diag,i+1)?'Explorada':S.diag?.resume?.session===i+1?'Continuar':'Explorar'} · 15 a 25 min aproximados</small></span></button>`).join('');
+  $('diagTitle').focus()
+}
+function diagRenderQuestion(){
+  show('diagnostico');
+  diagFeedback=false;diagOrder=[];
+  diagTask=Diagnostico.next(S.diag,diagSession,diagFollow);
+  $('diagTitle').textContent=Diagnostico.sessions[diagSession-1]||'Una nueva comprobación';
+  const panel=$('diagPanel');
+  if(!diagTask){
+    panel.innerHTML='<p>Exploración completa. Gracias por compartir cómo resuelves las actividades.</p>'+
+      (diagSession===4?`<p>${diagCopy[3]}</p>`:'')+
+      '<button class="big" data-diag-menu>Volver a la aventura</button>';
+    $('diagTitle').focus();return
+  }
+  const q=diagTask.item;
+  const answered=Object.values(S.diag.answers).filter(a=>a.session===diagSession).length;
+  const options=q.options?.slice()||[];
+  if(options.length){
+    const offset=[...(S.diag.seed+q.id)].reduce((sum,c)=>sum+c.charCodeAt(0),0)%options.length;
+    options.push(...options.splice(0,offset))
+  }
+  panel.innerHTML=`<p class="note">Parada ${diagSession===6?'extra':diagSession+' de 5'} · ${answered} exploradas</p>
+    ${answered===0&&diagCopy[diagSession-1]?`<p class="note">${diagCopy[diagSession-1]}</p>`:''}
+    <h3 id="diagPrompt" tabindex="-1">${htmlText(q.prompt)}</h3>
+    ${q.visual?`<pre class="diag-visual">${htmlText(q.visual)}</pre>`:''}
+    ${q.body?`<details id="diagText" open><summary>Consultar el texto</summary><p>${htmlText(q.body)}</p></details>`:''}
+    <button class="ghost" data-diag-say>Escuchar consigna</button>
+    ${q.audio?'<button class="big" data-diag-audio>Escuchar palabra en inglés</button>':''}
+    <p class="note" id="diagNotice" role="status"></p>
+    ${q.options?`<div id="diagAnswers">${options.map(v=>`<button class="mode" data-diag-option="${htmlText(v)}">${htmlText(v)}</button>`).join('')}</div>`:
+      q.tokens?`<div role="group" aria-label="Fichas" id="diagTokens">${q.tokens.map((v,i)=>`<button class="ghost" data-diag-token="${i}">${htmlText(v)}</button>`).join('')}</div>
+        <p id="diagOrder" aria-live="polite"></p><button class="ghost" data-diag-undo>Empezar el orden otra vez</button><button class="big" data-diag-submit>Guardar mi orden</button>`:
+        '<form id="diagWritten"><label for="diagInput">Tu respuesta</label><input id="diagInput" autocomplete="off" autocapitalize="off" maxlength="50" required><button class="big">Guardar respuesta</button></form>'}
+    ${!q.audio?'<button class="ghost" data-diag-hint>Quiero una pista</button>':''}
+    <button class="ghost" data-diag-omit>Por ahora, prefiero pasar</button>
+    <button class="ghost" data-diag-pause>Descansar</button>`;
+  if(q.body){
+    // El texto abierto es parte de la tarea de comprensión.
+    diagMarkAid('consultar-texto');
+    $('diagText').addEventListener('toggle',()=>{if($('diagText')?.open)diagMarkAid('consultar-texto')})
+  }
+  if(Diagnostico.aids(S.diag,q).includes('pista'))$('diagNotice').textContent='Ve paso a paso. Relee lo que pide y señala la parte que puedes resolver primero.';
+  $('diagPrompt').focus()
+}
+function diagMarkAid(kind){
+  if(!diagFeedback&&diagTask&&Diagnostico.aid(S.diag,diagTask.item,kind))save()
+}
+function diagAnswer(value,omitted=false){
+  if(!diagTask||diagFeedback||diagPaused)return;
+  const result=Diagnostico.record(S.diag,diagTask,value,omitted);
+  if(!result){
+    if(Object.values(S.diag.answers).some(a=>a.q===diagTask.item.id)){diagRenderQuestion();return}
+    $('diagNotice').textContent='Escucha la palabra antes de elegir. Si no se oye, puedes pasar.';return
+  }
+  const attempt=Diagnostico.toAttempt(result);
+  if(attempt)COLA.push(attempt);
+  diagFeedback=true;
+  const saved=save();
+  $('diagPanel').innerHTML=`<p role="status">${saved?result.row.ok===null?'Dejamos esta pregunta para más adelante.':
+    `Gracias por intentarlo. ${htmlText(result.q.explanation)}`:'No se pudo guardar en este dispositivo. Pide ayuda a un adulto.'}</p>
+    <button class="big" data-diag-next>Continuar</button><button class="ghost" data-diag-pause>Descansar</button>`;
+  $('diagPanel').querySelector('button').focus()
+}
+$('diagLaunch').addEventListener('click',diagRenderMenu);
+$('diagExit').addEventListener('click',()=>{show('home');renderHome()});
+$('diagPanel').addEventListener('submit',e=>{
+  if(e.target.id==='diagWritten'){e.preventDefault();diagAnswer($('diagInput').value)}
+});
+$('diagPanel').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-diag-menu')){diagRenderMenu();return}
+  if(b.dataset.diagSession){diagStart(+b.dataset.diagSession);return}
+  if(b.hasAttribute('data-diag-next')||b.hasAttribute('data-diag-resume')){diagPaused=false;diagRenderQuestion();return}
+  if(b.hasAttribute('data-diag-pause')){
+    diagPaused=true;
+    $('diagPanel').innerHTML='<p>Haz una pausa cuando quieras. Tu avance se guarda en este dispositivo.</p><button class="big" data-diag-resume>Continuar aquí</button><button class="ghost" data-diag-menu>Volver a la aventura</button>';
+    $('diagPanel').querySelector('button').focus();return
+  }
+  if(!diagTask||diagFeedback)return;
+  const q=diagTask.item;
+  if(b.hasAttribute('data-diag-option'))diagAnswer(b.dataset.diagOption);
+  if(b.hasAttribute('data-diag-submit')){
+    if(diagOrder.length!==q.answer.split('|').length){$('diagNotice').textContent='Completa todos los lugares antes de guardar.';return}
+    diagAnswer(diagOrder.join('|'))
+  }
+  if(b.hasAttribute('data-diag-token')){
+    if(diagOrder.length>=q.answer.split('|').length)return;
+    diagOrder.push(q.tokens[+b.dataset.diagToken]);b.disabled=true;$('diagOrder').textContent=diagOrder.join(' → ')
+  }
+  if(b.hasAttribute('data-diag-undo')){
+    diagOrder=[];$('diagOrder').textContent='';$('diagTokens').querySelectorAll('button').forEach(x=>x.disabled=false)
+  }
+  if(b.hasAttribute('data-diag-omit'))diagAnswer('',true);
+  const unavailable=()=>{
+    if($('diagNotice')&&diagTask?.item===q){
+      if(q.audio)diagMarkAid('audio-no-disponible');
+      $('diagNotice').textContent='La voz del dispositivo no está disponible. Puedes leer la consigna o pasar la actividad de escucha.'
+    }
+  };
+  if(b.hasAttribute('data-diag-say'))diagSpeech(q.prompt,'es-MX',()=>{if(diagTask?.item===q)diagMarkAid('escuchar-consigna')},unavailable);
+  if(b.hasAttribute('data-diag-audio'))diagSpeech(q.audio,'en-US',()=>{if(diagTask?.item===q)diagMarkAid('escuchar')},unavailable);
+  if(b.hasAttribute('data-diag-hint')){
+    diagMarkAid('pista');
+    $('diagNotice').textContent=q.body?'Busca en el texto palabras de la pregunta y lee también la frase anterior y la siguiente.':
+      'Ve paso a paso. Relee lo que pide y señala la parte que puedes resolver primero.'
+  }
+});
+
+function diagParent(){
+  if(!diagAllowed())return;
+  show('mapaDiagnostico');
+  const D=Diagnostico.report(S,today()),rows=Diagnostico.map(S,today());
+  const names=x=>x.length?x.map(r=>htmlText(r.h.n)).join(' · '):'Todavía no hay evidencia suficiente.';
+  const list=x=>x.length?'<ul>'+x.map(r=>`<li>${htmlText(r.h.n)}. ${htmlText(r.nextAction)}.</li>`).join('')+'</ul>':'<p>Todavía no hay evidencia suficiente.</p>';
+  const errors={'canje-suma':'resultado compatible con omitir una llevada','orden-resta':'resultado compatible con invertir la resta en unidades','detalle-lectura':'eligió un detalle como idea principal','valor-posicional':'confundió centenas y decenas',orden:'orden de pasos o fichas',opcion:'opción distinta de la esperada',respuesta:'respuesta escrita distinta de la esperada'};
+  const aidLabels={'pista':'pista','escuchar':'audio de la palabra','escuchar-consigna':'audio de la consigna','consultar-texto':'consulta del texto'};
+  const groups=[...new Set(rows.map(r=>r.h.area))];
+  const rubric=S.diagRubric;
+  const familyTasks={
+    Instrucciones:'Den una instrucción corta con dos objetos. Pídanle que repita qué hará antes de empezar.',
+    Lectura:'Lean un anuncio o cuento corto. Pregunten de qué trata y dónde aparece la pista en el texto.',
+    'Valor posicional':'Formen números con paquetes de diez fichas y fichas sueltas. Cambien un diez por diez unidades.',
+    Operaciones:'Resuelvan con fichas una compra ficticia. Pídanle que muestre cómo agrupó o cambió una decena.',
+    Multiplicación:'Hagan grupos iguales con objetos de casa y relacionen el dibujo, la suma y la multiplicación.',
+    Problemas:'Planteen una compra ficticia. Señalen la pregunta, elijan qué datos usar y comprueben si el resultado tiene sentido.',
+    Escritura:'Escriban una nota breve. Revisen juntos si se entiende la idea y si comienza con mayúscula.',
+    Entorno:'Ubiquen la comunidad, el municipio y el estado en un mapa genérico sin registrar dirección.',
+    'Espacio y ritmo':'Dibujen una ruta corta y describan dos movimientos para llegar.',
+    Inglés:'Practiquen un saludo o el nombre de un objeto en una situación cotidiana.'
+  };
+  const familyIdeas=[...new Set(D.priorities.map(r=>familyTasks[r.h.area]).filter(Boolean))];
+  $('diagMapBody').innerHTML=`<h2>Mapa de aprendizaje</h2><p>${D.sessions} de 5 sesiones exploradas · ${D.attempts} respuestas. El diagnóstico ofrece estimaciones iniciales.</p>
+    ${groups.map(area=>`<details><summary>${htmlText(area)}</summary>${rows.filter(r=>r.h.area===area).map(({h,initial:e,previous,pending,conflict,nextAction,rubric:r})=>
+      `<article class="diag-skill"><h4>${htmlText(h.n)}</h4>
+        <p><b>Motor:</b> ${htmlText(Motor.EST[previous.estado].n)} · ${previous.vistos} conocimientos observados</p>
+        <p><b>Estimación inicial:</b> ${htmlText(Motor.EST[e.state].n)} · ${htmlText(e.detail)}${conflict?' · Evidencia histórica y reciente en contraste':''}</p>
+        <p>${e.n} ejemplos · ${e.alone} aciertos independientes · ${e.helped} con pista · Nivel observado: ${e.level||'sin estimar'} · Última evaluación: ${htmlText(e.last?.slice(0,10)||'sin fecha')}</p>
+        ${e.formats.length?`<p>Evidencias: ${htmlText(e.formats.join(', '))}</p>`:''}
+        ${Object.keys(e.usedAids).length?`<p>Apoyos y accesos: ${Object.entries(e.usedAids).map(([k,n])=>htmlText((aidLabels[k]||k)+' ('+n+')')).join(', ')}</p>`:''}
+        ${Object.keys(e.errors).length?`<p>Errores: ${Object.entries(e.errors).map(([k,n])=>htmlText((errors[k]||k)+' ('+n+')')).join(', ')}</p>`:''}
+        ${r?`<p>Una observación en papel el ${htmlText(r.fecha)}. Legibilidad: ${htmlText(r.legibilidad)} · Organización: ${htmlText(r.organizacion)} · Comprensión: ${htmlText(r.comprension)} · Autonomía: ${htmlText(r.autonomia)}.</p>`:''}
+        <p>Próxima acción: ${htmlText(nextAction)}.</p>
+        ${pending&&h.activities.some(id=>!Object.values(S.diag?.answers||{}).some(a=>a.q===id))?`<button class="ghost" data-diag-plan="${h.id}">Dejar una comprobación para después</button>`:''}</article>`
+    ).join('')}</details>`).join('')}
+    <h3>Escritura en papel</h3><p>Pídele que escriba dos oraciones sobre un lugar: cómo es y qué hace allí. Guarda solo la rúbrica.</p>
+    <form id="diagRubric">${[['legibilidad','Legibilidad'],['organizacion','Organización'],['comprension','Comprensión'],['autonomia','Autonomía']].map(([k,n])=>
+      `<label>${n} <select name="${k}" required>${['','con apoyo','parcial','independiente'].map(v=>`<option value="${v}" ${v===rubric?.[k]?'selected':''}>${v||'Selecciona'}</option>`).join('')}</select></label>`).join('')}
+      <button class="big">Guardar observación</button></form>
+    <h3>Informe para la familia${D.sessions<5?' · vista preliminar':''}</h3>
+    <p>${D.sessions===5?'Las cinco sesiones están exploradas.':'El informe se actualiza al registrar evidencias.'}</p>
+    <h4>Fortalezas observadas</h4>${list(D.strengths)}
+    <h4>Habilidades para enseñar o acompañar</h4>${list(D.attention)}
+    <h4>Prerrequisitos por comprobar</h4><p>${names(D.foundations)}</p>
+    <h4>Más evidencia necesaria</h4><p>${names(D.pending)}</p>
+    <h4>Patrones observables</h4><p>${Object.entries(D.errors).map(([k,n])=>htmlText((errors[k]||k)+' ('+n+')')).join(' · ')||'Todavía no se observan patrones en los intentos registrados.'}</p>
+    <h4>Prioridades</h4>${list(D.priorities)}
+    <h4>En familia</h4>${familyIdeas.length?'<ul>'+familyIdeas.map(i=>'<li>'+htmlText(i)+'</li>').join('')+'</ul>':'<p>Esperar a que haya ejemplos antes de escoger una actividad focalizada.</p>'}
+    <h4>Próximas dos semanas</h4>${D.objectives.map((group,i)=>`<p>Semana ${i+1}</p>${list(group)}`).join('')}`;
+}
+$('diagMapLaunch').addEventListener('click',diagParent);
+$('diagMapExit').addEventListener('click',()=>{show('home');renderHome()});
+$('diagMapBody').addEventListener('submit',e=>{
+  if(e.target.id!=='diagRubric')return;e.preventDefault();
+  if(!diagAllowed())return;
+  S.diagRubric={...Object.fromEntries(new FormData(e.target)),fecha:today()};
+  save();diagParent()
+});
+$('diagMapBody').addEventListener('click',e=>{
+  const b=e.target.closest('[data-diag-plan]');
+  if(!b||!diagAllowed())return;
+  S.diagPlan={...(S.diagPlan||{}),[b.dataset.diagPlan]:Motor.masDias(today(),2)};
+  save();b.textContent='Guardada para '+S.diagPlan[b.dataset.diagPlan];b.disabled=true
+});
+$('diagFollow').addEventListener('click',()=>{
+  const selected=Object.entries(S.diagPlan||{}).find(([h,date])=>date<=today()&&Diagnostico.next(S.diag,6,h));
+  if(selected)diagStart(6,selected[0])
+});
 
 /* confirmar antes de salir de una actividad */
 let exitOK=false,exitBtn=null;

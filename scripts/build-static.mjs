@@ -19,20 +19,24 @@ const output=new URL('../dist/',import.meta.url);
 const contents={
   'motor.js':readFileSync(new URL('../motor.js',import.meta.url)),
   'family.js':readFileSync(new URL('../family.js',import.meta.url)),
+  'diagnostic-bank.js':readFileSync(new URL('../diagnostic-bank.js',import.meta.url)),
+  'diagnostic.js':readFileSync(new URL('../diagnostic.js',import.meta.url)),
   'config.js':Buffer.from('window.UDMI_CONFIG='+JSON.stringify({url:api.origin,key,family:preview||process.env.UDMI_FAMILY_AUTH==='1'})+';\n')
 };
 const files=Object.fromEntries(Object.entries(contents).map(([name,data])=>{
   const fingerprint=createHash('sha256').update(data).digest('hex').slice(0,16);
   return [name.replace('.js','-'+fingerprint+'.js'),data]
 }));
-const [motor,family,config]=Object.keys(files);
+const [motor,family,bank,diagnostic,config]=Object.keys(files);
 let html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const inlineConfig=/const SB=.*\nconst SBK=.*\n/;
 if(!inlineConfig.test(html)||!html.includes('motor.js?v=1')||!html.includes('family.js'))
   throw new Error('Cambió el punto de entrada estático');
 html=html.replace(inlineConfig,'const {url:SB,key:SBK}=window.UDMI_CONFIG;\n')
   .replace('<script src="motor.js?v=1"></script>','<script src="'+config+'"></script>\n<script src="'+motor+'"></script>')
-  .replace('src="family.js"','src="'+family+'"');
+  .replace('src="family.js"','src="'+family+'"')
+  .replace('src="diagnostic-bank.js"','src="'+bank+'"')
+  .replace('src="diagnostic.js"','src="'+diagnostic+'"');
 rmSync(output,{recursive:true,force:true});
 mkdirSync(output,{recursive:true});
 for(const [name,data] of Object.entries(files))writeFileSync(new URL(name,output),data);

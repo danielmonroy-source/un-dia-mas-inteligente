@@ -88,7 +88,7 @@ function habilidadDe(k){
   if(p==='en')return 'en-vocab';
   if(p==='enf')return 'en-frases';
   if(p==='lec')return 'lec-info';
-  if(p==='gen')return GENH[r]||null;
+  if(p==='gen')return GENH[r.split(':')[0]]||null;
   if(HAB[p])return p; // conocimientos de módulos nuevos: "<habilidad>:<detalle>"
   return null}
 
@@ -113,10 +113,11 @@ function nuevo(){return {n:0,c:0,fn:0,fo:0,sd:[],ap:0,lv:-1,due:'',dd:'',lf:null
 function registrar(S,a){
   S.ku=S.ku||{};
   const ts=a.ts||Date.now(),d=a.dia||hoyDe(ts),k=a.k;
+  if(a.origen==='diagnostico')return intento(a,ts);
   const e=S.ku[k]=S.ku[k]||nuevo();
   e.n++;if(a.ok)e.c++;
   if(!a.ok&&a.err)e.e[a.err]=(e.e[a.err]||0)+1;
-  if(a.ok&&a.fmt==='apl'&&a.primero)e.ap++;
+  if(a.ok&&a.fmt==='apl'&&a.primero&&!a.pista)e.ap++;
   const fuerte=esFuerte(a);
   if(fuerte&&!e.sd.includes(d)){e.sd.push(d);e.sd.sort();if(e.sd.length>CFG.diasSd)e.sd.shift()}
   // solo el primer intento del día mueve la escalera de repasos
@@ -130,7 +131,10 @@ function registrar(S,a){
   }
   delete e.mig;
   const st=estado(e,d,habilidadDe(k));if(EST[st].r>(e.pk||0)&&st!=='rep')e.pk=EST[st].r;
-  return {id:uuid(),k,ts:new Date(ts).toISOString(),origen:a.origen||'libre',fmt:a.fmt||'',ok:!!a.ok,primero:!!a.primero,pista:!!a.pista,ms:a.ms!=null?Math.round(a.ms):null,err:a.ok?null:(a.err||null),extra:a.extra||null}}
+  return intento(a,ts)}
+function intento(a,ts){
+  return {id:a.id||uuid(),k:a.k,ts:new Date(ts).toISOString(),origen:a.origen||'libre',fmt:a.fmt||'',ok:!!a.ok,primero:!!a.primero,pista:!!a.pista,ms:a.ms!=null?Math.round(a.ms):null,err:a.ok?null:(a.err||null),extra:a.extra||null}
+}
 
 /* Estado de un conocimiento, con reglas fijas */
 function estado(e,hoy,hab){
