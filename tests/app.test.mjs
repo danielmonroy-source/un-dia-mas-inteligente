@@ -11,14 +11,15 @@ import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
 const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
+const motor = readFileSync(fileURLToPath(new URL('../motor.js', import.meta.url)), 'utf8');
 const CODE = 'a'.repeat(32);
 const datosIniciales = () => ({ pts: 1089, best: 20, streak: 1, last: '2026-11-24', days: { '2026-11-24': 5 }, facts: { '4x1': 3 }, med: {}, miss: {},
   sr: { med: {}, err: {}, fails: [] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {}, cal: { '2026-11-24': { m: { t: 10 }, t: 4, avg: 8.3 } },
   ts: 1795620411507, nombre: 'Adolfo', pin: '2580', mute: false, open: false, retoCfg: ['t', 'c', 'en', 'rd'] });
 
-function nubeFalsa({ sinV2 = false } = {}) {
+function nubeFalsa({ sinV2 = false, sinIntentos = false } = {}) {
   let n = 0; const stamp = () => new Date(Date.UTC(2026, 10, 25, 16, 0, 0, ++n)).toISOString();
-  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [] };
+  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [], intentos: [] };
   db.cambiarDesdeOtroDispositivo = f => { f(db.datos); db.actualizado = stamp(); };
   db.ruta = async route => {
     const fn = route.request().url().split('/rpc/')[1]; const b = JSON.parse(route.request().postData() || '{}'); db.llamadas.push(fn);
@@ -35,6 +36,10 @@ function nubeFalsa({ sinV2 = false } = {}) {
       case 'tt_respaldo_crear': respaldar(b.p_motivo); return json(true);
       case 'tt_respaldos_listar': return json(db.respaldos.map(r => ({ id: r.id, creado: r.creado, motivo: r.motivo, pts: r.datos.pts })));
       case 'tt_respaldo_cargar': return json((db.respaldos.find(r => r.id === b.p_id) || {}).datos ?? null);
+      case 'tt_intentos_agregar':
+        if (sinIntentos) return route.fulfill({ status: 404, body: '{}' });
+        for (const a of b.p_intentos) if (!db.intentos.some(x => x.id === a.id)) db.intentos.push(a);
+        return json(b.p_intentos.length);
       default: return route.fulfill({ status: 404, body: '{}' });
     }
   };
@@ -43,19 +48,22 @@ function nubeFalsa({ sinV2 = false } = {}) {
 
 let server, url, browser;
 test.before(async () => {
-  server = createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); });
+  server = createServer((req, res) => {
+    if (req.url.startsWith('/motor.js')) { res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(motor); return; }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); });
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   url = `http://127.0.0.1:${server.address().port}/index.html?p=${CODE}`;
   browser = await chromium.launch();
 });
 test.after(async () => { await browser?.close(); server?.close(); });
 
-async function abrir(db) {
+async function abrir(db, { sinMotor = false } = {}) {
   const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage(); const errores = [];
   page.on('pageerror', e => errores.push(String(e)));
   await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
   await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
+  if (sinMotor) await page.route('**/motor.js*', r => r.fulfill({ status: 404, body: '' }));
   await page.goto(url);
   return { ctx, page, errores };
 }
@@ -134,6 +142,62 @@ test('las actividades principales abren sin errores', async () => {
   for (const k of ['c', 'en', 'rd']) {
     await page.goto(url); await page.waitForSelector(`#daily [data-d="${k}"]`); await page.click(`#daily [data-d="${k}"]`); await page.waitForTimeout(300);
   }
+  assert.deepEqual(errores, []);
+  await ctx.close();
+});
+
+// Contesta la tabla del reto con el teclado: la primera mal y las siguientes bien.
+async function contestarTabla(page, n) {
+  await page.waitForSelector('#daily [data-d="t"]');
+  await page.click('#daily [data-d="t"]'); await page.waitForSelector('#play', { state: 'visible' });
+  for (let i = 0; i < n; i++) {
+    await page.waitForFunction(() => /×/.test(document.getElementById('q').textContent) && !document.getElementById('q').classList.contains('show'));
+    const [a, b] = (await page.textContent('#q')).match(/(\d+) × (\d+)/).slice(1).map(Number);
+    if (i === 0) { await page.keyboard.type(String(a * b + 1)); await page.keyboard.press('Enter'); await page.waitForTimeout(200); }
+    await page.keyboard.type(String(a * b)); await page.keyboard.press('Enter');
+    await page.waitForTimeout(900);
+  }
+}
+
+test('cada respuesta queda registrada y sube a la nube; el avance anterior se migra', async () => {
+  const db = nubeFalsa(); const { ctx, page, errores } = await abrir(db);
+  await esperar(() => db.datos.pinH, 'carga inicial');
+  await contestarTabla(page, 4);
+  await esperar(() => db.intentos.length >= 5, 'los intentos llegan a la nube');
+  const t = db.intentos.find(x => x.ok === false);
+  assert.ok(t && /^mul:\d+x\d+$/.test(t.k) && t.primero === true && t.origen === 'reto' && t.fmt === 'seq', JSON.stringify(t));
+  assert.ok(db.intentos.some(x => x.ok && x.primero === false && x.k === t.k), 'el acierto después del error no cuenta como primer intento');
+  await esperar(() => db.datos.ku, 'el resumen por conocimiento se guarda con el avance');
+  assert.equal(db.datos.ku['en:dog'].mig, 1, 'las palabras aprendidas se migran');
+  assert.equal(db.datos.pts > 1089 || db.datos.pts === 1089, true);
+  assert.equal(db.datos.rk[4], 1, 'las medallas del reto no cambian');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('tt-cola')).length), 0, 'la cola queda vacía');
+  // panel de papás
+  await page.goto(url); await page.click('#papas > summary');
+  await page.fill('#pin', '2580'); await page.click('#pinGo');
+  await page.waitForSelector('#pbody', { state: 'visible' });
+  assert.match(await page.textContent('#xprog'), /Seguimiento por habilidad/);
+  assert.match(await page.textContent('#xprog'), /Vocabulario en inglés/);
+  assert.deepEqual(errores, []);
+  await ctx.close();
+});
+
+test('sin la tabla de intentos en la nube, las respuestas esperan en el dispositivo', async () => {
+  const db = nubeFalsa({ sinIntentos: true }); const { ctx, page, errores } = await abrir(db);
+  await esperar(() => db.datos.pinH, 'carga inicial');
+  await contestarTabla(page, 2);
+  await esperar(() => db.llamadas.includes('tt_intentos_agregar'), 'intenta subirlas');
+  assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('tt-cola')).length) >= 3);
+  assert.deepEqual(errores, []);
+  await ctx.close();
+});
+
+test('si motor.js no carga, la app sigue funcionando igual', async () => {
+  const db = nubeFalsa(); const { ctx, page, errores } = await abrir(db, { sinMotor: true });
+  await esperar(() => db.datos.pinH, 'carga inicial');
+  await contestarTabla(page, 2);
+  await esperar(() => db.datos.facts && Object.keys(db.datos.facts).length > 1, 'guarda el avance de siempre');
+  assert.ok(!db.datos.ku);
   assert.deepEqual(errores, []);
   await ctx.close();
 });

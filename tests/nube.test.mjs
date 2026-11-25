@@ -76,3 +76,15 @@ test('si un lado ya tiene la contraseña cifrada, la de texto desaparece', () =>
   const nuevo = Object.assign(base(), { pinH: 'abc', pinDef: true, ts: 2000 }), viejo = Object.assign(base(), { pin: '2580', ts: 1000 });
   for (const m of [nubeMerge(nuevo, viejo), nubeMerge(viejo, nuevo)]) { assert.equal(m.pinH, 'abc'); assert.ok(!('pin' in m)); }
 });
+
+test('junta el resumen por conocimiento y migra el lado que todavía no lo tiene', async () => {
+  const { createRequire } = await import('node:module');
+  globalThis.Motor = createRequire(import.meta.url)('../motor.js');
+  const a = Object.assign(base(), { ts: 2000, ku: {} });
+  Motor.registrar(a, { k: 'mul:6x7', ok: true, primero: true, fmt: 'rcl', dia: '2026-11-26' });
+  const b = Object.assign(base(), { ts: 1000, facts: { '4x7': 3 }, enLearned: { dog: 1 } });
+  for (const m of [nubeMerge(a, b), nubeMerge(b, a)]) {
+    assert.ok(m.ku['mul:6x7'] && m.ku['mul:4x7'] && m.ku['en:dog'], Object.keys(m.ku).join());
+  }
+  delete globalThis.Motor;
+});
