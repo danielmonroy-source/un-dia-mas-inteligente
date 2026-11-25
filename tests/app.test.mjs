@@ -201,3 +201,31 @@ test('si motor.js no carga, la app sigue funcionando igual', async () => {
   assert.deepEqual(errores, []);
   await ctx.close();
 });
+
+test('un navegador nuevo sin código no pierde nada: al poner el código carga la nube completa', async () => {
+  const db = nubeFalsa(); db.datos.retoCfg = ['t', 'rd']; db.datos.colSum = 'sin3';
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage(); const errores = [];
+  page.on('pageerror', e => errores.push(String(e)));
+  await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
+  await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
+  await page.goto(url.split('?')[0]);
+  await page.waitForTimeout(800);
+  assert.equal(await page.textContent('#sPts'), '0');
+  // papá escribe el código en Para papás
+  await page.click('#papas > summary');
+  await page.fill('#pin', '2580'); await page.click('#pinGo');
+  await page.waitForSelector('#pbody', { state: 'visible' });
+  await page.fill('#codeIn', 'xyz'); await page.click('#codeGo');
+  assert.match(await page.textContent('#codeMsg'), /no es válido/);
+  await page.fill('#codeIn', url.split('?')[0] + '?p=' + CODE); await page.click('#codeGo');
+  await page.waitForFunction(() => document.getElementById('sPts').textContent === '1089');
+  const S = await page.evaluate(() => JSON.parse(localStorage.getItem('tablas-turbo-v2')));
+  assert.deepEqual(S.retoCfg, ['t', 'rd'], 'la configuración de la nube no se pisa');
+  assert.equal(S.colSum, 'sin3');
+  await page.waitForTimeout(2500);
+  assert.equal(db.datos.pts, 1089);
+  assert.deepEqual(db.datos.retoCfg, ['t', 'rd']);
+  assert.deepEqual(errores, []);
+  await ctx.close();
+});

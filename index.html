@@ -361,6 +361,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
         <p class="note" id="rstMsg"></p>
       </div>
       <p class="note" id="cloud"></p>
+      <div class="row"><input id="codeIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Código de jugador" aria-label="Código de jugador"><button class="ghost" id="codeGo">Usar este código</button></div>
+      <p class="note" id="codeMsg">Si en este dispositivo no aparece el avance, escribe aquí el código de jugador (viene en el enlace de Adolfo, después de «?p=»).</p>
       <h3 class="ph">Copias de seguridad</h3>
       <p class="note">Descarga una copia del avance para guardarla tú, o vuelve a una copia anterior.</p>
       <div class="row"><button class="ghost" id="expBtn">Descargar copia</button><button class="ghost" id="impBtn">Cargar copia</button></div>
@@ -491,7 +493,8 @@ const save=()=>{try{calSnap()}catch(e){}S.ts=Date.now();try{localStorage.setItem
 /* ---- nube (Supabase) ---- */
 const SB='https://rrnuxiadvqqwzrhpdwpl.supabase.co',SBK='sb_publishable_S3kfMHOQsui0EruQbm9QrA_I-D6GNMZ';
 let CODE='';
-try{const p=new URLSearchParams(location.search).get('p');if(p&&/^[a-f0-9]{24,64}$/.test(p)){localStorage.setItem('tt-codigo',p);history.replaceState(null,'',location.pathname)}CODE=localStorage.getItem('tt-codigo')||''}catch(e){}
+const setCode=p=>{if(localStorage.getItem('tt-codigo')!==p){localStorage.removeItem('tt-base');localStorage.removeItem('tt-sync-ts')}localStorage.setItem('tt-codigo',p)};
+try{const p=new URLSearchParams(location.search).get('p');if(p&&/^[a-f0-9]{24,64}$/.test(p)){setCode(p);history.replaceState(null,'',location.pathname)}CODE=localStorage.getItem('tt-codigo')||''}catch(e){}
 let pushT=null,cloudMsg=CODE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
 const rpc=async(fn,body)=>{const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json()};
 const setCloud=m=>{cloudMsg=m;const el=document.getElementById('cloud');if(el)el.textContent=m};
@@ -564,8 +567,11 @@ async function push(){if(!CODE||pushing)return;pushing=true;
 async function pull(){if(!CODE)return;try{const r=await rpc('tt_cargar',{p_codigo:CODE});
   if(!r){setCloud('El código de jugador no es válido.');return}
   const remote=r.datos||{},localDirty=(S.ts||0)>SYNCED,remoteChanged=!BASE||r.actualizado!==BASE;
+  if(!BASE&&!(S.pts>0)&&(remote.pts>0)){ // dispositivo nuevo sin avance propio: se toma el de la nube completo, sin mezclar
+    try{localStorage.setItem('tt-respaldo-local',JSON.stringify({fecha:new Date().toISOString(),motivo:'antes de cargar el código',datos:S}))}catch(e){}
+    S=Object.assign(DEF(),remote);lsave();setBase(r.actualizado,S.ts);rehome();setCloud('Avance cargado de la nube a las '+hhmm());pinMigrate();return}
   if(remoteChanged&&localDirty&&(S.ts||0)!==(remote.ts||0)){S=Object.assign(DEF(),nubeMerge(S,remote));lsave();setBase(r.actualizado,0);rehome();setCloud('Se juntó el avance de este dispositivo con el de la nube ('+hhmm()+')');push();return}
-  if(remoteChanged&&(remote.ts||0)>=(S.ts||0)){S=Object.assign(DEF(),remote);lsave();setBase(r.actualizado,S.ts);rehome();setCloud('Avance cargado de la nube a las '+hhmm());return}
+  if(remoteChanged&&(remote.ts||0)>=(S.ts||0)){S=Object.assign(DEF(),remote);lsave();setBase(r.actualizado,S.ts);rehome();setCloud('Avance cargado de la nube a las '+hhmm());pinMigrate();return}
   setBase(r.actualizado,remoteChanged?0:SYNCED);
   if((S.ts||0)>SYNCED)push();else setCloud('Al día con la nube ('+hhmm()+')');
 }catch(e){setCloud(offMsg)}}
@@ -666,6 +672,9 @@ async function doReset(){if(!(await pinOk($('rstPin').value))){$('rstMsg').textC
   await backupNow('antes de borrar todo');
   const keep={pinH:S.pinH,pinDef:S.pinDef,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep,{resetAt:Date.now()});save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
+$('codeGo').addEventListener('click',()=>{const v=$('codeIn').value.trim().toLowerCase().replace(/^.*[?&]p=/,'').replace(/[^a-f0-9].*$/,'');
+  if(!/^[a-f0-9]{24,64}$/.test(v)){$('codeMsg').textContent='Ese código no es válido. Revisa que esté completo.';return}
+  try{setCode(v)}catch(e){}location.reload()});
 $('rstPin').addEventListener('keydown',e=>{if(e.key==='Enter')doReset()});
 $('rep').addEventListener('click',()=>start('mix',0));
 
