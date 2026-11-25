@@ -61,6 +61,10 @@ details.papas{margin-top:22px;background:var(--card);border-radius:16px;padding:
 details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height:36px}
 .papas label{display:flex;gap:10px;align-items:center;min-height:44px}
 .papas input{width:22px;height:22px}
+#familia input{width:100%;height:auto;min-height:44px;font:inherit}
+#familia label{display:block;margin-top:8px}
+#familia output{display:block;overflow-wrap:anywhere}
+#familia ul{padding-inline-start:20px;overflow-wrap:anywhere}
 .papas .ghost{min-height:44px;font-size:16px;margin-top:6px}
 /* modos */
 .modes{display:grid;gap:10px}
@@ -315,6 +319,46 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div id="wRD" hidden></div>
     <div id="wG" hidden></div>
     </div>
+    <details class="papas" id="familia" hidden>
+      <summary>Para papás · cuenta familiar</summary>
+      <a id="familyConsole" href="?familia=1">Abrir solo la cuenta familiar</a>
+      <p id="familyStatus" class="note" role="status"></p>
+      <form id="familyEmail">
+        <label>Correo de la familia <input id="familyAddress" type="email" required autocomplete="email"></label>
+        <button class="ghost">Enviar código para entrar o recuperar acceso</button>
+      </form>
+      <form id="familyVerify" hidden>
+        <label>Código del correo <input id="familyOtp" required inputmode="numeric" autocomplete="one-time-code"></label>
+        <button class="ghost">Entrar</button>
+      </form>
+      <div id="familyStudy">
+        <button class="ghost" id="studyPair">Preparar este dispositivo</button>
+        <output id="studyUid"></output>
+        <button class="ghost" id="studyCheck" hidden>Ya lo autorizó un adulto</button>
+      </div>
+      <div id="familyAdult" hidden>
+        <button class="ghost" id="familyExit">Cerrar sesión de papás</button>
+        <form id="familyLink">
+          <label>Código anterior <input id="familyLegacy" autocomplete="off" required></label>
+          <button class="ghost">Vincular perfil existente</button>
+        </form>
+        <label>Perfil <select id="familyProfiles"></select></label>
+        <button class="ghost" id="familyOpen">Abrir como adulto</button>
+        <form id="familyPair">
+          <label>Identificador del dispositivo <input id="familyDevice" autocomplete="off" required></label>
+          <button class="ghost">Autorizar dispositivo</button>
+        </form>
+        <ul id="familyDevices"></ul>
+        <button class="ghost" id="familySync">Ver estado del progreso</button>
+        <button class="ghost" id="familyPortable">Descargar progreso</button>
+        <button class="ghost" id="familyCopy">Respaldar en la nube</button>
+        <label>Frase de la copia cifrada <input id="familyPass" type="password" autocomplete="off"></label>
+        <button class="ghost" id="familyDownload">Descargar copia operativa cifrada</button>
+        <label>Abrir una copia operativa <input id="familyUpload" type="file" accept=".json"></label>
+        <button class="ghost" id="familyRestore" hidden>Confirmar recuperación</button>
+      </div>
+    </details>
+    <p class="note" role="status" id="studyHelp" hidden>Pide ayuda a un adulto. Tu progreso sigue guardado en este dispositivo.</p>
     <details class="papas" id="papas">
       <summary>Para papás</summary>
       <div class="plock" id="plock">
@@ -475,6 +519,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 
 <script>window.onerror=function(m,u,l){var d=document.createElement("div");d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fff3cd;color:#000;padding:8px;font:13px sans-serif";d.textContent="Error: "+m+" (línea "+l+")";(document.body||document.documentElement).appendChild(d)};</script>
 <script src="motor.js?v=1"></script>
+<script src="family.js"></script>
 <script>
 (async()=>{
 const K='tablas-turbo-v2',LV=150,HARD=[4,6,7,8,9];
@@ -492,10 +537,15 @@ const isCode=p=>/^[a-f0-9]{24,64}$/.test(p);
 const profileKey=code=>'tt-profile-v1:'+(code||'local');
 const oldCode=stored('tt-codigo');
 const linkCode=new URLSearchParams(location.search).get('p')||'';
+const family=window.UDMI_CONFIG?.family?familyClient(window.UDMI_CONFIG):null;
+const access=family?.mode();
 const CODE=isCode(linkCode)?linkCode:isCode(oldCode)?oldCode:'';
+const ID=access?.id;
+const PROFILE=ID?'familia:'+window.UDMI_CONFIG.url+':'+ID:CODE;
+const ONLINE=!family?.consoleOnly&&!!(ID||CODE);
 if(navigator.locks){
   const allowed=await new Promise((resolve,reject)=>{
-    navigator.locks.request(profileKey(CODE),{ifAvailable:true},lock=>{
+    navigator.locks.request(profileKey(PROFILE),{ifAvailable:true},lock=>{
       resolve(!!lock);
       if(lock)return new Promise(release=>addEventListener('pagehide',release,{once:true}))
     }).catch(reject)
@@ -523,18 +573,31 @@ if(!stored(legacyProfile)&&!stored('tt-profile-migrated')){
   })){try{localStorage.setItem('tt-profile-migrated','1')}catch(e){}}
 }
 if(isCode(linkCode)){try{setCode(linkCode);history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
-const profileData=readLocal(profileKey(CODE));
-if(stored(profileKey(CODE))&&(!profileData||typeof profileData!=='object'||Array.isArray(profileData))){
+const profileData=readLocal(profileKey(PROFILE));
+if(stored(profileKey(PROFILE))&&(!profileData||typeof profileData!=='object'||Array.isArray(profileData))){
   const notice=document.createElement('p');
   notice.textContent='La copia local no se puede leer. Conserva este almacenamiento para recuperarla antes de continuar.';
   document.body.replaceChildren(notice);return
 }
 const profile=profileData||{};
 let S=Object.assign(DEF(),profile.state||{});
+if(ID&&access.role==='estudio')S.tab='reto';
 const SB=window.UDMI_CONFIG?.url||'https://rrnuxiadvqqwzrhpdwpl.supabase.co';
 const SBK=window.UDMI_CONFIG?.key||'sb_publishable_S3kfMHOQsui0EruQbm9QrA_I-D6GNMZ';
-let pushT=null,cloudMsg=CODE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
+let pushT=null,cloudMsg=ONLINE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
 async function rpc(fn,body){
+  if(ID){
+    const pad=access.role==='padre';
+    const names={
+      tt_cargar:pad?'tt_familia_leer':'tt_fase2_estudio',
+      tt_guardar3:pad?'tt_familia_guardar':'tt_fase2_guardar_estudio',
+      tt_intentos_agregar:pad?'tt_familia_intentos':'tt_fase2_intentos'
+    };
+    if(fn==='tt_respaldo_crear'&&pad)return family.rpc('padre','tt_familia_respaldo',{p_perfil:ID});
+    if(!names[fn])throw new Error('403');
+    const {p_codigo,...payload}=body;
+    return family.rpc(access.role,names[fn],{...payload,p_perfil:ID})
+  }
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),12000);
   try{
@@ -665,7 +728,7 @@ function nubeMerge(L,R,B,preferRemote=false){
 let BASE=profile.version||null, ANCHOR=profile.anchor||null, dirty=profile.dirty||false;
 let COLA=profile.queue||[],pending=profile.pending||null,lastBackup=profile.backup||null;
 let pushing=false,failures=0,safeWriteMissing=false;
-const lsave=()=>writeProfile(profileKey(CODE),{state:S,queue:COLA,version:BASE,anchor:ANCHOR,dirty,pending,backup:lastBackup});
+const lsave=()=>writeProfile(profileKey(PROFILE),{state:S,queue:COLA,version:BASE,anchor:ANCHOR,dirty,pending,backup:lastBackup});
 const save=()=>{try{calSnap()}catch(e){}S.ts=Math.max(Date.now(),(S.ts||0)+1);dirty=true;lsave();schedulePush()};
 function mot(a){try{if(!window.Motor)return;if(!S.ku)Motor.migrar(S,today());COLA.push(Motor.registrar(S,a));dirty=true;lsave()}catch(e){}}
 async function flushCola(){
@@ -679,7 +742,7 @@ async function flushCola(){
 const rehome=()=>{try{if(!$('home').hidden)renderHome()}catch(e){}};
 const offMsg='Sin conexión: el avance queda en este dispositivo y se reintentará.';
 function schedulePush(delay=1500){
-  if(!CODE||safeWriteMissing)return;
+  if(!ONLINE||safeWriteMissing)return;
   clearTimeout(pushT);pushT=setTimeout(push,delay)
 }
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -697,16 +760,27 @@ function receive(remote){
   }else{
     S=Object.assign(DEF(),state);dirty=false
   }
+  if(!BASE&&ID&&access.role==='estudio')S.tab='reto';
   ANCHOR=copy(state);BASE=remote.actualizado;lsave();rehome()
 }
 async function push(){
-  if(!CODE||pushing||safeWriteMissing)return;
+  if(!ONLINE||pushing||safeWriteMissing)return;
   pushing=true;
   let retry=true;
   try{
+    const transferKey=profileKey(PROFILE)+':transfer';
+    const transfer=ID?readLocal(transferKey):null;
+    if(transfer&&await family.rpc(access.role,'tt_familia_recibo',{p_perfil:ID,p_id:transfer.id})){
+      ANCHOR=transfer.state;BASE=null;pending=null;
+      const included=new Set(transfer.attempts);
+      COLA=COLA.filter(a=>!included.has(a.id));
+      dirty=JSON.stringify(S)!==JSON.stringify(transfer.state);
+      if(!lsave())throw new Error('almacenamiento lleno');
+      localStorage.removeItem(transferKey)
+    }
     if(!pending){
       receive(await rpc('tt_cargar',{p_codigo:CODE}));
-      await pinMigrate()
+      if(!ID)await pinMigrate()
     }
     for(let tries=0;(dirty||pending)&&tries<4;tries++){
       if(!pending){
@@ -726,10 +800,13 @@ async function push(){
       lsave()
     }
     await flushCola();failures=0;
+    $('studyHelp').hidden=true;
     setCloud(storageFailed?'El almacenamiento local no está disponible. Revisa el espacio del dispositivo.':
       dirty?'Hay progreso pendiente de sincronizar.':'Al día con la nube ('+hhmm()+')')
   }catch(e){
-    if(String(e.message)==='404'){
+    if(ID&&['401','403','400'].includes(e.message)){
+      retry=false;$('studyHelp').hidden=false;setCloud('Se necesita renovar el acceso. El progreso sigue en este dispositivo.')
+    }else if(String(e.message)==='404'){
       safeWriteMissing=true;retry=false;
       setCloud('La nube no tiene guardado seguro. El progreso queda en este dispositivo.')
     }else if(e.message==='restauración en conflicto'||e.message==='perfil no disponible'){
@@ -743,7 +820,7 @@ async function push(){
 }
 const pull=push;
 addEventListener('online',()=>{safeWriteMissing=false;push()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&$('play').hidden&&$('srplay').hidden&&$('qz').hidden)pull()});
+document.addEventListener('visibilitychange',()=>{if(ONLINE&&document.visibilityState==='visible'&&$('play').hidden&&$('srplay').hidden&&$('qz').hidden)pull()});
 const $=id=>document.getElementById(id);
 const dstr=ms=>{const x=new Date(ms);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
 const today=()=>dstr(Date.now()),yday=()=>dstr(Date.now()-864e5);
@@ -835,7 +912,7 @@ $('open').addEventListener('change',e=>{S.open=e.target.checked;save();renderHom
 const rstClose=()=>{$('rstBox').hidden=true;$('reset').hidden=false;$('rstPin').value='';$('rstMsg').textContent=''};
 $('reset').addEventListener('click',()=>{$('rstBox').hidden=false;$('reset').hidden=true;$('rstPin').focus()});
 $('rstNo').addEventListener('click',rstClose);
-async function doReset(){if(!(await pinOk($('rstPin').value))){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
+async function doReset(){if(ID)return;if(!(await pinOk($('rstPin').value))){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
   if(!await backupNow('antes de borrar todo')){$('rstMsg').textContent='No se pudo guardar una copia local. No se borró el avance.';return}
   const keep={pinH:S.pinH,pinDef:S.pinDef,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep,{resetAt:Date.now()});save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
@@ -1375,7 +1452,7 @@ async function pinMigrate(){if(S.pinH)return;const p=String(S.pin||'2580'),h=awa
 /* copias de seguridad */
 async function backupNow(motivo){lastBackup={fecha:new Date().toISOString(),motivo,datos:copy(S),intentos:copy(COLA),
     version:BASE,ancla:ANCHOR,pending};if(!lsave())return false;
-  if(CODE){try{await rpc('tt_respaldo_crear',{p_codigo:CODE,p_motivo:motivo})}catch(e){}}
+  if(ONLINE){try{await rpc('tt_respaldo_crear',{p_codigo:CODE,p_motivo:motivo})}catch(e){}}
   return true
 }
 const htmlText=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
@@ -1466,8 +1543,8 @@ $('bkBox').addEventListener('click',async e=>{const b=e.target.closest('[data-bk
 /* candado de "Para papás" */
 let papasOK=false;
 const lockP=()=>{papasOK=false;$('plock').hidden=false;$('pbody').hidden=true;$('pin').value='';$('pinMsg').textContent=''};
-$('papas').addEventListener('toggle',()=>{if(!$('papas').open)lockP();else if(!papasOK)setTimeout(()=>$('pin').focus(),50)});
-async function tryPin(){if(await pinOk($('pin').value)){papasOK=true;$('plock').hidden=true;$('pbody').hidden=false;$('pinWarn').hidden=!S.pinDef;tone(700,.08)}
+$('papas').addEventListener('toggle',()=>{if(ID)return;if(!$('papas').open)lockP();else if(!papasOK)setTimeout(()=>$('pin').focus(),50)});
+async function tryPin(){if(ID)return;if(await pinOk($('pin').value)){papasOK=true;$('plock').hidden=true;$('pbody').hidden=false;$('pinWarn').hidden=!S.pinDef;tone(700,.08)}
   else{$('pinMsg').textContent='Contraseña incorrecta.';$('pin').value='';tone(220,.2,'triangle')}}
 $('pinGo').addEventListener('click',tryPin);
 $('pin').addEventListener('keydown',e=>{if(e.key==='Enter')tryPin()});
@@ -2868,6 +2945,182 @@ $('xprog').addEventListener('click',e=>{enS();const R=dayRec();
   const g=e.target.closest('[data-kg]');if(g){const G=WORDS[+g.dataset.kg],all=G.every(x=>S.enKnown[x.en]);G.forEach(x=>{if(all)delete S.enKnown[x.en];else S.enKnown[x.en]=1});
     if(all&&R.enW&&!R.en)R.enW=null;save();renderHome()}});
 
+function familyUi(){
+  $('familia').hidden=false;
+  if(ID)$('papas').hidden=access.role!=='padre'||!family.adult();
+  const tell=message=>{$('familyStatus').textContent=message};
+  let email='',profiles=[],preview=null;
+  const selection=()=>$('familyProfiles').value;
+  const parent=(name,body)=>family.rpc('padre',name,body);
+  const bind=(id,event,action)=>$(id).addEventListener(event,async e=>{
+    e.preventDefault();
+    if($(id).dataset.busy)return;
+    $(id).dataset.busy='true';
+    try{await action(e)}catch(err){
+      const message=['401','403'].includes(err.message)?'Vuelve a entrar con el código de tu correo.':
+        /^\d+$/.test(err.message)?'No se pudo completar. Revisa el acceso e inténtalo de nuevo.':err.message;
+      tell(message==='Failed to fetch'?'Revisa la conexión e inténtalo de nuevo.':message);
+    }finally{delete $(id).dataset.busy}
+  });
+  const profileDir=id=>profileKey('familia:'+window.UDMI_CONFIG.url+':'+id);
+  async function open(role,id,huella){
+    // Solo se importa la copia local legada si el servidor confirma el mismo perfil.
+    const raw=stored(profileKey(CODE));
+    if(CODE&&raw&&!stored(profileDir(id))){
+      const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(CODE));
+      const localHash=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+      if(localHash===huella){
+        const previous=readLocal(profileKey(CODE));
+        if(!previous||!writeProfile(profileDir(id),previous))throw new Error('No se pudo trasladar la copia de este dispositivo.');
+      }
+    }
+    if(role==='padre')family.selectAdult(id);
+    else{await family.forgetAdult();family.selectStudy(id)}
+    const destination=new URL(location.href);
+    destination.searchParams.delete('familia');
+    destination.searchParams.delete('p');
+    location.replace(destination.href)
+  }
+  async function listDevices(){
+    $('familyDevices').replaceChildren();
+    if(!selection())return;
+    const perfil=selection();
+    const devices=await parent('tt_familia_dispositivos',{p_perfil:perfil});
+    if(perfil!==selection())return;
+    for(const d of devices){
+      const li=document.createElement('li'), button=document.createElement('button');
+      li.textContent=d.id+' · '+new Date(d.creado).toLocaleDateString()+' ';
+      button.className='ghost';button.textContent='Revocar';
+      button.onclick=async()=>{
+        try{await parent('tt_fase2_revocar',{p_perfil:perfil,p_dispositivo:d.id});await listDevices();tell('Acceso revocado.')}
+        catch{tell('Vuelve a entrar como adulto para revocar.')}
+      };
+      li.append(button);$('familyDevices').append(li)
+    }
+  }
+  async function adultPanel(chosen){
+    profiles=await parent('tt_familia_perfiles');
+    $('familyProfiles').replaceChildren(...profiles.map(p=>new Option(p.nombre,p.id)));
+    if(profiles.some(p=>p.id===(chosen||ID)))$('familyProfiles').value=chosen||ID;
+    $('familyAdult').hidden=false;$('familyVerify').hidden=true;
+    await listDevices();
+    if(ID&&access.role==='padre'){
+      $('papas').hidden=false;$('plock').hidden=true;$('pbody').hidden=false;$('pinWarn').hidden=true;
+      for(const id of ['reset','rstBox','codeMsg','expBtn','impBtn','bkList','pinWarn','newpin','setpin'])$(id).hidden=true;
+      $('codeIn').parentElement.hidden=true;
+    }
+  }
+  function download(name,data){
+    const link=document.createElement('a');
+    const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
+    link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
+  bind('familyEmail','submit',async()=>{
+    email=$('familyAddress').value.trim();
+    await family.email(email);
+    $('familyVerify').hidden=false;$('familyOtp').focus();
+    tell('Si el correo está autorizado, recibirás un código. Úsalo para entrar o recuperar el acceso.')
+  });
+  bind('familyVerify','submit',async()=>{
+    await family.verify(email,$('familyOtp').value.trim());$('familyOtp').value='';
+    await adultPanel();tell('Sesión de adulto abierta.')
+  });
+  bind('familyExit','click',async()=>{await family.forgetAdult();location.reload()});
+  bind('familyLink','submit',async()=>{
+    const code=$('familyLegacy').value.trim();
+    if(!isCode(code))throw new Error('Escribe el código anterior completo.');
+    const perfil=await parent('tt_familia_vincular',{p_codigo:code});
+    $('familyLegacy').value='';await adultPanel(perfil);tell('Perfil vinculado. Se conserva su progreso.')
+  });
+  bind('familyProfiles','change',async()=>{preview=null;$('familyRestore').hidden=true;await listDevices()});
+  bind('familyOpen','click',()=>{
+    const p=profiles.find(p=>p.id===selection());
+    if(!p)throw new Error('Primero elige o vincula un perfil.');
+    return open('padre',p.id,p.huella)
+  });
+  bind('studyPair','click',async()=>{
+    let uid;
+    try{uid=await family.studyDevice()}
+    catch(err){
+      if(!['400','401','403'].includes(err.message))throw err;
+      family.replaceStudy();uid=await family.studyDevice()
+    }
+    $('studyUid').textContent=uid;$('studyCheck').hidden=false;
+    tell('Un adulto debe autorizar este identificador en su cuenta.')
+  });
+  bind('studyCheck','click',async()=>{
+    const perfil=await family.rpc('estudio','tt_estudio_perfil');
+    if(!perfil)throw new Error('Este dispositivo todavía necesita autorización.');
+    await open('estudio',perfil.id,perfil.huella)
+  });
+  bind('familyPair','submit',async()=>{
+    await parent('tt_familia_autorizar',{p_perfil:selection(),p_dispositivo:$('familyDevice').value.trim()});
+    $('familyDevice').value='';await listDevices();tell('Dispositivo autorizado.')
+  });
+  bind('familySync','click',async()=>{
+    const id=selection(), remote=await parent('tt_familia_leer',{p_perfil:id});
+    const local=readLocal(profileDir(id));
+    tell('Nube: '+new Date(remote.actualizado).toLocaleString()+'. Intentos pendientes de este navegador: '+(local?.queue?.length||0)+'.')
+  });
+  bind('familyPortable','click',async()=>{
+    const remote=await parent('tt_familia_leer',{p_perfil:selection()});
+    download('avance-'+today()+'.json',{app:'un-dia-mas-inteligente',v:1,datos:portable(remote.datos)});
+    tell('Copia del progreso confirmado descargada.')
+  });
+  bind('familyCopy','click',async()=>{
+    await parent('tt_familia_respaldo',{p_perfil:selection()});tell('Copia guardada en la nube.')
+  });
+  bind('familyDownload','click',async()=>{
+    const perfil=selection();
+    const server=await parent('tt_fase2_copia',{p_perfil:perfil});
+    const device=readLocal(profileDir(perfil));
+    const snapshot=portable({perfil,server,device});
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(device?.dirty?{perfil,device:snapshot.device}:{perfil,version:server.progreso.version})));
+    const hex=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+    const id=hex.slice(0,8)+'-'+hex.slice(8,12)+'-4'+hex.slice(13,16)+'-a'+hex.slice(17,20)+'-'+hex.slice(20,32);
+    const encrypted=await familyArchive({...snapshot,id},$('familyPass').value);
+    if(device?.dirty&&!writeProfile(profileDir(perfil)+':transfer',{id,state:device.state,attempts:device.queue.map(a=>a.id)}))
+      throw new Error('No se pudo conservar la referencia de la cola de este dispositivo.');
+    $('familyPass').value='';
+    download('copia-operativa-'+today()+'.json',encrypted);tell('Copia cifrada descargada. Guárdala fuera del repositorio.')
+  });
+  bind('familyUpload','change',async()=>{
+    preview=null;$('familyRestore').hidden=true;
+    const file=$('familyUpload').files[0];
+    $('familyUpload').value='';
+    if(!file||file.size>16000000)throw new Error('Elige una copia de menos de 16 MB.');
+    let archive;
+    try{archive=await familyArchive(JSON.parse(await file.text()),$('familyPass').value,true)}
+    catch{throw new Error('No se pudo abrir la copia. Revisa el archivo y su frase.')}
+    $('familyPass').value='';
+    const perfil=selection();
+    if(!archive.id||archive.perfil!==perfil||archive.server?.perfil!==perfil||
+      !validBackup(archive.server?.progreso?.datos)||!safeJson(archive))throw new Error('La copia no corresponde a este perfil.');
+    const live=await parent('tt_fase2_copia',{p_perfil:perfil});
+    const restored=familyReconcile(archive,live,nubeMerge);
+    if(!validBackup(restored.p_datos))throw new Error('No se pudo validar el progreso conciliado.');
+    preview=restored;$('familyRestore').hidden=false;
+    tell('Copia preparada. Progreso actual: '+live.progreso.datos.pts+' puntos. Resultado: '+restored.p_datos.pts+' puntos.')
+  });
+  bind('familyRestore','click',async()=>{
+    if(!preview||preview.p_perfil!==selection())return;
+    const done=await parent('tt_familia_restaurar',preview);
+    preview=null;$('familyRestore').hidden=true;
+    if(done?.conflicto)throw new Error('El progreso cambió. Abre la copia de nuevo para volver a comparar.');
+    if(!done?.ok)throw new Error('No se pudo confirmar la recuperación.');
+    tell('Progreso conciliado. Se conservaron los intentos identificados.');
+    if(ID)await pull()
+  });
+  if(ID&&access.role==='padre')setInterval(()=>{
+    if(!family.adult()){$('papas').hidden=true;$('familyAdult').hidden=true}
+  },15000);
+  if(family.consoleOnly){
+    $('familia').open=true;$('familyConsole').hidden=true;$('familyStudy').hidden=true;
+    document.body.replaceChildren($('familia'))
+  }
+  if(family.adult())adultPanel().catch(()=>tell('Vuelve a entrar con el código de tu correo.'));
+}
+
 /* confirmar antes de salir de una actividad */
 let exitOK=false,exitBtn=null;
 document.addEventListener('click',e=>{const b=e.target.closest('#quit,#srquit,#qzquit');if(!b||exitOK)return;
@@ -2876,7 +3129,8 @@ $('exitNo').addEventListener('click',()=>{$('exitAsk').hidden=true;exitBtn=null}
 $('exitYes').addEventListener('click',()=>{$('exitAsk').hidden=true;if(exitBtn){exitOK=true;exitBtn.click();exitOK=false;exitBtn=null}});
 try{if(window.Motor&&!S.ku&&Motor.migrar(S,today()))lsave()}catch(e){}
 renderHome();
-if(CODE)pull();else pinMigrate();
+if(family)familyUi();
+if(!family?.consoleOnly){if(ID)pull();else {if(CODE)pull();else pinMigrate();}}
 })().catch(e=>window.onerror(e.message));
 </script>
 </body>

@@ -19,6 +19,7 @@ const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url
   };
   if(CODE)pull();else pinMigrate();`);
 const motor = readFileSync(fileURLToPath(new URL('../motor.js', import.meta.url)), 'utf8');
+const family = readFileSync(fileURLToPath(new URL('../family.js', import.meta.url)), 'utf8');
 const CODE = 'a'.repeat(32);
 const datosIniciales = () => ({ pts: 240, best: 20, streak: 1, last: '2024-02-29', days: { '2024-02-29': 5 }, facts: { '4x1': 3 }, med: {}, miss: {},
   sr: { med: {}, err: {}, fails: [] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {}, cal: { '2024-02-29': { m: { t: 10 }, t: 4, avg: 7.2 } },
@@ -63,6 +64,7 @@ function nubeFalsa({ sinV3 = false, sinIntentos = false, code = CODE } = {}) {
 let server, url, browser;
 test.before(async () => {
   server = createServer((req, res) => {
+    if (req.url==='/family.js') { res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(family); return; }
     if (req.url.startsWith('/motor.js')) { res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(motor); return; }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); });
   await new Promise(r => server.listen(0, '127.0.0.1', r));
