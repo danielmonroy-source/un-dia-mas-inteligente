@@ -1,0 +1,139 @@
+// Prueba de la app completa en Chromium con una nube simulada (no toca la base de datos real).
+// Ejecutar: node --test tests/  (requiere Playwright; en la sesión en la nube ya viene instalado)
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { readFileSync, mkdtempSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createRequire } from 'node:module';
+const { chromium } = createRequire(import.meta.url)('playwright');
+
+const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
+const CODE = 'a'.repeat(32);
+const datosIniciales = () => ({ pts: 1089, best: 20, streak: 1, last: '2026-11-24', days: { '2026-11-24': 5 }, facts: { '4x1': 3 }, med: {}, miss: {},
+  sr: { med: {}, err: {}, fails: [] }, daily: {}, rd: { dino: 4 }, rk: { 4: 1 }, enLearned: { dog: 1 }, enKnown: {}, cal: { '2026-11-24': { m: { t: 10 }, t: 4, avg: 8.3 } },
+  ts: 1795620411507, nombre: 'Adolfo', pin: '2580', mute: false, open: false, retoCfg: ['t', 'c', 'en', 'rd'] });
+
+function nubeFalsa({ sinV2 = false } = {}) {
+  let n = 0; const stamp = () => new Date(Date.UTC(2026, 10, 25, 16, 0, 0, ++n)).toISOString();
+  const db = { datos: datosIniciales(), actualizado: stamp(), respaldos: [], llamadas: [] };
+  db.cambiarDesdeOtroDispositivo = f => { f(db.datos); db.actualizado = stamp(); };
+  db.ruta = async route => {
+    const fn = route.request().url().split('/rpc/')[1]; const b = JSON.parse(route.request().postData() || '{}'); db.llamadas.push(fn);
+    const json = x => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(x) });
+    if (b.p_codigo !== CODE) return route.fulfill({ status: 400, body: '{}' });
+    const respaldar = motivo => db.respaldos.unshift({ id: db.respaldos.length + 1, creado: new Date().toISOString(), motivo, datos: JSON.parse(JSON.stringify(db.datos)) });
+    switch (fn) {
+      case 'tt_cargar': return json({ datos: db.datos, actualizado: db.actualizado });
+      case 'tt_guardar': db.datos = b.p_datos; db.actualizado = stamp(); return json(db.actualizado);
+      case 'tt_guardar2':
+        if (sinV2) return route.fulfill({ status: 404, body: '{}' });
+        if (b.p_base && b.p_base !== db.actualizado) return json({ ok: false, conflicto: true, actualizado: db.actualizado });
+        db.datos = b.p_datos; db.actualizado = stamp(); return json({ ok: true, actualizado: db.actualizado });
+      case 'tt_respaldo_crear': respaldar(b.p_motivo); return json(true);
+      case 'tt_respaldos_listar': return json(db.respaldos.map(r => ({ id: r.id, creado: r.creado, motivo: r.motivo, pts: r.datos.pts })));
+      case 'tt_respaldo_cargar': return json((db.respaldos.find(r => r.id === b.p_id) || {}).datos ?? null);
+      default: return route.fulfill({ status: 404, body: '{}' });
+    }
+  };
+  return db;
+}
+
+let server, url, browser;
+test.before(async () => {
+  server = createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); });
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  url = `http://127.0.0.1:${server.address().port}/index.html?p=${CODE}`;
+  browser = await chromium.launch();
+});
+test.after(async () => { await browser?.close(); server?.close(); });
+
+async function abrir(db) {
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage(); const errores = [];
+  page.on('pageerror', e => errores.push(String(e)));
+  await page.route('**/*', r => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
+  await page.route('https://*.supabase.co/rest/v1/rpc/*', db.ruta);
+  await page.goto(url);
+  return { ctx, page, errores };
+}
+const esperar = async (cond, msg, ms = 8000) => { const t = Date.now(); while (!cond()) { if (Date.now() - t > ms) throw new Error('Tiempo agotado: ' + msg); await new Promise(r => setTimeout(r, 50)); } };
+
+test('contraseña cifrada, guardado sin pisarse, borrar y restaurar, exportar', async () => {
+  const db = nubeFalsa(); const { ctx, page, errores } = await abrir(db);
+
+  await esperar(() => db.datos.pinH && !('pin' in db.datos), 'la contraseña se migra a hash y deja de subirse en texto');
+  assert.equal(db.datos.pts, 1089, 'no cambia el avance');
+  assert.equal(db.datos.pinDef, true);
+
+  await page.click('#papas > summary');
+  await page.fill('#pin', '1111'); await page.click('#pinGo');
+  assert.match(await page.textContent('#pinMsg'), /incorrecta/);
+  await page.fill('#pin', '2580'); await page.click('#pinGo');
+  await page.waitForSelector('#pbody', { state: 'visible' });
+  assert.ok(await page.isVisible('#pinWarn'), 'avisa que es la contraseña de fábrica');
+
+  const hashViejo = db.datos.pinH;
+  await page.fill('#newpin', '4321'); await page.click('#setpin');
+  await esperar(() => db.datos.pinH && db.datos.pinH !== hashViejo && db.datos.pinDef === false, 'la nueva contraseña se guarda');
+  assert.ok(!JSON.stringify(db.datos).includes('4321'), 'la contraseña nunca viaja en texto');
+
+  // Otro dispositivo guarda una lectura mientras esta pestaña cambia el sonido: no se debe perder ninguna de las dos cosas.
+  db.cambiarDesdeOtroDispositivo(d => { d.rd.azteca = 6; d.pts = 1150; d.ts += 10; });
+  await page.click('#snd');
+  await esperar(() => db.datos.mute === true && db.datos.rd.azteca === 6, 'se juntan los dos cambios');
+  assert.equal(db.datos.pts, 1150);
+
+  // Borrar todo: pide la contraseña nueva y deja copia.
+  await page.click('#reset');
+  await page.fill('#rstPin', '2580'); await page.click('#rstGo');
+  assert.match(await page.textContent('#rstMsg'), /incorrecta/);
+  await page.fill('#rstPin', '4321'); await page.click('#rstGo');
+  await esperar(() => db.datos.pts === 0, 'se borra el avance');
+  assert.ok(db.respaldos.some(r => r.motivo === 'antes de borrar todo' && r.datos.pts === 1150), 'hay copia antes de borrar');
+  assert.ok(db.datos.cal['2026-11-24'], 'el historial de calificaciones se conserva como antes');
+
+  // Restaurar desde la nube (dos toques para confirmar).
+  await page.click('#bkList');
+  const btn = page.locator('#bkBox [data-bk]').filter({ hasText: 'antes de borrar todo' }).first();
+  await btn.click(); assert.equal(db.datos.pts, 0, 'el primer toque solo pide confirmación');
+  await btn.click();
+  await esperar(() => db.datos.pts === 1150 && db.datos.rd.azteca === 6, 'se restaura la copia');
+  assert.ok(db.datos.pinH && db.datos.pinDef === false, 'restaurar no regresa la contraseña vieja');
+
+  // Exportar: archivo sin la contraseña.
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#expBtn')]);
+  const p = join(mkdtempSync(join(tmpdir(), 'udmi-')), 'copia.json'); await dl.saveAs(p);
+  const copia = JSON.parse(readFileSync(p, 'utf8'));
+  assert.equal(copia.datos.pts, 1150); assert.ok(!('pinH' in copia.datos) && !('pin' in copia.datos));
+
+  // Importar el mismo archivo.
+  await page.setInputFiles('#impFile', p);
+  await page.waitForFunction(() => /Se cargó la copia/.test(document.getElementById('bkMsg').textContent));
+
+  assert.deepEqual(errores, [], 'sin errores de JavaScript');
+  assert.equal(await page.locator('text=/^Error:/').count(), 0);
+  await ctx.close();
+});
+
+test('si la nube todavía no tiene el guardado nuevo, sigue guardando como antes', async () => {
+  const db = nubeFalsa({ sinV2: true }); const { ctx, page, errores } = await abrir(db);
+  await esperar(() => db.datos.pinH && db.llamadas.includes('tt_guardar'), 'usa tt_guardar como respaldo');
+  await page.click('#snd');
+  await esperar(() => db.datos.mute === true, 'guarda el cambio');
+  assert.deepEqual(errores, []);
+  await ctx.close();
+});
+
+test('las actividades principales abren sin errores', async () => {
+  const db = nubeFalsa(); const { ctx, page, errores } = await abrir(db);
+  await page.waitForSelector('#daily [data-d="t"]');
+  await page.click('#daily [data-d="t"]'); await page.waitForSelector('#play', { state: 'visible' });
+  for (const k of ['c', 'en', 'rd']) {
+    await page.goto(url); await page.waitForSelector(`#daily [data-d="${k}"]`); await page.click(`#daily [data-d="${k}"]`); await page.waitForTimeout(300);
+  }
+  assert.deepEqual(errores, []);
+  await ctx.close();
+});

@@ -231,6 +231,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .plock p{margin:4px 0}
 .papas input#pin,.papas input#newpin,.papas input#rstPin{width:auto;height:auto;flex:2;font:inherit;font-size:18px;min-height:52px;border-radius:14px;border:2px solid var(--line);background:var(--ld1);color:var(--ink);padding:0 12px}
 .papas .row .ghost{margin-top:0;min-height:52px}
+.papas .warn{color:var(--pink);font-weight:800}
 .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px;background:var(--card);border-radius:20px;padding:6px}
 .tabs button{border:0;border-radius:16px;min-height:56px;font-weight:800;font-size:19px;cursor:pointer;background:none;line-height:1.1;padding:4px 6px}
 .tabs button.on{background:var(--pink);color:#fff}
@@ -322,6 +323,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
         <p class="note" id="pinMsg"></p>
       </div>
       <div id="pbody" hidden>
+      <p class="note warn" id="pinWarn" hidden>Todavía usas la contraseña de fábrica. Cámbiala abajo, en «Contraseña de papás».</p>
       <label><input type="checkbox" id="open"> Abrir todas las tablas sin seguir el orden</label>
       <label>Nombre: <input id="nombre" maxlength="20" autocomplete="off"></label>
       <label>Tabla del reto diario: <select id="retoSel"></select></label>
@@ -354,11 +356,18 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
       <button class="ghost" id="cultAssign" hidden></button>
       <button class="ghost" id="reset">Borrar todo el avance</button>
       <div id="rstBox" hidden>
-        <p class="note">Esto borra todo el avance de Adolfo y no se puede deshacer. Escribe la contraseña de papás para confirmar.</p>
+        <p class="note">Esto borra todo el avance de Adolfo. Antes se guarda una copia que puedes recuperar en «Copias de seguridad». Escribe la contraseña de papás para confirmar.</p>
         <div class="row"><input id="rstPin" type="password" inputmode="numeric" autocomplete="off" placeholder="Contraseña" aria-label="Contraseña para borrar"><button class="ghost" id="rstGo">Borrar</button><button class="ghost" id="rstNo">Cancelar</button></div>
         <p class="note" id="rstMsg"></p>
       </div>
       <p class="note" id="cloud"></p>
+      <h3 class="ph">Copias de seguridad</h3>
+      <p class="note">Descarga una copia del avance para guardarla tú, o vuelve a una copia anterior.</p>
+      <div class="row"><button class="ghost" id="expBtn">Descargar copia</button><button class="ghost" id="impBtn">Cargar copia</button></div>
+      <input type="file" id="impFile" accept="application/json,.json" hidden>
+      <button class="ghost" id="bkList">Ver copias guardadas en la nube</button>
+      <div id="bkBox"></div>
+      <p class="note" id="bkMsg"></p>
       <h3 class="ph">Cómo va</h3>
       <div id="prog"></div>
       <div id="srprog"></div>
@@ -475,7 +484,7 @@ const MODES=[
 let S=null;
 try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S){try{const o=JSON.parse(localStorage.getItem('tablas-turbo-v1'));if(o)S={pts:o.pts,best:o.best,streak:o.streak,last:o.last,days:o.days,facts:o.facts,mute:o.mute}}catch(e){}}
-const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo',pin:'2580',colSum:'con2',colRes:'sin2'});
+const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mute:false,open:false,ts:0,world:'x',sr:{med:{},err:{},fails:[]},daily:{},rd:{},rk:{},enIdx:0,retoDays:0,retoT:0,nombre:'Adolfo',colSum:'con2',colRes:'sin2'});
 S=Object.assign(DEF(),S||{});
 const save=()=>{try{calSnap()}catch(e){}S.ts=Date.now();try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}schedulePush()};
 /* ---- nube (Supabase) ---- */
@@ -486,15 +495,65 @@ let pushT=null,cloudMsg=CODE?'Conectando con la nube…':'Sin código: el avance
 const rpc=async(fn,body)=>{const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json()};
 const setCloud=m=>{cloudMsg=m;const el=document.getElementById('cloud');if(el)el.textContent=m};
 const hhmm=()=>new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+/* NUBE-INICIO: juntar el avance de dos dispositivos sin perder nada (función pura, con pruebas en tests/) */
+function nubeMerge(L,R){
+  L=L||{};R=R||{};
+  const cp=x=>JSON.parse(JSON.stringify(x));
+  const rs=Math.max(L.resetAt||0,R.resetAt||0);
+  if(rs){if((L.resetAt||0)<rs&&(L.ts||0)<rs)return cp(R);if((R.resetAt||0)<rs&&(R.ts||0)<rs)return cp(L)}
+  const newer=(L.ts||0)>=(R.ts||0)?L:R,older=newer===L?R:L;
+  const o=cp(Object.assign({},older,newer));
+  const mx=(a,b)=>Math.max(+a||0,+b||0);
+  const maxMap=(a,b)=>{const r=Object.assign({},a||{});for(const k in (b||{}))r[k]=mx(r[k],b[k]);return r};
+  const uniq=(a,key)=>{const seen=new Set();return a.filter(x=>{const k=key?key(x):JSON.stringify(x);if(seen.has(k))return false;seen.add(k);return true})};
+  ['pts','best','retoDays','enIdx','enDone'].forEach(k=>{if(L[k]!=null||R[k]!=null)o[k]=mx(L[k],R[k])});
+  ['miss','med','rk','days','rd','cie','cult','enLearned'].forEach(k=>{if(L[k]||R[k])o[k]=maxMap(L[k],R[k])});
+  o.facts=Object.assign({},older.facts||{},newer.facts||{});
+  const la=L.last||'',lb=R.last||'';
+  if(la!==lb){const w=la>lb?L:R;o.last=w.last;o.streak=w.streak}else o.streak=mx(L.streak,R.streak);
+  if(L.sr||R.sr){const a=L.sr||{},b=R.sr||{},n=newer.sr||{},ol=older.sr||{};
+    o.sr=Object.assign({},ol,n,{med:maxMap(a.med,b.med),err:maxMap(a.err,b.err),fails:uniq([...(n.fails||[]),...(ol.fails||[])]).slice(0,12)})}
+  const done=r=>{if(!r)return -1;let n=0;['tOk','col','en','rd','bonus','enWd','enPd'].forEach(k=>{if(r[k])n++});if(r.ex)for(const k in r.ex)if(r.ex[k]&&r.ex[k].ok)n++;return n+(r.tTries||0)/100};
+  if(L.daily||R.daily){o.daily={};const D=new Set([...Object.keys(L.daily||{}),...Object.keys(R.daily||{})]);
+    D.forEach(d=>{const a=(newer.daily||{})[d],b=(older.daily||{})[d];o.daily[d]=cp(done(b)>done(a)?b:a)})}
+  if(L.cal||R.cal)o.cal=Object.assign({},cp(older.cal||{}),cp(newer.cal||{}));
+  if(L.rdLog||R.rdLog)o.rdLog=uniq([...(L.rdLog||[]),...(R.rdLog||[])],x=>[x.d,x.h,x.id,x.try].join('|')).sort((x,y)=>(y.d+y.h)>(x.d+x.h)?1:(y.d+y.h)<(x.d+x.h)?-1:0).slice(0,60);
+  if(L.gx||R.gx){o.gx={};const G=new Set([...Object.keys(L.gx||{}),...Object.keys(R.gx||{})]);
+    G.forEach(k=>{const a=(L.gx||{})[k]||{},b=(R.gx||{})[k]||{};o.gx[k]={n:mx(a.n,b.n),best:mx(a.best,b.best),log:uniq([...(a.log||[]),...(b.log||[])]).sort((x,y)=>x.d<y.d?1:x.d>y.d?-1:0).slice(0,30)}})}
+  if(o.pinH)delete o.pin; // la contraseña en texto ya no se conserva cuando existe la cifrada
+  o.ts=Math.max(L.ts||0,R.ts||0);
+  return o}
+/* NUBE-FIN */
+let BASE=null,SYNCED=0,V2=true;
+try{BASE=localStorage.getItem('tt-base');SYNCED=+localStorage.getItem('tt-sync-ts')||0}catch(e){}
+const setBase=(b,ts)=>{BASE=b;SYNCED=ts;try{localStorage.setItem('tt-base',b);localStorage.setItem('tt-sync-ts',String(ts))}catch(e){}};
+const lsave=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const rehome=()=>{try{if(!$('home').hidden)renderHome()}catch(e){}};
+const offMsg='Sin conexión: se guarda en este dispositivo y se sube después.';
 function schedulePush(){if(!CODE)return;clearTimeout(pushT);pushT=setTimeout(push,1500)}
-async function push(){if(!CODE)return;try{await rpc('tt_guardar',{p_codigo:CODE,p_datos:S});setCloud('Guardado en la nube a las '+hhmm())}catch(e){setCloud('Sin conexión: se guarda en este dispositivo y se sube después.')}}
+let pushing=false;
+async function push(){if(!CODE||pushing)return;pushing=true;
+  try{
+    if(V2&&!BASE){pushing=false;return pull()}
+    if(V2){let r;
+      try{r=await rpc('tt_guardar2',{p_codigo:CODE,p_datos:S,p_base:BASE})}
+      catch(e){if(String(e.message)==='404'){V2=false;pushing=false;return push()}throw e}
+      if(r&&r.conflicto){ // otro dispositivo guardó después: juntar y volver a guardar
+        const rem=await rpc('tt_cargar',{p_codigo:CODE});S=Object.assign(DEF(),nubeMerge(S,(rem&&rem.datos)||{}));lsave();setBase(rem.actualizado,SYNCED);rehome();
+        r=await rpc('tt_guardar2',{p_codigo:CODE,p_datos:S,p_base:BASE});if(!r||!r.ok)throw new Error('conflicto')}
+      setBase(r.actualizado,S.ts)}
+    else{await rpc('tt_guardar',{p_codigo:CODE,p_datos:S});SYNCED=S.ts}
+    setCloud('Guardado en la nube a las '+hhmm())}
+  catch(e){setCloud(offMsg)}
+  finally{pushing=false}}
 async function pull(){if(!CODE)return;try{const r=await rpc('tt_cargar',{p_codigo:CODE});
   if(!r){setCloud('El código de jugador no es válido.');return}
-  const remote=r.datos||{};
-  if((remote.ts||0)>(S.ts||0)){S=Object.assign(DEF(),remote);try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}if(!$('home').hidden)renderHome();setCloud('Avance cargado de la nube a las '+hhmm())}
-  else if((S.ts||0)>(remote.ts||0))push();
-  else setCloud('Al día con la nube ('+hhmm()+')');
-}catch(e){setCloud('Sin conexión: se guarda en este dispositivo y se sube después.')}}
+  const remote=r.datos||{},localDirty=(S.ts||0)>SYNCED,remoteChanged=!BASE||r.actualizado!==BASE;
+  if(remoteChanged&&localDirty&&(S.ts||0)!==(remote.ts||0)){S=Object.assign(DEF(),nubeMerge(S,remote));lsave();setBase(r.actualizado,0);rehome();setCloud('Se juntó el avance de este dispositivo con el de la nube ('+hhmm()+')');push();return}
+  if(remoteChanged&&(remote.ts||0)>=(S.ts||0)){S=Object.assign(DEF(),remote);lsave();setBase(r.actualizado,S.ts);rehome();setCloud('Avance cargado de la nube a las '+hhmm());return}
+  setBase(r.actualizado,remoteChanged?0:SYNCED);
+  if((S.ts||0)>SYNCED)push();else setCloud('Al día con la nube ('+hhmm()+')');
+}catch(e){setCloud(offMsg)}}
 addEventListener('online',()=>push());
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&$('play').hidden&&$('srplay').hidden&&$('qz').hidden)pull()});
 const $=id=>document.getElementById(id);
@@ -588,8 +647,9 @@ $('open').addEventListener('change',e=>{S.open=e.target.checked;save();renderHom
 const rstClose=()=>{$('rstBox').hidden=true;$('reset').hidden=false;$('rstPin').value='';$('rstMsg').textContent=''};
 $('reset').addEventListener('click',()=>{$('rstBox').hidden=false;$('reset').hidden=true;$('rstPin').focus()});
 $('rstNo').addEventListener('click',rstClose);
-function doReset(){if($('rstPin').value!==String(S.pin||'2580')){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
-  const keep={pin:S.pin,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep);save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
+async function doReset(){if(!(await pinOk($('rstPin').value))){$('rstMsg').textContent='Contraseña incorrecta. No se borró nada.';$('rstPin').value='';tone(220,.2,'triangle');return}
+  await backupNow('antes de borrar todo');
+  const keep={pinH:S.pinH,pinDef:S.pinDef,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep,{resetAt:Date.now()});save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
 $('rstPin').addEventListener('keydown',e=>{if(e.key==='Enter')doReset()});
 $('rep').addEventListener('click',()=>start('mix',0));
@@ -1109,17 +1169,45 @@ $('daily').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(
   else{S.tab='libre';S.world=k;save();renderHome();window.scrollTo(0,0)}});
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.tab=b.dataset.t;save();tone(660,.06);renderHome()});
 const toReto=()=>{S.tab='reto';show('home');renderHome()};
+/* contraseña de papás: se guarda cifrada (hash), nunca en texto */
+const PIN_SAL='udmi-v1:';
+async function pinHash(p){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(PIN_SAL+p));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return null}}
+async function pinOk(v){v=String(v||'');if(S.pinH){const h=await pinHash(v);return !!h&&h===S.pinH}return v===String(S.pin||'2580')}
+async function pinMigrate(){if(S.pinH)return;const p=String(S.pin||'2580'),h=await pinHash(p);if(!h)return;S.pinH=h;S.pinDef=p==='2580';delete S.pin;save()}
+/* copias de seguridad */
+async function backupNow(motivo){try{localStorage.setItem('tt-respaldo-local',JSON.stringify({fecha:new Date().toISOString(),motivo,datos:S}))}catch(e){}
+  if(CODE){try{await rpc('tt_respaldo_crear',{p_codigo:CODE,p_motivo:motivo})}catch(e){}}}
+const bkMsg=t=>{$('bkMsg').textContent=t};
+async function applyData(d,motivo){if(!d||typeof d!=='object'||Array.isArray(d)||typeof d.pts!=='number'){bkMsg('Ese archivo no parece una copia del avance. No se cambió nada.');return false}
+  await backupNow(motivo);
+  const keep={pinH:S.pinH,pinDef:S.pinDef};delete d.pin;S=Object.assign(DEF(),d,keep,{resetAt:Date.now()});save();renderHome();
+  bkMsg('Listo. Se cargó la copia; el avance que había antes quedó respaldado.');return true}
+$('expBtn').addEventListener('click',()=>{const d=JSON.parse(JSON.stringify(S));delete d.pinH;delete d.pin;
+  const blob=new Blob([JSON.stringify({app:'un-dia-mas-inteligente',v:1,fecha:new Date().toISOString(),datos:d},null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='avance-'+(S.nombre||'adolfo').toLowerCase()+'-'+today()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);bkMsg('Copia descargada.')});
+$('impBtn').addEventListener('click',()=>$('impFile').click());
+$('impFile').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  try{const j=JSON.parse(await f.text());await applyData(j&&j.datos?j.datos:j,'antes de cargar un archivo')}catch(err){bkMsg('No se pudo leer el archivo. No se cambió nada.')}});
+$('bkList').addEventListener('click',async()=>{if(!CODE){bkMsg('Sin código de jugador: no hay copias en la nube.');return}
+  bkMsg('Buscando copias…');let L;try{L=await rpc('tt_respaldos_listar',{p_codigo:CODE})}catch(e){bkMsg(String(e.message)==='404'?'Las copias en la nube todavía no están activadas.':'Sin conexión. Inténtalo más tarde.');return}
+  if(!L||!L.length){bkMsg('Todavía no hay copias en la nube.');$('bkBox').innerHTML='';return}
+  bkMsg('Toca una copia para volver a ese avance. El avance de ahora se respalda antes.');
+  $('bkBox').innerHTML='<div class="eng">'+L.map(b=>{const d=new Date(b.creado);return `<button data-bk="${+b.id}"><span>${d.toLocaleDateString('es-MX')} ${d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</span><small>${b.pts??0} puntos · ${String(b.motivo).replace(/[<>&"]/g,'')}</small></button>`}).join('')+'</div>'});
+$('bkBox').addEventListener('click',async e=>{const b=e.target.closest('[data-bk]');if(!b)return;
+  if(b.dataset.sure!=='1'){[...$('bkBox').querySelectorAll('[data-bk]')].forEach(x=>{x.dataset.sure='';x.classList.remove('on')});b.dataset.sure='1';b.classList.add('on');bkMsg('Toca la misma copia otra vez para confirmar.');return}
+  try{const d=await rpc('tt_respaldo_cargar',{p_codigo:CODE,p_id:+b.dataset.bk});if(await applyData(d,'antes de restaurar una copia'))$('bkBox').innerHTML=''}catch(err){bkMsg('No se pudo cargar la copia. No se cambió nada.')}});
 /* candado de "Para papás" */
 let papasOK=false;
 const lockP=()=>{papasOK=false;$('plock').hidden=false;$('pbody').hidden=true;$('pin').value='';$('pinMsg').textContent=''};
 $('papas').addEventListener('toggle',()=>{if(!$('papas').open)lockP();else if(!papasOK)setTimeout(()=>$('pin').focus(),50)});
-function tryPin(){if($('pin').value===String(S.pin||'2580')){papasOK=true;$('plock').hidden=true;$('pbody').hidden=false;tone(700,.08)}
+async function tryPin(){if(await pinOk($('pin').value)){papasOK=true;$('plock').hidden=true;$('pbody').hidden=false;$('pinWarn').hidden=!S.pinDef;tone(700,.08)}
   else{$('pinMsg').textContent='Contraseña incorrecta.';$('pin').value='';tone(220,.2,'triangle')}}
 $('pinGo').addEventListener('click',tryPin);
 $('pin').addEventListener('keydown',e=>{if(e.key==='Enter')tryPin()});
 $('setpin').addEventListener('click',()=>{const v=$('newpin').value.trim();
   if(v.length<4){$('setpinMsg').textContent='Usa al menos 4 caracteres.';return}
-  S.pin=v;save();$('newpin').value='';$('setpinMsg').textContent='Contraseña cambiada. También aplica en los otros dispositivos.'});
+  pinHash(v).then(h=>{if(!h){$('setpinMsg').textContent='Este navegador no permitió guardar la contraseña. Ábrela desde el enlace https.';return}
+    S.pinH=h;S.pinDef=false;delete S.pin;save();$('newpin').value='';$('pinWarn').hidden=true;$('setpinMsg').textContent='Contraseña cambiada. También aplica en los otros dispositivos.'})});
 $('nombre').addEventListener('change',e=>{const v=e.target.value.trim();if(v){S.nombre=v;save()}renderHome()});
 $('retoSel').addEventListener('change',e=>{S.retoT=+e.target.value;const R=dayRec();if(!R.tOk)R.t=pickRetoT();save();renderHome()});
 /* 10 cuentas en columna: 5 sumas llevando y 5 restas pidiendo prestado */
@@ -2503,7 +2591,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('#quit,#srquit,#q
 $('exitNo').addEventListener('click',()=>{$('exitAsk').hidden=true;exitBtn=null});
 $('exitYes').addEventListener('click',()=>{$('exitAsk').hidden=true;if(exitBtn){exitOK=true;exitBtn.click();exitOK=false;exitBtn=null}});
 renderHome();
-pull();
+pinMigrate().finally(()=>pull());
 }
 </script>
 </body>
