@@ -2,6 +2,12 @@
 
 No se ha publicado una preview. Mantener GitHub Pages y su configuración durante la validación. La rama local y su diff requieren aprobación antes de publicar una referencia.
 
+## Modalidad para un Supabase compartido
+
+En Vercel configura `UDMI_PREVIEW_LOCAL=1` solo para **Preview**, con el framework **Other**, Node 24, build `npm run build` y salida `dist`. El build local carece de URL o clave Supabase, ignora los vínculos de cuenta, guarda en un espacio propio y bloquea conexiones desde la página. Comprueba `/version.json` y recorre **Mi práctica de hoy**. Para Auth, sincronización y restauración usa Supabase local desechable. La modalidad conectada descrita abajo solo aplica cuando existe un proyecto desechable separado.
+
+La revisión de compatibilidad, el aislamiento de un esquema candidato y el plan de respaldo y reversión están en [SUPABASE_COMPARTIDO.md](SUPABASE_COMPARTIDO.md).
+
 ## Acciones del titular
 
 1. **Aprobar el canal de distribución del commit.** Si se usará Git, publica únicamente la rama revisada en un repositorio autorizado o aprueba el push correspondiente. La alternativa es un artefacto `dist/` revisado a través de Vercel CLI desde el equipo del titular. Para publicar estáticamente mediante Git, conecta solo el repositorio requerido. Confirma que el plan del titular permite una preview de acceso restringido. Si un ajuste implica cargos, decide antes de activarlo.

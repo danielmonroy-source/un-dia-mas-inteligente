@@ -333,6 +333,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div id="diagMapBody" class="diag-card"></div>
   </section>
   <section id="home">
+    <p id="offlinePreviewNote" class="note" hidden>Vista de prueba · el progreso se guarda solo en este navegador.</p>
     <div class="hero">
       <div class="stage" id="m1"></div>
       <div>
@@ -588,10 +589,11 @@ const DEF=()=>({pts:0,best:0,streak:0,last:'',days:{},facts:{},med:{},miss:{},mu
 const readLocal=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
 const stored=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}};
 const isCode=p=>/^[a-f0-9]{24,64}$/.test(p);
-const profileKey=code=>'tt-profile-v1:'+(code||'local');
-const oldCode=stored('tt-codigo');
-const linkCode=new URLSearchParams(location.search).get('p')||'';
-const family=window.UDMI_CONFIG?.family?familyClient(window.UDMI_CONFIG):null;
+const offlinePreview=window.UDMI_CONFIG?.offline===true;
+const profileKey=code=>(offlinePreview?'tt-preview-v1:':'tt-profile-v1:')+(code||'local');
+const oldCode=offlinePreview?'':stored('tt-codigo');
+const linkCode=offlinePreview?'':new URLSearchParams(location.search).get('p')||'';
+const family=!offlinePreview&&window.UDMI_CONFIG?.family?familyClient(window.UDMI_CONFIG):null;
 const access=family?.mode();
 const CODE=isCode(linkCode)?linkCode:isCode(oldCode)?oldCode:'';
 const ID=access?.id;
@@ -618,7 +620,7 @@ function writeProfile(key,data){
 }
 const legacyProfile=profileKey(isCode(oldCode)?oldCode:'');
 const setCode=p=>localStorage.setItem('tt-codigo',p);
-if(!stored(legacyProfile)&&!stored('tt-profile-migrated')){
+if(!offlinePreview&&!stored(legacyProfile)&&!stored('tt-profile-migrated')){
   const old=readLocal(K)||readLocal('tablas-turbo-v1');
   const queue=readLocal('tt-cola')||[];
   if((!old&&!queue.length)||writeProfile(legacyProfile,{
@@ -640,6 +642,7 @@ const SB=window.UDMI_CONFIG?.url||'https://rrnuxiadvqqwzrhpdwpl.supabase.co';
 const SBK=window.UDMI_CONFIG?.key||'sb_publishable_S3kfMHOQsui0EruQbm9QrA_I-D6GNMZ';
 let pushT=null,cloudMsg=ONLINE?'Conectando con la nube…':'Sin código: el avance se guarda solo en este dispositivo.';
 async function rpc(fn,body){
+  if(offlinePreview)throw new Error('La preview guarda solo en este navegador.');
   if(ID){
     const pad=access.role==='padre';
     const names={
@@ -972,6 +975,8 @@ function renderHome(){
   $('diagLaunch').hidden=!diagnosis;
   $('lessonLaunch').hidden=typeof Lecciones==='undefined'||!window.Motor;
   $('adaptiveLaunch').hidden=$('lessonLaunch').hidden;
+  $('offlinePreviewNote').hidden=!offlinePreview;
+  if(offlinePreview)$('codeIn').parentElement.hidden=true;
   $('diagMapLaunch').hidden=!diagnosis;
   $('diagFollow').hidden=!diagnosis||!Object.entries(S.diagPlan||{}).some(([h,date])=>date<=today()&&Diagnostico.next(S.diag,6,h));
   renderTop();
@@ -1021,7 +1026,7 @@ async function doReset(){if(ID)return;if(!(await pinOk($('rstPin').value))){$('r
   if(!await backupNow('antes de borrar todo')){$('rstMsg').textContent='No se pudo guardar una copia local. No se borró el avance.';return}
   const keep={pinH:S.pinH,pinDef:S.pinDef,nombre:S.nombre,colSum:S.colSum,colRes:S.colRes,retoT:S.retoT,cal:S.cal};S=Object.assign(DEF(),keep,{resetAt:Date.now()});save();rstClose();renderHome();$('rstMsg').textContent='';$('cloud').textContent='Avance borrado.'}
 $('rstGo').addEventListener('click',doReset);
-$('codeGo').addEventListener('click',()=>{const v=$('codeIn').value.trim().toLowerCase().replace(/^.*[?&]p=/,'').replace(/[^a-f0-9].*$/,'');
+$('codeGo').addEventListener('click',()=>{if(offlinePreview)return;const v=$('codeIn').value.trim().toLowerCase().replace(/^.*[?&]p=/,'').replace(/[^a-f0-9].*$/,'');
   if(!/^[a-f0-9]{24,64}$/.test(v)){$('codeMsg').textContent='Ese código no es válido. Revisa que esté completo.';return}
   try{setCode(v)}catch(e){}location.reload()});
 $('rstPin').addEventListener('keydown',e=>{if(e.key==='Enter')doReset()});

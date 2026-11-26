@@ -44,3 +44,8 @@ Para ensayar, aplicar el SQL después de Fase 3 siguiendo [PREVIEW_VERCEL.md](PR
 Límites pendientes. El cliente aún intercambia el historial completo al sincronizar. El estado principal continúa creciendo con retos y boletas. Las copias operativas grandes conservan sus límites anteriores de transporte y restauración, y una colección de muchos respaldos puede agotarlos. La migración se prueba con datos sintéticos y debe pasar por una preview desechable antes de autorización de producción.
 
 Verificación local. Pasaron 73 pruebas de aplicación y lógica y dos integraciones en Supabase local. Con 180 días sintéticos, el estado reunido mide 351 095 bytes, el documento principal 99 273 y los recorridos separados 251 809. Se verificaron migración de un recorrido previamente incrustado, recibos de escritura, concurrencia, permisos, copia familiar y restauración de una copia anterior con conservación de un evento posterior.
+
+
+## Preview con Supabase compartido
+
+Rama `feat/shared-supabase-preview`. La inspección de catálogos del proyecto actual confirmó un esquema educativo anterior a las últimas migraciones. La opción gratuita elegida es Vercel Preview en modo local y Supabase desechable local para Auth, migraciones y recuperación. Consulta [SUPABASE_COMPARTIDO.md](SUPABASE_COMPARTIDO.md) para el estado de compatibilidad y el plan de respaldo y reversión, y [PREVIEW_VERCEL.md](PREVIEW_VERCEL.md) para configurar la publicación de prueba.
