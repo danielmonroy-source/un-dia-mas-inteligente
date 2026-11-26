@@ -49,3 +49,7 @@ Verificación local. Pasaron 73 pruebas de aplicación y lógica y dos integraci
 ## Preview con Supabase compartido
 
 Rama `feat/shared-supabase-preview`. La inspección de catálogos del proyecto actual confirmó un esquema educativo anterior a las últimas migraciones. La opción gratuita elegida es Vercel Preview en modo local y Supabase desechable local para Auth, migraciones y recuperación. Consulta [SUPABASE_COMPARTIDO.md](SUPABASE_COMPARTIDO.md) para el estado de compatibilidad y el plan de respaldo y reversión, y [PREVIEW_VERCEL.md](PREVIEW_VERCEL.md) para configurar la publicación de prueba.
+
+## Rediseño de aprendizaje
+
+Rama `feat/learning-redesign-prototypes` desde `816dcc4`. El recorrido y los límites están en [REDISENIO.md](REDISENIO.md). La Preview aislada agrega el enlace **Abrir los prototipos de aprendizaje**. La ruta `/prototipos/` contiene tres recorridos demostrables. El reto y el panel familiar originales siguen a disposición. No se migró progreso ni se aplicaron cambios en Supabase. Antes de extender, esperar la revisión de estas pantallas y acordar las prioridades del banco.

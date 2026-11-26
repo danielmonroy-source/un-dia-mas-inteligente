@@ -51,6 +51,7 @@ if(offline){
   const policy="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "+
     "img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'";
   html=html.replace(/^<link [^\n]*fonts\.googleapis\.com[^\n]*>\n/gm,'');
+  html=html.replace('<section id="home">','<section id="home"><p><a href="prototipos/">Abrir los prototipos de aprendizaje</a></p>');
   html=html.replace(/<head>/i,'<head>\n<meta http-equiv="Content-Security-Policy" content="'+policy+'">');
 }
 rmSync(output,{recursive:true,force:true});
@@ -58,3 +59,10 @@ mkdirSync(output,{recursive:true});
 for(const [name,data] of Object.entries(files))writeFileSync(new URL(name,output),data);
 writeFileSync(new URL('index.html',output),html);
 writeFileSync(new URL('version.json',output),JSON.stringify({commit:revision})+'\n');
+
+if(offline){
+  mkdirSync(new URL('prototipos/',output));
+  for(const name of ['index.html','prototypes.css','prototypes.js']){
+    writeFileSync(new URL('prototipos/'+name,output),readFileSync(new URL('../prototypes/'+name,import.meta.url)));
+  }
+}

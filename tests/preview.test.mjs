@@ -16,6 +16,8 @@ test('preview local sin claves, ignora códigos y conserva solo su propio progre
   const build=extra=>spawnSync(process.execPath,['scripts/build-static.mjs'],{cwd:dir,env:{...env,...extra},encoding:'utf8'});
   try{
     await mkdir(join(dir,'scripts'));
+    await mkdir(join(dir,'prototypes'));
+    files.push(...['index.html','prototypes.css','prototypes.js'].map(name=>'prototypes/'+name));
     for(const file of [...files,'scripts/build-static.mjs'])
       await copyFile(new URL(file,source),join(dir,file));
     const rejected=build({VERCEL_ENV:'production'});
