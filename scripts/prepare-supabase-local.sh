@@ -15,6 +15,7 @@ cp "$repo/supabase/fase2-estabilidad.sql" "$target/supabase/migrations/202601010
 cp "$repo/supabase/fase2-acceso-aislado.sql" "$target/supabase/migrations/20260101000500_acceso.sql"
 cp "$repo/supabase/fase15-familia.sql" "$target/supabase/migrations/20260101000600_familia.sql"
 cp "$repo/supabase/fase2-diagnostico.sql" "$target/supabase/migrations/20260101000700_diagnostico.sql"
+cp "$repo/supabase/fase3-lecciones.sql" "$target/supabase/migrations/20260101000800_lecciones.sql"
 printf '\ngrant select,insert,update,delete on public.tt_familia to service_role;\n' >> "$target/supabase/migrations/20260101000300_cuenta.sql"
 sed -i 's/"enable_anonymous_sign_ins": false/"enable_anonymous_sign_ins": true/' "$target/supabase/config.jsonc"
 printf '%s\n' "$target"

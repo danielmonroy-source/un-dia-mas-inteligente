@@ -286,6 +286,21 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .diag-card details{margin:10px 0;padding:8px;border:1px solid currentColor;border-radius:8px}
 .diag-visual{white-space:pre-wrap;font:inherit;font-size:1.4rem}
 .diag-skill{border-top:1px solid currentColor;margin-top:12px;padding-top:6px}
+.lesson-blocks{padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.6rem}
+.lesson-blocks li{padding:.4rem;border:1px solid currentColor;border-radius:.5rem}
+.lesson-pieces{display:flex;flex-wrap:wrap;align-items:flex-end;gap:4px;min-height:24px}
+.piece{display:inline-block;border:1px solid #173954;background:#bfe3f4}
+.piece.p0{width:9px;height:9px}
+.piece.p1{width:8px;height:25px;background:#a9e6c8}
+.piece.p2{width:24px;height:24px;background:#ffd184}
+.piece.p3{width:28px;height:28px;background:#dac5fb;box-shadow:inset -4px -4px #9782a6}
+.lesson-figure{display:inline-block;margin-right:.5em;width:1em;height:1em;background:#1d62be;vertical-align:middle;border-radius:50%}
+.lesson-figure.f1{border-radius:0;background:#007c50;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.lesson-figure.f2{border-radius:0;background:#d45d0a}
+.lesson-figure.f3{background:#e3ac00;clip-path:polygon(50% 0,63% 35%,100% 38%,72% 61%,81% 100%,50% 78%,19% 100%,28% 61%,0 38%,37% 35%)}
+#lessonPanel button{min-height:44px;margin-block:.25rem}
+#lessonPanel blockquote{padding:1rem;margin:.5rem 0;border-inline-start:4px solid currentColor}
+#lessonPanel input{max-width:100%;font-size:1rem}
 </style>
 </head>
 <body>
@@ -296,6 +311,11 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <button class="snd" id="snd">Sonido: sí</button>
   </header>
 
+  <section id="lecciones" hidden aria-labelledby="lessonTitle">
+    <button id="lessonExit" class="ghost">Volver al inicio</button>
+    <h2 id="lessonTitle" tabindex="-1">Lecciones guiadas</h2>
+    <div id="lessonPanel" class="diag-card"></div>
+  </section>
   <section id="diagnostico" hidden aria-labelledby="diagTitle">
     <button class="ghost" id="diagExit">Volver al inicio</button>
     <h2 id="diagTitle" tabindex="-1">Aventura de habilidades</h2>
@@ -337,6 +357,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div id="wRD" hidden></div>
     <div id="wG" hidden></div>
     </div>
+    <button class="big" id="lessonLaunch" hidden>Lecciones guiadas</button>
     <button class="big" id="diagLaunch" hidden>Aventura de habilidades</button>
     <button class="ghost" id="diagFollow" hidden>Explorar una actividad corta</button>
     <details class="papas" id="familia" hidden>
@@ -542,6 +563,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 <script src="family.js"></script>
 <script src="diagnostic-bank.js"></script>
 <script src="diagnostic.js"></script>
+<script src="lesson-bank.js"></script>
+<script src="lessons.js"></script>
 <script>
 (async()=>{
 const K='tablas-turbo-v2',LV=150,HARD=[4,6,7,8,9];
@@ -743,6 +766,13 @@ function nubeMerge(L,R,B,preferRemote=false){
       }
     }
   }
+  if(typeof Lecciones!=='undefined'){
+    if(L.lessons||R.lessons){
+      o.lessons=Lecciones.union(R.lessons,L.lessons);
+      if(typeof Motor!=='undefined')Lecciones.reconcile(o);
+    }
+    if(L.lessonAssignments||R.lessonAssignments)o.lessonAssignments=Lecciones.assignments(L.lessonAssignments,R.lessonAssignments);
+  }
   if(L.diag||R.diag){
     const D=typeof Diagnostico!=='undefined'?Diagnostico:null;
     o.diag=D?D.union(L.diag,R.diag):cp(newer.diag||older.diag)
@@ -888,7 +918,7 @@ const flame=(id,c)=>mon(id).style.setProperty('--f',c<=0?0:Math.min(.5+c*.08,1.3
 
 let AC=null;
 const tone=(f,d=.12,type='sine',w=0)=>{if(S.mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime+w,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}};
-const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz','enx','cie','diagnostico','mapaDiagnostico'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
+const show=id=>{['home','tabla','play','end','srlvl','srplay','rd','qz','enx','cie','diagnostico','mapaDiagnostico','lecciones'].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)};
 
 function renderTop(){
   $('lv').textContent=Math.floor(S.pts/LV)+1;
@@ -898,6 +928,7 @@ function renderTop(){
 function renderHome(){
   const diagnosis=typeof Diagnostico!=='undefined';
   $('diagLaunch').hidden=!diagnosis;
+  $('lessonLaunch').hidden=typeof Lecciones==='undefined'||!window.Motor;
   $('diagMapLaunch').hidden=!diagnosis;
   $('diagFollow').hidden=!diagnosis||!Object.entries(S.diagPlan||{}).some(([h,date])=>date<=today()&&Diagnostico.next(S.diag,6,h));
   renderTop();
@@ -1533,6 +1564,8 @@ function validBackup(d){
     rdLog:arrayOf(readingLog),sr:x=>fields(x,{med:counts,err:counts,fails:arrayOf(stringValue)}),
     gx:mapOf(x=>fields(x,{n:countValue,best:countValue,log:arrayOf(v=>fields(v,{d:dateKey,n:countValue,ok:countValue,reto:booleanValue}))})),
     diag:d=>typeof Diagnostico!=='undefined'&&Diagnostico.valid(d),
+    lessons:d=>typeof Lecciones!=='undefined'&&Lecciones.valid(d),
+    lessonAssignments:mapOf(dateKey),
     diagPlan:mapOf(dateKey),
     diagRubric:x=>fields(x,{fecha:dateKey,legibilidad:rubricValue,organizacion:rubricValue,comprension:rubricValue,autonomia:rubricValue}),
     ku:mapOf(x=>fields(x,{n:countValue,c:countValue,fn:countValue,fo:countValue,sd:arrayOf(dateKey),ap:countValue,
@@ -1548,6 +1581,11 @@ async function applyData(d,motivo){
   // Una copia carece de una base común verificable. Conserva máximos y une evidencia.
   const current={...S};delete current.resetAt;
   const recovered=S.pts===0?{...current,...incoming}:nubeMerge(incoming,current,undefined,true);
+  if(S.pts===0&&typeof Lecciones!=='undefined'&&(current.lessons||incoming.lessons)){
+    recovered.lessons=Lecciones.union(current.lessons,incoming.lessons);
+    recovered.lessonAssignments=Lecciones.assignments(current.lessonAssignments,incoming.lessonAssignments);
+    Lecciones.reconcile(recovered);
+  }
   S=Object.assign(DEF(),recovered,keep);save();renderHome();
   bkMsg('Listo. Se cargó la copia; el avance que había antes quedó respaldado.');return true}
 function portable(value){
@@ -3172,6 +3210,165 @@ function familyUi(){
   if(family.adult())adultPanel().catch(()=>tell('Vuelve a entrar con el código de tu correo.'));
 }
 
+/* Microlecciones. Solo se conserva estado de interfaz para la pantalla visible. */
+let lessonRunId='',lessonOwner='',lessonTokens=[],lessonBlocks=[],lessonChanged=false;
+const lessonData=()=>S.lessons??=Lecciones.empty();
+const lessonCurrent=()=>lessonOwner===PROFILE?S.lessons?.runs[lessonRunId]:null;
+function lessonMenu(){
+  if(typeof Lecciones==='undefined'||!window.Motor)return;
+  lessonRunId='';show('lecciones');
+  const day=today();
+  const items=Lecciones.lessons.map(l=>{
+    const p=Lecciones.profile(S.lessons,l.id);
+    const action=p.active?'Continuar':p.due&&p.due<=day?'Repasar':S.lessonAssignments?.[l.id]?'Elegida en familia':'Explorar';
+    return {l,p,action};
+  }).sort((a,b)=>Number(b.action!=='Explorar')-Number(a.action!=='Explorar'));
+  $('lessonPanel').innerHTML='<p>Aprende una estrategia en unos 5 a 10 minutos. Puedes hacer una pausa cuando quieras.</p>'+
+    items.map(({l,p,action})=>`<button class="mode" data-lesson-start="${l.id}" ${!p.active&&p.due>day?'disabled':''}>
+      <span><b>${htmlText(l.title)}</b><small>${htmlText(l.area)} · ${p.due>day&&!p.active?'Próximo repaso '+p.due:action}</small></span></button>`).join('');
+  $('lessonTitle').focus();
+}
+function lessonStart(id){
+  const l=Lecciones.recommendation(S,id,today());
+  if(!l)return;
+  const direct=Lecciones.profile(S.lessons,id).active;
+  const run=direct||Lecciones.start(lessonData(),l.id,today());
+  if(!run)return;
+  lessonRunId=run.id;lessonOwner=PROFILE;
+  save();lessonScreen();
+}
+function lessonBlockHTML(){
+  return lessonBlocks.map((n,i)=>`<li><b>${n} ${['unidades','decenas','centenas','millares'][i]}</b>
+    <span aria-hidden="true" class="lesson-pieces">${('<i class="piece p'+i+'"></i>').repeat(n)}</span></li>`).join('');
+}
+function lessonChoices(q,id){
+  const choices=q.options?.slice();
+  if(!choices)return null;
+  const offset=[...(q.id+id)].reduce((sum,c)=>sum+c.charCodeAt(0),0)%choices.length;
+  return choices.slice(offset).concat(choices.slice(0,offset));
+}
+function lessonScreen(){
+  const run=lessonCurrent();
+  if(!run){lessonMenu();return}
+  const s=Lecciones.status(run),{q,stage,lesson:l,feedback,level}=s;
+  lessonTokens=[];lessonBlocks=q?.blocks?.slice()||[];lessonChanged=false;
+  let body='';
+  if(s.done){
+    body=`<p role="status">Terminaste esta exploración. Próxima oportunidad para practicar el ${htmlText(s.done.due)}.</p><button class="big" data-lesson-menu>Ver mis lecciones</button>`;
+  }else if(!q){
+    const cards={explicar:l.strategy,ejemplo:l.example,reflexion:'Piensa en qué hiciste primero y qué revisarás cuando vuelvas a usar la estrategia. Puedes contárselo a un adulto.',agenda:'Volveremos a practicar otro día para comprobar qué recuerdas.'};
+    body=`<p>${htmlText(cards[stage])}</p><button class="big" data-lesson-act="advance">${stage==='agenda'?'Guardar y terminar':'Continuar'}</button>`;
+  }else{
+    const text=q.body?`<blockquote>${htmlText(q.body)}</blockquote>`:'';
+    const canRetry=!s.alternate&&['guiada','independiente','aplicacion','repaso'].includes(stage)&&!feedback?.ok&&!feedback?.pending;
+    const message=feedback?.pending?'Anotamos que puedes revisar esta actividad con un adulto.':
+      feedback?.ok?'Tu respuesta coincide con la estrategia.':'Date un momento para revisar qué pide la actividad.';
+    const blocks=q.blocks?`<ul id="lessonBlocks" class="lesson-blocks">${lessonBlockHTML()}</ul>`:'';
+    const explanation=feedback&&!feedback.pending&&!feedback.ok&&level<4&&canRetry?l.strategy:q.explain;
+    if(feedback||level===4){
+      body=`${text}<p>${htmlText(q.prompt)}</p>${blocks}<p role="status">${htmlText(feedback?message:'Demostración')}. ${htmlText(explanation)}
+        ${level===4&&q.answer!==null?' Solución: '+htmlText(String(q.answer).replaceAll('|',' → ')):''}</p>
+        <button class="big" data-lesson-act="${canRetry?'retry':'advance'}">${canRetry?'Probar con otro ejercicio':'Continuar'}</button>`;
+    }else{
+      const helps=['','Vuelve a leer y señala la palabra que indica qué hacer.',l.strategy,q.partial||'Fíjate en este ejemplo parecido. '+l.example];
+      const choices=lessonChoices(q,run.id);
+      const controls=choices?choices.map((x,i)=>`<button class="mode" data-lesson-choice="${i}">${htmlText(x)}</button>`).join(''):
+        q.tokens?q.tokens.map((x,i)=>`<button class="ghost" data-lesson-token="${i}">${q.icons?.[x]?`<span class="lesson-figure f${i}" aria-hidden="true"></span>`:''}${htmlText(x)}</button>`).join('')+
+          '<p id="lessonSequence" aria-live="polite">Tus pasos aparecerán aquí.</p><button class="ghost" data-lesson-clear>Empezar de nuevo</button><button class="big" data-lesson-check>Comprobar</button>':
+          `${q.canje?'<button class="ghost" data-lesson-exchange>Cambiar las piezas</button>':''}<form id="lessonWritten">
+            <label>Tu respuesta <input id="lessonInput" maxlength="300" ${q.canje?'disabled':''} required autocomplete="off"></label>
+            <button class="big" ${q.canje?'disabled':''}>Comprobar</button></form>`;
+      body=`${text}<p id="lessonPrompt">${htmlText(q.prompt)}</p>${blocks}${level?`<p role="status">${htmlText(helps[level])}</p>`:''}
+        ${controls}<p id="lessonNotice" role="status"></p><button class="ghost" data-lesson-act="access">Escuchar consigna</button>
+        <button class="ghost" data-lesson-act="help">${level===3?'Ver la solución':'Pedir una pista'}</button>`;
+    }
+  }
+  $('lessonPanel').innerHTML=`<h3 tabindex="-1" id="lessonStep">${htmlText(l.title)}</h3>
+    <p>Etapa ${s.cursor+1} de ${s.total} · ${htmlText(Lecciones.labels[stage])}</p>${body}
+    ${s.done?'':'<button class="ghost" data-lesson-pause>Descansar</button>'}`;
+  $('lessonStep').focus({preventScroll:true});
+}
+function lessonAction(kind,value){
+  const run=lessonCurrent();if(!run){lessonMenu();return}
+  const e=Lecciones.act(lessonData(),run,kind,today(),value,S);
+  if(!e)return;
+  if(!S.ku)Motor.migrar(S,today());
+  const attempt=Lecciones.attempt(S,run,e);
+  if(attempt)COLA.push(attempt);
+  if(!save()){
+    $('lessonPanel').innerHTML='<p role="alert">No se pudo guardar el avance en este dispositivo. Pide ayuda a un adulto.</p><button class="ghost" data-lesson-menu>Volver a lecciones</button>';
+    return;
+  }
+  if(kind!=='access')lessonScreen();
+}
+$('lessonLaunch').addEventListener('click',lessonMenu);
+$('lessonExit').addEventListener('click',()=>{lessonRunId='';show('home');renderHome()});
+$('lessonPanel').addEventListener('submit',e=>{
+  if(e.target.id!=='lessonWritten')return;
+  e.preventDefault();lessonAction('answer',$('lessonInput').value);
+});
+$('lessonPanel').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.lessonStart){lessonStart(b.dataset.lessonStart);return}
+  if(b.hasAttribute('data-lesson-menu')){lessonMenu();return}
+  const run=lessonCurrent();if(!run)return;
+  const {q}=Lecciones.status(run);
+  if(b.hasAttribute('data-lesson-resume')){lessonScreen();return}
+  if(b.hasAttribute('data-lesson-pause')){
+    lessonTokens=[];lessonBlocks=[];
+    $('lessonPanel').innerHTML='<p>Haz una pausa. Los pasos que ya comprobaste están guardados.</p><button class="big" data-lesson-resume>Continuar aquí</button><button class="ghost" data-lesson-menu>Ver mis lecciones</button>';
+    $('lessonPanel').querySelector('button').focus();return;
+  }
+  if(b.dataset.lessonAct==='access'&&q){
+    diagSpeech(q.prompt,'es-MX',()=>{
+      if(lessonCurrent()===run&&Lecciones.status(run).q?.id===q.id)lessonAction('access');
+    },()=>{const notice=$('lessonNotice');if(notice)notice.textContent='No hay una voz local disponible. Puedes leer la consigna en pantalla.'});return;
+  }
+  if(b.dataset.lessonAct){lessonAction(b.dataset.lessonAct);return}
+  if(!q)return;
+  if(b.dataset.lessonChoice!==undefined){
+    const options=lessonChoices(q,run.id);
+    lessonAction('answer',options[+b.dataset.lessonChoice]);return;
+  }
+  if(b.dataset.lessonToken!==undefined&&!lessonTokens.includes(q.tokens[+b.dataset.lessonToken]))lessonTokens.push(q.tokens[+b.dataset.lessonToken]);
+  if(b.hasAttribute('data-lesson-clear'))lessonTokens=[];
+  if(b.hasAttribute('data-lesson-check')){lessonAction('answer',lessonTokens.join('|'));return}
+  if($('lessonSequence'))$('lessonSequence').textContent=lessonTokens.join(' → ')||'Tus pasos aparecerán aquí.';
+  if(b.hasAttribute('data-lesson-exchange')&&!lessonChanged){
+    const [from,to]=q.canje;
+    lessonBlocks[from]-=to>from?10:1;lessonBlocks[to]+=to>from?1:10;
+    lessonChanged=true;b.disabled=true;$('lessonBlocks').innerHTML=lessonBlockHTML();
+    $('lessonInput').disabled=false;$('lessonWritten').querySelector('button').disabled=false;$('lessonInput').focus();
+  }
+});
+function lessonForSkill(skill,state,conflict,day){
+  if(typeof Lecciones==='undefined'||(!['nec','apr'].includes(state)&&!conflict))return '';
+  const lessons=Lecciones.lessons.filter(l=>l.skill===skill);
+  return lessons.map(l=>{
+    const first=Lecciones.recommendation(S,l.id,day);
+    return `<p>Lección sugerida · ${htmlText(l.title)}${first.id===l.id?'':' · Empieza por '+htmlText(first.title)}</p>
+      <button class="ghost" data-lesson-assign="${first.id}">Asignar ${htmlText(first.title)}</button>`;
+  }).join('');
+}
+function lessonParent(day){
+  if(typeof Lecciones==='undefined')return '';
+  const rows=Diagnostico.map(S,day);
+  const catalog=Lecciones.lessons.map(l=>{
+    const row=rows.find(r=>r.h.id===l.skill);
+    const p=Lecciones.profile(S.lessons,l.id),r=Lecciones.recommendation(S,l.id,day);
+    const recommended=row&&(row.conflict||row.initial.state==='nec'||row.initial.state==='apr');
+    return `<li><b>${htmlText(l.title)}</b> ${recommended?'· Recomendada en el mapa':''}
+      <p>${p.active?'Iniciada · ':''}${p.complete.length?p.complete.length+' ciclos completados · ':''}
+      ${S.lessonAssignments?.[l.id]?'Asignada · ':''}${p.due?'Repaso desde '+p.due:''}</p>
+      <p>Vio la explicación ${p.exposure} · Ejemplo ${p.examples} · Práctica guiada ${p.guided} · Resolvió por su cuenta ${p.independent} · Aplicó ${p.applied} · Recordó días después ${p.retained}</p>
+      ${p.help||p.difficulty||p.pending?`<p>Ayudas ${p.help} · Respuestas por revisar ${p.pending} · Dificultades en práctica o repaso ${p.difficulty}</p>`:''}
+      ${Lecciones.openResponses(S.lessons,l.id).map(e=>`<p>Pendiente · ${htmlText(Lecciones.byId[l.id].tasks.find(q=>q.id===e.q)?.prompt||'Respuesta abierta')}</p>`).join('')}
+      <p>En familia · ${htmlText(l.home)}</p>
+      <button class="ghost" data-lesson-assign="${r.id}">${r.id===l.id?'Asignar lección':'Asignar primero '+htmlText(r.title)}</button></li>`;
+  });
+  return '<details><summary>Lecciones guiadas y repasos</summary><ul>'+catalog.join('')+'</ul></details>';
+}
+
 /* Aventura diagnóstica. El control del dominio permanece en el motor de práctica. */
 let diagSession=0,diagFollow='',diagTask=null,diagOrder=[],diagPaused=false,diagFeedback=false;
 const diagAllowed=()=>ID?access.role==='padre'&&family.adult():papasOK;
@@ -3342,8 +3539,10 @@ function diagParent(){
         ${Object.keys(e.errors).length?`<p>Errores: ${Object.entries(e.errors).map(([k,n])=>htmlText((errors[k]||k)+' ('+n+')')).join(', ')}</p>`:''}
         ${r?`<p>Una observación en papel el ${htmlText(r.fecha)}. Legibilidad: ${htmlText(r.legibilidad)} · Organización: ${htmlText(r.organizacion)} · Comprensión: ${htmlText(r.comprension)} · Autonomía: ${htmlText(r.autonomia)}.</p>`:''}
         <p>Próxima acción: ${htmlText(nextAction)}.</p>
+        ${lessonForSkill(h.id,e.state,conflict,today())}
         ${pending&&h.activities.some(id=>!Object.values(S.diag?.answers||{}).some(a=>a.q===id))?`<button class="ghost" data-diag-plan="${h.id}">Dejar una comprobación para después</button>`:''}</article>`
     ).join('')}</details>`).join('')}
+    ${lessonParent(today())}
     <h3>Escritura en papel</h3><p>Pídele que escriba dos oraciones sobre un lugar: cómo es y qué hace allí. Guarda solo la rúbrica.</p>
     <form id="diagRubric">${[['legibilidad','Legibilidad'],['organizacion','Organización'],['comprension','Comprensión'],['autonomia','Autonomía']].map(([k,n])=>
       `<label>${n} <select name="${k}" required>${['','con apoyo','parcial','independiente'].map(v=>`<option value="${v}" ${v===rubric?.[k]?'selected':''}>${v||'Selecciona'}</option>`).join('')}</select></label>`).join('')}
@@ -3368,6 +3567,11 @@ $('diagMapBody').addEventListener('submit',e=>{
   save();diagParent()
 });
 $('diagMapBody').addEventListener('click',e=>{
+  const assigned=e.target.closest('[data-lesson-assign]');
+  if(assigned&&diagAllowed()&&Object.hasOwn(Lecciones.byId,assigned.dataset.lessonAssign)){
+    S.lessonAssignments={...(S.lessonAssignments||{}),[assigned.dataset.lessonAssign]:today()};
+    save();assigned.textContent='Lección asignada';assigned.disabled=true;return;
+  }
   const b=e.target.closest('[data-diag-plan]');
   if(!b||!diagAllowed())return;
   S.diagPlan={...(S.diagPlan||{}),[b.dataset.diagPlan]:Motor.masDias(today(),2)};

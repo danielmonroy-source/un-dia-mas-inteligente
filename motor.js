@@ -130,14 +130,15 @@ function registrar(S,a){
     else{e.lv=Math.max(e.lv,0);if(!e.due||e.due>masDias(d,1))e.due=masDias(d,1)}
   }
   delete e.mig;
-  const st=estado(e,d,habilidadDe(k));if(EST[st].r>(e.pk||0)&&st!=='rep')e.pk=EST[st].r;
+  const st=estado(e,d,habilidadDe(k),aplicaLeccion(k));if(EST[st].r>(e.pk||0)&&st!=='rep')e.pk=EST[st].r;
   return intento(a,ts)}
 function intento(a,ts){
   return {id:a.id||uuid(),k:a.k,ts:new Date(ts).toISOString(),origen:a.origen||'libre',fmt:a.fmt||'',ok:!!a.ok,primero:!!a.primero,pista:!!a.pista,ms:a.ms!=null?Math.round(a.ms):null,err:a.ok?null:(a.err||null),extra:a.extra||null}
 }
 
 /* Estado de un conocimiento, con reglas fijas */
-function estado(e,hoy,hab){
+const aplicaLeccion=k=>k.includes(':leccion-v1:');
+function estado(e,hoy,hab,requiereAplicacion=false){
   if(!e||(!e.n&&!e.mig))return 'sin';
   if(!e.c)return 'nec';
   if(!e.sd.length)return 'apr';
@@ -145,19 +146,19 @@ function estado(e,hoy,hab){
   const atraso=e.due&&hoy?entre(e.due,hoy):0,L=CFG.escalera;
   if((e.pk||0)>=EST.con.r&&(e.lf===0||atraso>Math.max(3,L[Math.max(0,e.lv)])))return 'rep';
   const sd=e.sd;let hueco=false;for(let i=1;i<sd.length;i++)if(entre(sd[i-1],sd[i])>=7)hueco=true;
-  const pideApl=hab?!!(HAB[hab]&&HAB[hab].apl):false;
+  const pideApl=requiereAplicacion||!!HAB[hab]?.apl;
   const trasFallo=e.ff?sd.filter(x=>x>e.ff).length:sd.length; // después de un fallo hay que volver a demostrarlo 2 días
   if(sd.length>=3&&hueco&&e.lf!==0&&trasFallo>=2&&(!pideApl||e.ap>0))return 'dom';
   const prec=e.fn?e.fo/e.fn:0;
   if(sd.length>=2&&e.lf!==0&&(e.fn<CFG.minIntentos||prec>=CFG.criterio))return 'con';
   return 'pra'}
-const estadoK=(S,k,hoy)=>estado((S.ku||{})[k],hoy,habilidadDe(k));
+const estadoK=(S,k,hoy)=>estado((S.ku||{})[k],hoy,habilidadDe(k),aplicaLeccion(k));
 
 /* Resumen por habilidad para el panel de papás */
 function resumen(S,hoy){
   const ku=S.ku||{},out={};
   CATALOGO.forEach(h=>out[h.id]={h,cuenta:{},vistos:0,fn:0,fo:0,estado:'sin'});
-  for(const k in ku){const id=habilidadDe(k);if(!id||!out[id])continue;const o=out[id],e=ku[k],st=estado(e,hoy,id);
+  for(const k in ku){const id=habilidadDe(k);if(!id||!out[id])continue;const o=out[id],e=ku[k],st=estado(e,hoy,id,aplicaLeccion(k));
     o.cuenta[st]=(o.cuenta[st]||0)+1;if(st!=='sin')o.vistos++;o.fn+=e.fn;o.fo+=e.fo}
   for(const id in out){const o=out[id];if(!o.vistos)continue;
     if(o.cuenta.rep){o.estado='rep';continue}

@@ -103,6 +103,21 @@ test('Supabase local: CAS, UUID, acceso de estudio, rechazo administrativo y rev
     assert.deepEqual(diagnosisRead.data.datos.diag.answers,diag.answers,'se conserva el UUID ya registrado');
     assert.equal(diagnosisRead.data.datos.diagRubric,undefined);
     assert.equal(diagnosisRead.data.datos.diagPlan,undefined);
+    const run=randomUUID(),first=randomUUID(),second=randomUUID();
+    const makeEvent=(id,prev,n)=>({id,prev,n,stage:'activar',kind:'access',q:'agrupar-diez-0',
+      day:'2026-01-03',ts:new Date().toISOString()});
+    const makeLessons=events=>({v:1,runs:{[run]:{id:run,lesson:'agrupar-diez',review:false,day:'2026-01-03',events}}});
+    const saveLessons=(base,lessons)=>rpc('tt_fase2_guardar_estudio',{p_perfil:profile,
+      p_base:base,p_id:randomUUID(),p_datos:{lessons,lessonAssignments:{'agrupar-diez':'2026-01-03'}}},student);
+    const one=makeEvent(first,'',1),two=makeEvent(second,first,2);
+    const writeOne=await saveLessons(diagnosisRead.data.actualizado,makeLessons({[first]:one}));
+    assert.equal(writeOne.data.ok,true);
+    const writeTwo=await saveLessons(writeOne.data.actualizado,makeLessons({[second]:two}));
+    assert.equal(writeTwo.data.ok,true);
+    const readLessons=await rpc('tt_fase2_estudio',{p_perfil:profile},student);
+    assert.deepEqual(readLessons.data.datos.lessons.runs[run].events,{[first]:one,[second]:two});
+    assert.equal(readLessons.data.datos.lessonAssignments,undefined,'un dispositivo de estudio no puede asignar lecciones');
+    assert.equal((await saveLessons(writeTwo.data.actualizado,{v:1,runs:{bad:{}}})).status,400);
     assert.equal((await rpc('tt_fase2_revocar',{p_perfil:profile,p_dispositivo:child},parent)).status,204);
     assert.equal((await rpc('tt_fase2_estudio',{p_perfil:profile},student)).status,403);
     assert.equal((await rpc('tt_fase2_guardar_estudio',studentSave,student)).status,403);
@@ -134,7 +149,9 @@ test('Recuperación familiar real de navegador a navegador y corte del acceso an
     '/motor.js':await readFile(new URL('../motor.js',import.meta.url)),
     '/family.js':await readFile(new URL('../family.js',import.meta.url)),
     '/diagnostic-bank.js':await readFile(new URL('../diagnostic-bank.js',import.meta.url)),
-    '/diagnostic.js':await readFile(new URL('../diagnostic.js',import.meta.url))
+    '/diagnostic.js':await readFile(new URL('../diagnostic.js',import.meta.url)),
+    '/lesson-bank.js':await readFile(new URL('../lesson-bank.js',import.meta.url)),
+    '/lessons.js':await readFile(new URL('../lessons.js',import.meta.url))
   };
   let otp='';
   const server=createServer(async(req,res)=>{

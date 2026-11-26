@@ -69,6 +69,10 @@ test.before(async () => {
     if (req.url==='/diagnostic-bank.js'||req.url==='/diagnostic.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(req.url.includes('bank')?bank:diagnostic); return;
     }
+    if (['/lesson-bank.js','/lessons.js'].includes(req.url)) {
+      res.writeHead(200, {'Content-Type':'text/javascript; charset=utf-8'});
+      res.end(readFileSync(new URL('..'+req.url,import.meta.url)));return;
+    }
     if (req.url==='/family.js') { res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(family); return; }
     if (req.url.startsWith('/motor.js')) { res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' }); res.end(motor); return; }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); });
@@ -530,5 +534,84 @@ test('aventura pausa y reanuda; ayuda y primera respuesta llegan al perfil corre
     assert.equal(await a.page.locator('[data-diag-session]').filter({hasText:'Continuar'}).count(),0);
     assert.equal(other.datos.diag,undefined);assert.equal(other.intentos.length,0);
     assert.deepEqual(a.errores,[]);assert.deepEqual(b.errores,[]);
+  }finally{await Promise.all([a.ctx.close(),b.ctx.close()])}
+});
+
+test('lecciones guardan pausa y ayudas, sincronizan dos dispositivos y aíslan perfiles',async()=>{
+  const db=nubeFalsa(),a=await abrir(db),b=await abrir(db);
+  const otherCode='c'.repeat(32),other=nubeFalsa({code:otherCode});
+  const phase=async(page,text)=>{await page.locator('#lessonPanel').getByText(text,{exact:false}).first().waitFor()};
+  const shot=async(page,name)=>{
+    if(process.env.UDMI_LESSON_SCREENSHOTS)await page.screenshot({path:join(process.env.UDMI_LESSON_SCREENSHOTS,name),fullPage:true});
+  };
+  try{
+    await esperar(()=>db.datos.pinH,'perfil sintético inicial');
+    await a.page.click('#lessonLaunch');
+    await a.page.click('[data-lesson-start="encontrar-accion"]');
+    assert.equal(await a.page.locator('#lessonStep').evaluate(el=>el===document.activeElement),true);
+    assert.equal(await a.page.getByRole('button',{name:'Círculo azul'}).count(),1);
+    await shot(a.page,'fase3-instrucciones.png');
+    await a.page.getByRole('button',{name:'Círculo azul'}).click();
+    await a.page.click('[data-lesson-check]');
+    await a.page.click('[data-lesson-act="advance"]');
+    await phase(a.page,'Aprende una estrategia');
+    await a.page.click('[data-lesson-act="advance"]');
+    await a.page.click('[data-lesson-act="advance"]');
+    await a.page.getByRole('button',{name:'Cuadrado naranja'}).click();
+    await a.page.click('[data-lesson-check]');
+    await a.page.click('[data-lesson-act="advance"]');
+    await phase(a.page,'Inténtalo por tu cuenta');
+    const startPrompt=await a.page.textContent('#lessonPrompt');
+    for(let i=0;i<4;i++)await a.page.click('[data-lesson-act="help"]');
+    await phase(a.page,'Solución');
+    await a.page.click('[data-lesson-pause]');
+    await a.page.reload();
+    await a.page.click('#lessonLaunch');
+    await a.page.locator('[data-lesson-start="encontrar-accion"]').filter({hasText:'Continuar'}).click();
+    await phase(a.page,'Solución');
+    await a.page.click('[data-lesson-act="retry"]');
+    assert.notEqual(await a.page.textContent('#lessonPrompt'),startPrompt);
+    await a.page.fill('#lessonInput','subraya');
+    await a.page.click('#lessonWritten button');
+    await phase(a.page,'coincide');
+    await esperar(()=>db.intentos.some(r=>r.origen==='leccion'&&r.extra.etapa==='independiente'&&!r.pista),'intento independiente confirmado');
+
+    await b.page.click('#lessonLaunch');
+    await b.page.click('[data-lesson-start="agrupar-diez"]');
+    await b.page.fill('#lessonInput','4');
+    assert.equal(await b.page.locator('#lessonBlocks .piece').count(),4);
+    await b.page.click('#lessonWritten button');
+    await b.page.click('[data-lesson-act="advance"]');
+    await b.page.click('[data-lesson-act="advance"]');
+    await b.page.click('[data-lesson-act="advance"]');
+    // La práctica de este tramo muestra canje y piezas con etiquetas accesibles.
+    await shot(b.page,'fase3-valor-posicional.png');
+    await b.page.click('[data-lesson-exchange]');
+    await b.page.fill('#lessonInput','1');
+    await b.page.click('#lessonWritten button');
+    await phase(b.page,'coincide');
+    await esperar(()=>Object.values(db.datos.lessons?.runs||{}).some(r=>r.lesson==='agrupar-diez')&&
+      Object.values(db.datos.lessons?.runs||{}).some(r=>r.lesson==='encontrar-accion'),'unión de ambos dispositivos');
+    assert.equal(db.datos.pts,240);
+    assert.ok(db.datos.ku['en:dog']);
+    await a.page.click('#lessonExit');
+    await a.page.click('#papas > summary');
+    await a.page.fill('#pin','2580');await a.page.click('#pinGo');
+    await a.page.click('#diagMapLaunch');
+    await a.page.getByText('Lecciones guiadas y repasos',{exact:true}).click();
+    await a.page.locator('[data-lesson-assign="entender-oraciones"]').first().click();
+    await esperar(()=>db.datos.lessonAssignments?.['entender-oraciones'],'asignación familiar guardada');
+    if(process.env.UDMI_LESSON_SCREENSHOTS)await a.page.locator('#diagMapBody summary').filter({hasText:'Lecciones guiadas y repasos'}).locator('..').locator('li').first().screenshot({path:join(process.env.UDMI_LESSON_SCREENSHOTS,'fase3-mapa-familiar.png')});
+
+    await a.page.route('https://*.supabase.co/rest/v1/rpc/*',other.ruta);
+    await a.page.goto(url.replace(CODE,otherCode));
+    await a.page.click('#lessonLaunch');
+    assert.equal(await a.page.locator('[data-lesson-start]').filter({hasText:'Continuar'}).count(),0);
+    assert.equal(other.datos.lessons,undefined);
+    assert.equal(other.intentos.length,0);
+    await a.page.click('[data-lesson-start="entender-oraciones"]');
+    await a.page.locator('#lessonPanel blockquote').waitFor();
+    await shot(a.page,'fase3-lectura.png');
+    assert.deepEqual([...a.errores,...b.errores],[]);
   }finally{await Promise.all([a.ctx.close(),b.ctx.close()])}
 });
