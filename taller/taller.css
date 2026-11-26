@@ -1,0 +1,14 @@
+.stage{margin:1rem 0;background:var(--mint);border-radius:18px;padding:.8rem;display:grid;gap:.6rem}
+.objects{display:grid;grid-template-columns:repeat(auto-fit,minmax(75px,1fr));gap:.55rem}
+.object,.plate,.sentence{display:grid;place-items:center;min-height:54px;padding:.5rem;gap:.25rem;background:white;border:2px solid var(--line);border-radius:14px;color:var(--ink);font-weight:650}
+.object[aria-pressed="true"],.sentence[aria-pressed="true"]{border-color:var(--strong);background:var(--wash)}
+.object svg,.plate svg,.object-icon{width:2.25rem;height:2.25rem}
+.dish{display:flex;flex-wrap:wrap;justify-content:center;gap:.2rem;min-height:1.35rem}
+.plate .dish svg{width:1.35rem;height:1.35rem}
+.plate{min-width:0;min-height:85px}
+.reading{margin:.8rem 0;display:grid;gap:.5rem}.sentence{text-align:left;place-items:start;line-height:1.38}
+.balance{font-size:1.3rem;font-weight:800}.status{min-height:1.6rem;margin:.6rem 0}.worksheet{display:grid;gap:.45rem}
+.worksheet input{width:7rem;min-height:48px;padding:.5rem;border:2px solid var(--line);border-radius:12px}
+.plate.flash{animation:place .24s ease-out}
+@media(max-width:360px){.dish svg{max-width:1.15rem}.objects{gap:.35rem}.stage{padding:.55rem}}
+.placement{position:relative;display:grid;place-items:center;width:2.5rem;height:3.6rem}.placement i{position:absolute;left:50%;transform:translateX(-50%);display:grid;place-items:center}.placement i svg{width:1.2rem;height:1.2rem}.placement.on i{top:.1rem}.placement.in i{top:1.32rem}.placement.under i{bottom:0}

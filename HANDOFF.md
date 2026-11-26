@@ -53,3 +53,7 @@ Rama `feat/shared-supabase-preview`. La inspección de catálogos del proyecto a
 ## Rediseño de aprendizaje
 
 Rama `feat/learning-redesign-prototypes` desde `816dcc4`. El recorrido y los límites están en [REDISENIO.md](REDISENIO.md). La Preview aislada agrega el enlace **Abrir los prototipos de aprendizaje**. La ruta `/prototipos/` contiene tres recorridos demostrables. El reto y el panel familiar originales siguen a disposición. No se migró progreso ni se aplicaron cambios en Supabase. Antes de extender, esperar la revisión de estas pantallas y acordar las prioridades del banco.
+
+## Taller editorial de primaria
+
+Rama `feat/pedagogical-workshop`, con cinco actividades independientes en `/taller/`. La compilación de Preview aislada agrega **Probar el taller pedagógico**. Los SVG son locales, el taller guarda solo su propio estado y la app anterior conserva sus rutas. Los documentos [Replanteamiento pedagógico](REPLANTEAMIENTO_PEDAGOGICO.md) y [Veinte actividades](ACTIVIDADES_PILOTO.md) quedan para aprobación antes de extender el catálogo. Usar el taller para observar comprensión de consignas, manipulación, reacción a pistas y transferencia. La voz inglesa depende de voces locales. No se aplicaron migraciones.

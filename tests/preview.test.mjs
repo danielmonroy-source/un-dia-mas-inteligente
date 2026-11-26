@@ -18,6 +18,8 @@ test('preview local sin claves, ignora códigos y conserva solo su propio progre
     await mkdir(join(dir,'scripts'));
     await mkdir(join(dir,'prototypes'));
     files.push(...['index.html','prototypes.css','prototypes.js'].map(name=>'prototypes/'+name));
+    await mkdir(join(dir,'taller'));
+    files.push(...['index.html','taller.css','taller.js'].map(name=>'taller/'+name));
     for(const file of [...files,'scripts/build-static.mjs'])
       await copyFile(new URL(file,source),join(dir,file));
     const rejected=build({VERCEL_ENV:'production'});

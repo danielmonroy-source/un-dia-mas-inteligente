@@ -51,7 +51,7 @@ if(offline){
   const policy="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "+
     "img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'";
   html=html.replace(/^<link [^\n]*fonts\.googleapis\.com[^\n]*>\n/gm,'');
-  html=html.replace('<section id="home">','<section id="home"><p><a href="prototipos/">Abrir los prototipos de aprendizaje</a></p>');
+  html=html.replace('<section id="home">','<section id="home"><p><a href="prototipos/">Abrir los prototipos de aprendizaje</a></p><p><a href="taller/">Probar el taller pedagógico</a></p>');
   html=html.replace(/<head>/i,'<head>\n<meta http-equiv="Content-Security-Policy" content="'+policy+'">');
 }
 rmSync(output,{recursive:true,force:true});
@@ -65,4 +65,10 @@ if(offline){
   for(const name of ['index.html','prototypes.css','prototypes.js']){
     writeFileSync(new URL('prototipos/'+name,output),readFileSync(new URL('../prototypes/'+name,import.meta.url)));
   }
+}
+
+if(offline){
+  mkdirSync(new URL('taller/',output));
+  for(const name of ['index.html','taller.css','taller.js'])
+    writeFileSync(new URL('taller/'+name,output),readFileSync(new URL('../taller/'+name,import.meta.url)));
 }
