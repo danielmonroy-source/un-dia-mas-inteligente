@@ -259,8 +259,201 @@ for(const [id,values] of Object.entries({
       digits.map((n,i)=>n*10**i).filter(Boolean).reverse().join(' + ')+' = '+value+'.',digits));
   }
 }
+/* Matemáticas 3.5. Los parámetros de cada ítem quedan fijos para reanudar por UUID. */
+const math=(prompt,answer,explain,extra={})=>question(prompt,answer===null?null:String(answer),explain,{scope:'math',...extra});
+const visual=(type,a,b,edit=false)=>({type,a,b,edit});
+const errors=(...pairs)=>Object.fromEntries(pairs);
+const multiply=(id,skill,title,strategy,example,home,prereq,tasks)=>
+  lesson(id,skill,'Multiplicación',title,strategy,example,home,prereq,tasks);
+const problem=(id,skill,title,strategy,example,home,prereq,tasks)=>
+  lesson(id,skill,'Problemas',title,strategy,example,home,prereq,tasks);
+const quantities=[[2,3],[4,2],[3,5],[4,3],[2,6],[3,4],[5,2],[4,5],[5,3]];
+const settings=[
+  ['platos','galletas'],['canastas','peras'],['cajas','fichas'],['equipos','jugadores'],
+  ['filas','sillas'],['paquetes','lápices'],['bolsas','canicas'],['cajas','cuadernos'],['bandejas','panes']
+];
+const groupTasks=builder=>quantities.map(([a,b],i)=>builder(a,b,i,...settings[i]));
+const labels={group:'concepto',sum:'concepto',array:'concepto',factor:'concepto',strategy:'calculo',
+  memory:'recuperacion',operation:'operacion',question:'pregunta',data:'datos',model:'representacion',
+  check:'comprobacion',result:'resolucion',steps:'dos-pasos'};
+const hint={
+  'grupos-por-elementos':'Distingue cuántos grupos hay de cuántos objetos tiene cada uno.',
+  'dato-irrelevante':'Lee la pregunta y señala solo las cantidades que ayudan a contestarla.',
+  'dato-necesario':'Localiza qué cantidades necesitas y si alguna todavía falta.',
+  'operacion':'Decide si reúnes, comparas, buscas lo que falta o repites grupos iguales.',
+  'unidad':'Escribe qué se contó después del número.',
+  'resultado-intermedio':'Ese resultado contesta una parte. Vuelve a leer la última pregunta.',
+  'comprobacion':'Representa de otra forma las cantidades que se dieron al principio.',
+  'calculo':'Revisa cada paso con un dibujo o una operación equivalente.',
+  'pregunta':'Relee la última oración e identifica qué cantidad se quiere descubrir.',
+  'representacion':'Relaciona cada parte del dibujo con una cantidad del enunciado.'
+};
+function tagged(type,q){
+  return {...q,evidence:q.evidence||labels[type],hint:hint[q.fallback],difficulty:q.difficulty||1};
+}
+const list=(type,items)=>items.map(q=>tagged(type,q));
+function atomic(prompt,answer,explain,fallback,attrs={}){
+  return math(prompt,answer,explain,{fallback,...attrs})
+}
+function contextual(a,b,containers,items){
+  return `Hay ${a} ${containers} con ${b} ${items} en cada grupo.`;
+}
+multiply('grupos-iguales','mul-concepto','Construye grupos iguales',
+  'Un grupo tiene objetos juntos. Los grupos son iguales cuando cada uno contiene la misma cantidad.',
+  'Tres canastas con dos peras en cada una forman tres grupos iguales. Si una tiene una pera, ya son desiguales.',
+  'Repartan tapas entre platos y comprueben que todos tengan la misma cantidad.',[],
+  list('group',groupTasks((a,b,i,containers,items)=>{
+    if(i===0)return atomic('Hay una canasta con dos peras y otra con tres. ¿Son grupos iguales o desiguales?',
+      'desiguales','Una tiene dos y la otra tres. Sus cantidades son diferentes.','grupos-por-elementos',{accept:['desigual','no']});
+    if(i===2||i===3||i===5)return atomic(`Construye ${a} grupos con ${b} fichas en cada uno.`,`${a}|${b}`,
+      `${a} grupos tienen ${b} fichas cada uno. En total hay ${a*b}.`,'grupos-por-elementos',
+      {model:visual('groups',1,1,true),build:true});
+    return atomic(`¿Cuántos objetos hay en cada grupo? Mira los ${containers} con ${items}.`,b,
+      `Cada grupo contiene ${b}; juntos tienen ${a*b}.`,'grupos-por-elementos',
+      {model:visual('groups',a,b),errors:a===b?{}:errors([a,'grupos-por-elementos'])});
+  })));
+multiply('suma-repetida','mul-concepto','De grupos a sumas y multiplicaciones',
+  'Escribe un sumando por grupo. Cada sumando indica cuántos objetos hay en ese grupo.',
+  'Cuatro platos con tres frutas se escriben 3 + 3 + 3 + 3. La multiplicación que describe esos platos es 4 × 3.',
+  'Hagan grupos de lápices y escriban tanto la suma como la multiplicación.',['grupos-iguales'],
+  list('sum',groupTasks((a,b,i,containers,items)=>{
+    const sum=Array(a).fill(b).join('+');
+    const repeated=i%2===0;
+    return atomic(`${contextual(a,b,containers,items)} Escribe ${repeated?'la suma repetida con +':'la multiplicación con ×'}.`,
+      repeated?sum:`${a}×${b}`,`${sum} = ${a} × ${b} = ${a*b}.`,'representacion',
+      {expression:true,model:i<3?visual('line',a,b):undefined,errors:errors([`${b}×${a}`,'grupos-por-elementos'])});
+  })));
+multiply('arreglos','mul-concepto','Filas, columnas y giros',
+  'Una fila va de lado a lado. Una columna va de arriba a abajo. En un arreglo cada fila tiene la misma cantidad.',
+  'Girar dos filas de cuatro fichas da cuatro filas de dos. En ambos casos hay ocho fichas, aunque las filas representan agrupaciones distintas.',
+  'Giren un arreglo de tapas y comparen qué cambió y qué quedó igual.',['suma-repetida'],
+  list('array',groupTasks((a,b,i)=>{
+    if(i<3||i===5)return atomic(`Construye un arreglo de ${a} filas y ${b} columnas.`,`${a}|${b}`,
+      `La cuadrícula tiene ${a} filas de ${b} fichas.`,'grupos-por-elementos',{model:visual('array',1,1,true),build:true});
+    if(i===4||i===6||i===7)return atomic(`Un piso tiene ${a} filas y ${b} columnas. Dibuja el arreglo después de intercambiar filas y columnas.`,`${b}|${a}`,
+      `Al girar quedan ${b} filas de ${a}. Se conservan las ${a*b} losetas.`,
+      'grupos-por-elementos',{model:visual('array',a,b,true),build:true});
+    return atomic(`Un piso tiene ${a} filas de ${b} losetas. Al girarlo, ¿cuántas fichas habrá en cada fila?`,a,
+      `Ahora cada fila tiene ${a} losetas y hay ${b} filas. El total sigue siendo ${a*b}.`,'grupos-por-elementos',
+      {model:i===3?visual('array',a,b):undefined,errors:errors([b,'grupos-por-elementos'])});
+  })));
+multiply('factores','mul-concepto','Qué cuenta cada factor',
+  'El primer factor indica cuántos grupos contamos. El segundo indica cuántos objetos hay en cada grupo. El producto es el total.',
+  'Si hay 12 pelotas repartidas en 3 cajas iguales, el arreglo muestra 4 en cada caja. Entonces 3 × 4 = 12.',
+  'Cubran una fila de un arreglo y encuentren cuántas fichas faltan.',['arreglos'],
+  list('factor',groupTasks((a,b,i,containers,items)=>{
+    const askGroups=i%3===0;
+    return atomic(`Hay ${a*b} ${items}. ${askGroups?`Hay ${b} por grupo.`:`Hay ${a} grupos iguales.`} ¿Cuántos ${askGroups?'grupos hay':'objetos hay por grupo'}?`,
+      askGroups?a:b,`Los factores son ${a} y ${b}. El producto es ${a*b}.`,'grupos-por-elementos',
+      {model:i===2?visual('array',a,b):undefined});
+  })));
+const calculation=[
+  [2,7,'Suma 7 + 7.'],[5,4,'Cuenta de cinco en cinco cuatro veces.'],[10,3,'Tres decenas forman 30.'],
+  [4,6,'Dobla 6 para obtener 12; dobla 12 para obtener 24.'],[6,4,'Usa 5 × 4 y añade un grupo de 4.'],
+  [0,8,'Con cero grupos no hay objetos.'],[1,9,'Un grupo conserva los 9 objetos.'],
+  [4,8,'Obtén 16 con el primer doble y 32 con el segundo.'],[7,5,'Suma 5 × 5 y 2 × 5.']
+];
+multiply('estrategias-producto','mul-concepto','Calcula con productos conocidos',
+  'Usa dobles para ×2 y dos dobles para ×4. Cuenta por cincos o decenas. Puedes separar un arreglo en dos partes útiles.',
+  'Para 6 × 5, usa 5 × 5 = 25 y agrega un grupo de cinco. Para 0 grupos hay cero objetos. Con un grupo quedan los objetos de ese grupo.',
+  'Busquen dos maneras de obtener el total de cuatro grupos de seis.',['factores'],
+  list('strategy',calculation.map(([a,b,method],i)=>atomic(`Calcula ${a} × ${b}. ${i<3?'Usa la representación.':''}`.trim(),a*b,
+    method,'calculo',{difficulty:2,model:i<3?visual('line',a,b):undefined,partial:'Busca un producto pequeño que ya conozcas.'}))));
+multiply('recordar-productos','mul-2510','Recuerda un producto sin prisa',
+  'Mira la multiplicación y deja que aparezca el resultado. Si necesitas calcular, usa una estrategia conocida. También puedes practicar con las tablas de Inicio.',
+  'Para 2 × 6 puedes recordar 12 o sumar 6 + 6. Las dos son útiles. Con práctica podrás comprobar qué resultados recuerdas.',
+  'Digan un producto conocido en voz alta. Si hace falta, compruébenlo con tapas.',['estrategias-producto'],
+  list('memory',[[2,8],[5,6],[10,6],[5,7],[10,4],[2,9],[5,9],[10,7],[2,4]].map(([a,b],i)=>
+    atomic(`¿Cuánto es ${a} × ${b}?`,a*b,`Puedes comprobarlo con ${a} grupos de ${b}.`,'calculo',
+      i===0?{options:[String(a*b),String(a+b),String(a*b+b)],format:'rec'}:{}))));
+multiply('decidir-multiplicar','prob-oper','¿Es una situación para multiplicar?',
+  'Busca grupos iguales y el total que se pregunta. Si hay cantidades diferentes que deseas reunir, suma cada cantidad.',
+  'Tres platos de dos fresas se modelan con 3 × 2. Un plato de tres y otro de cinco se modelan con 3 + 5.',
+  'Pongan frutas en platos iguales y desiguales, y comparen las operaciones.',['factores'],
+  list('operation',groupTasks((a,b,i,containers,items)=>{
+    if(i%2===0)return atomic(`Dos grupos de ${items} se guardan en ${containers}. Uno tiene ${a} y otro ${b}. Escribe la operación que reúne ambos.`,
+      `${a}+${b}`,`Los grupos tienen tamaños diferentes. ${a} + ${b} reúne todos los objetos.`,'operacion',
+      {expression:true,accept:[`${b}+${a}`],errors:errors([`${a}×${b}`,'operacion'])});
+    return atomic(`${contextual(a,b,containers,items)} Escribe la operación para encontrar el total.`,`${a}×${b}`,
+      `Aquí se repite el mismo tamaño ${a} veces.`,'operacion',{expression:true,errors:errors([`${a}+${b}`,'operacion'],[`${b}×${a}`,'grupos-por-elementos'])});
+  })));
+problem('entender-pregunta','prob-datos','Encuentra qué se pregunta',
+  'Lee la pregunta y di qué cantidad hace falta encontrar. Luego distingue esa cantidad de los datos que ya conoces.',
+  'Si una caja tiene 8 lápices y alguien saca 3, «¿qué queda?» pregunta por los lápices que siguen en la caja.',
+  'Antes de resolver una compra, digan en voz alta qué cantidad buscan.',['encontrar-accion'],
+  list('question',groupTasks((a,b,i,containers,items)=>atomic(`Hay ${a+b} ${items}. Se separan ${b}. ¿Cuántos quedan? Elige qué quiere saber la pregunta.`,
+    'Lo que queda','El dato que buscamos es lo que sigue junto después de separar una parte.','pregunta',
+    i<3?{options:['Lo que se separó','Lo que queda','La cantidad inicial'],format:'rec'}:
+      {prompt:`Hay ${a+b} ${items} en ${containers}. Se separan ${b}. ¿Se pregunta por lo que queda o por lo que se separó? Escribe «queda» o «separó».`,
+       accept:['queda'],errors:errors(['separó','pregunta'])}))));
+problem('elegir-datos','prob-datos','Encuentra los datos que sirven',
+  'Pregunta qué representa cada cantidad. Un dato sirve si lo necesitas para contestar. Si falta un dato, puedes nombrarlo.',
+  'Si hay cuatro cajas iguales y se quiere saber cuántos lápices hay en total, falta saber cuántos lápices hay en cada caja.',
+  'Inventen una compra con un dato de color y otro de precio. Pregunten cuál sirve para calcular.',['entender-pregunta'],
+  list('data',groupTasks((a,b,i,containers,items)=>{
+    if(i%3===0)return atomic(`Hay ${a} ${containers} con la misma cantidad de ${items}. ¿Qué falta saber para encontrar el total? Empieza con «cantidad…».`,
+      'cantidad por grupo','Ya sabemos el número de grupos. Falta saber cuántos objetos contienen por separado.','dato-necesario',
+      {accept:['cantidad en cada grupo','objetos por grupo'],errors:errors([a,'dato-necesario'])});
+    return atomic(`Un salón prestó ${a} ${items} primero y ${b} después. Hay ${a+b+4} estudiantes. ¿Qué dos datos necesitas para calcular cuántos ${items} prestaron? Separa los dos datos con +.`,
+      `${a}+${b}`,`Se suman los préstamos. Saber cuántos estudiantes hay no cambia cuántos objetos se prestaron.`,'dato-necesario',
+      {expression:true,accept:[`${b}+${a}`],irrelevant:a+b+4});
+  })));
+problem('dibujar-problema','prob-oper','Representa las cantidades',
+  'Un dibujo puede mostrar grupos. Una barra sirve para ver partes de un total. Una recta muestra saltos. Una tabla organiza dos cantidades que se relacionan.',
+  'Si hay 6 fichas y quieres llegar a 10, dibuja una barra con 6 y marca el espacio que falta hasta 10.',
+  'Dibujen dos barras para comparar cantidades y expliquen qué representa el hueco.',['elegir-datos'],
+  list('model',groupTasks((a,b,i,containers,items)=>atomic(`Tienes ${a} ${items}. Quieres reunir ${a+b}. ¿Cuánto falta? Usa el esquema.`,b,
+    `El tramo que falta es ${a+b} − ${a} = ${b}.`,'representacion',
+    {model:visual(['bar','gap','table'][i%3],a,b),errors:errors([a+b,'resultado-intermedio'])}))));
+problem('elegir-operacion','prob-oper','Elige la operación por la relación',
+  'Decide si quieres reunir, comparar, completar o contar grupos iguales. Palabras como «más» también aparecen en comparaciones.',
+  'Hay siete pelotas azules y tres rojas. Para saber cuántas azules hay de más, calculas 7 − 3.',
+  'Comparen precios ficticios en pesos. Pregunten cuánto falta o en qué se diferencian.',['dibujar-problema'],
+  list('operation',groupTasks((a,b,i,containers,items)=>{
+    const mode=i%3;
+    const statements=[
+      [`Hay ${a+b} ${items} en una mesa y ${a} en otra. ¿Cuántos más tiene la primera?`,`${a+b}−${a}`, 'Se comparan dos cantidades.'],
+      [`Llegaron ${a} ${items} en la mañana y ${b} en la tarde. ¿Cuántos llegaron en todo el día?`,`${a}+${b}`, 'Se reúnen dos cantidades.'],
+      [`${contextual(a,b,containers,items)} ¿Cuántos ${items} hay en total?`,`${a}×${b}`, 'Se cuenta el total de grupos iguales.']
+    ];
+    const [prompt,answer,explain]=i===4?
+      [`Una libreta cuesta ${a+b} pesos. Tienes ${a} pesos. ¿Cuánto dinero te falta?`,`${a+b}−${a}`,'Se busca la parte que falta para completar el precio.']:
+      statements[mode];
+    return atomic(prompt+' Escribe la operación que usarías.',answer,explain,'operacion',
+      {expression:true,...(mode===1&&i!==4?{accept:[`${b}+${a}`]}:{})});
+  })));
+problem('resolver-y-comprobar','prob-sentido','Comprueba y responde con unidades',
+  'Comprueba mediante la operación inversa, un dibujo o una estimación. Termina diciendo qué cuenta tu respuesta.',
+  'Si de 12 peras quedan 8, se usaron 4 peras. Comprueba que 8 + 4 vuelve a dar 12.',
+  'Hagan una cuenta en pesos y compruébenla sumando lo gastado y lo que quedó.',['elegir-operacion'],
+  list('check',groupTasks((a,b,i,containers,items)=>{
+    if(i<3||i===5)return atomic(`Había ${a+b} ${items}. Quedan ${a}. Alguien dice que se usaron ${b}. Escribe la suma que comprueba su respuesta.`,
+      `${a}+${b}`,`Lo que queda más lo que se usó reconstruye el total: ${a+b}.`,'comprobacion',
+      {expression:true,accept:[`${b}+${a}`],difficulty:2});
+    return {...atomic(`Había ${a+b} ${items} y se usaron ${a}. ¿Cuántos quedan? Escribe número y unidad.`,`${b} ${items}`,
+      `Quedan ${b} ${items}. Comprueba que ${a} + ${b} = ${a+b}.`,'calculo',{unit:items,errors:errors([`${a+b} ${items}`,'resultado-intermedio']),difficulty:2}),evidence:'resolucion'};
+  })));
+problem('problema-dos-pasos','prob-sentido','Divide un problema en dos preguntas',
+  'Busca primero un resultado que puedas calcular. Luego lee la pregunta final y utiliza ese resultado para resolverla.',
+  'Hay 3 bolsas de 4 semillas y se plantan 5. Primero 3 × 4 = 12; luego 12 − 5 = 7 semillas.',
+  'Al preparar una merienda, calculen cuántas porciones hay y cuántas quedan tras servir.',['resolver-y-comprobar','decidir-multiplicar'],
+  list('steps',groupTasks((a,b,i,containers,items)=>{
+    const total=a*b,removed=2+i%3,answer=total-removed;
+    return atomic(`${contextual(a,b,containers,items)} Entregan ${removed} ${items}. ${i===2?'¿Cuántos había antes de entregar?':'¿Cuántos quedan? Anota número y unidad.'}`,
+      i===2?total:`${answer} ${items}`,`Primero hay ${a} × ${b} = ${total}; quedan ${total} − ${removed} = ${answer} ${items}.`,'calculo',
+      {difficulty:3,...(i===2?{}:{unit:items,errors:errors([`${total} ${items}`,'resultado-intermedio'])})});
+  })));
+
 lessons.forEach(l=>l.tasks.forEach((q,i)=>{q.id=l.id+'-'+i}));
-const api={lessons,byId:Object.fromEntries(lessons.map(l=>[l.id,l]))};
+const mathTopics={
+  'grupos-iguales':['op-suma','ins-1'],'suma-repetida':['op-suma'],'arreglos':['mul-concepto'],
+  factores:['mul-concepto'],'estrategias-producto':['vp-ud','op-suma'],'recordar-productos':['mul-2510','mul-346','mul-789'],
+  'decidir-multiplicar':['prob-oper','mul-concepto'],'entender-pregunta':['ins-1','lec-info'],
+  'elegir-datos':['lec-info','comp-logica'],'dibujar-problema':['vp-ud','comp-frac'],
+  'elegir-operacion':['op-suma','op-resta','mul-concepto'],'resolver-y-comprobar':['op-resta','comp-dinero'],
+  'problema-dos-pasos':['ins-23','op-suma','op-resta']
+};
+const api={lessons,mathTopics,hint,byId:Object.fromEntries(lessons.map(l=>[l.id,l]))};
 root.LessonBank=api;
 if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

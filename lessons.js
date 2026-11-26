@@ -1,7 +1,7 @@
 /* Evidence and resumable lesson runs. A run is an append-only graph of events. */
 (function(root){
 'use strict';
-const {byId,lessons}=root.LessonBank;
+const {byId,lessons,mathTopics,hint}=root.LessonBank;
 const stages=['activar','explicar','ejemplo','guiada','independiente','aplicacion','reflexion','agenda'];
 const labels={activar:'Lo que ya sabes',explicar:'Aprende una estrategia',ejemplo:'Mira un ejemplo',guiada:'Practica con apoyo',independiente:'Inténtalo por tu cuenta',aplicacion:'Úsalo en otra situación',reflexion:'Piensa en lo aprendido',agenda:'Próximo repaso',repaso:'Recuerda y aplica'};
 const date=/^\d{4}-\d{2}-\d{2}$/;
@@ -71,7 +71,14 @@ function profile(data,id){
   const runs=Object.values(data?.runs||{}).filter(r=>r.lesson===id).sort((a,b)=>a.day.localeCompare(b.day)||a.id.localeCompare(b.id));
   const complete=runs.map(r=>status(r).done).filter(Boolean).sort((a,b)=>String(a.ts).localeCompare(String(b.ts))||a.id.localeCompare(b.id));
   const evidence=runs.flatMap(rows);
-  return {active:runs.find(r=>!status(r).done),complete,
+  const math={};
+  const errors={};
+  for(const e of evidence){
+    if(e.error)errors[e.error]=(errors[e.error]||0)+1;
+    if(e.evidence&&e.ok&&(e.strong||e.evidence==='reconocimiento')&&(e.stage!=='repaso'||e.retained))
+      math[e.evidence]=(math[e.evidence]||0)+1;
+  }
+  return {math,errors,active:runs.find(r=>!status(r).done),complete,
     due:complete.at(-1)?.due||'',exposure:evidence.filter(e=>e.kind==='advance'&&e.stage==='explicar').length,
     examples:evidence.filter(e=>e.kind==='advance'&&e.stage==='ejemplo').length,
     guided:evidence.filter(e=>e.kind==='answer'&&e.stage==='guiada').length,
@@ -99,6 +106,27 @@ function strongHistory(S,skill,day){
   if(root.Diagnostico?.map(S,day).some(r=>r.h.id===skill&&(r.conflict||r.initial.state==='nec')))return false;
   return ['con','dom'].includes(root.Motor.resumen(S,day)[skill]?.estado);
 }
+function evaluate(q,value){
+  const clean=x=>{
+    const text=normalize(x).replace(/\s+/g,' ');
+    if(q.expression)return text.replace(/\s/g,'').replace(/[x*]/g,'×').replace(/-/g,'−');
+    return q.expanded?text.replace(/\s/g,''):text;
+  };
+  const input=clean(value);
+  const ok=!q.open&&[q.answer,...q.accept||[]].some(x=>clean(x)===input);
+  if(ok||q.open||!q.evidence)return {ok};
+  const exact=Object.entries(q.errors||{}).find(([answer])=>clean(answer)===input)?.[1];
+  if(exact)return {ok,error:exact};
+  if(q.unit&&/^\d+$/.test(input)&&input===clean(q.answer).split(' ')[0])return {ok,error:'unidad'};
+  if(q.irrelevant&&input.split('+').includes(String(q.irrelevant)))return {ok,error:'dato-irrelevante'};
+  if(q.build&&input.split('|').reverse().join('|')===q.answer)return {ok,error:'grupos-por-elementos'};
+  return {ok,error:q.fallback||'respuesta-distinta'};
+}
+const inventory=()=>lessons.map(l=>({id:l.id,skill:l.skill,prerequisites:l.prereq,
+  related:mathTopics[l.id]||[],objective:l.strategy,minutes:[5,10],explanation:true,
+  activities:l.tasks.map((q,i)=>({id:q.id,objective:q.prompt,difficulty:q.difficulty||1,
+    evidence:q.format==='rec'?'reconocimiento':q.evidence||q.format||'respuesta',equivalent:i===3?l.tasks[5].id:i===4?l.tasks[6].id:null,
+    application:i===4||i===6,review:i===(l.tasks.length>7?7:6)||i===(l.tasks.length>8?8:5),parent:!!q.open}))}));
 function act(data,run,kind,day,value,S){
   const st=status(run),{q,stage,level,feedback,alternate}=st;
   if(st.done)return null;
@@ -108,16 +136,15 @@ function act(data,run,kind,day,value,S){
   }
   if(kind==='access')return add(run,st,kind,day);
   if(kind==='answer'){
-    if(!q||feedback||level===4||!String(value||'').trim())return null;
+    if(!q||feedback||level===4||!String(value??'').trim())return null;
     const pending=!!q.open;
-    const clean=x=>q.expanded?String(x).replace(/\s/g,''):normalize(x);
-    const ok=!pending&&[q.answer,...q.accept||[]].some(x=>clean(x)===clean(value));
+    const {ok,error}=evaluate(q,value);
     const bare=['independiente','aplicacion','repaso'].includes(stage)&&level===0;
-    const fmt=q.format||(q.tokens?'mix':'rcl');
+    const fmt=q.format||(q.tokens||q.build?'mix':'rcl');
     const observed=bare&&fmt!=='rec'&&!q.canje&&!pending;
     const strong=ok&&observed;
     const retained=strong&&stage==='repaso'&&profile(data,run.lesson).complete.some(e=>e.applied&&e.due<=day);
-    return add(run,st,kind,day,{ok,pending,strong,retained,observed,level,fmt:stage==='aplicacion'&&strong?'apl':fmt});
+    return add(run,st,kind,day,{ok,pending,strong,retained,observed,level,...(q.evidence?{evidence:fmt==='rec'?'reconocimiento':q.evidence}:{}),...(error?{error}:{}),fmt:stage==='aplicacion'&&strong?'apl':fmt});
   }
   if(kind==='retry'){
     if(!q||alternate||(!feedback&&level!==4)||feedback?.ok||feedback?.pending||!['guiada','independiente','aplicacion','repaso'].includes(stage))return null;
@@ -126,7 +153,7 @@ function act(data,run,kind,day,value,S){
   }
   if(kind!=='advance')return null;
   if(q&&!feedback&&level<4)return null;
-  if(stage==='activar'&&feedback?.ok&&level===0&&q.format!=='rec'&&S&&strongHistory(S,st.lesson.skill,day))
+  if(stage==='activar'&&!q.evidence&&feedback?.ok&&level===0&&q.format!=='rec'&&S&&strongHistory(S,st.lesson.skill,day))
     return add(run,st,'skip',day);
   if(stage!=='agenda')return add(run,st,'advance',day);
   const prev=profile(data,run.lesson);
@@ -139,9 +166,15 @@ function recommendation(S,id,day,seen=new Set()){
   if(seen.has(id)||!Object.hasOwn(byId,id))return null;
   seen.add(id);
   const l=byId[id];
+  const diag=root.Diagnostico?.map(S,day)||[];
+  if(l.area==='Problemas'&&id!=='decidir-multiplicar'&&diag.some(r=>['ins-1','lec-oracion','lec-info'].includes(r.h.id)&&r.initial.state==='nec')){
+    const target=diag.some(r=>r.h.id==='ins-1'&&r.initial.state==='nec')?'encontrar-accion':'entender-oraciones';
+    if(!profile(S.lessons,target).applied)return byId[target];
+  }
   for(const p of l.prereq){
     const evidence=profile(S.lessons,p);
-    if(evidence.applied||(evidence.independent&&evidence.complete.length)||strongHistory(S,byId[p].skill,day))continue;
+    const math=Object.hasOwn(mathTopics,l.id)&&Object.hasOwn(mathTopics,p);
+    if(evidence.applied||(!math&&((evidence.independent&&evidence.complete.length)||strongHistory(S,byId[p].skill,day))))continue;
     return recommendation(S,p,day,seen)||byId[p];
   }
   return l;
@@ -151,7 +184,7 @@ function attempt(S,run,e){
   const l=byId[run.lesson];
   const a={id:e.id,k:l.skill+':leccion-v1:'+l.id,ok:e.ok,primero:true,pista:!e.observed&&
     (e.level>0||e.stage==='guiada'||e.stage==='activar'),fmt:e.fmt,origen:'leccion',ts:Date.parse(e.ts),
-    dia:e.day,err:e.ok?null:'respuesta-distinta',extra:{ejercicio:e.q,etapa:e.stage,ayuda:e.level,retencion:e.retained}};
+    dia:e.day,err:e.ok?null:e.error||'respuesta-distinta',extra:{ejercicio:e.q,etapa:e.stage,ayuda:e.level,retencion:e.retained,...(e.evidence?{evidencia:e.evidence}:{})}};
   if(motorEvidence(e))return root.Motor.registrar(S,a);
   return {...a,ts:e.ts,ms:null};
 }
@@ -171,7 +204,7 @@ function reconcile(S){
   S.ku=target.ku;
 }
 const openResponses=(data,id)=>Object.values(data?.runs||{}).filter(r=>r.lesson===id).flatMap(rows).filter(e=>e.pending);
-const api={lessons,byId,labels,empty,valid,union,assignments,path,status,profile,start,act,recommendation,attempt,openResponses,reconcile};
+const api={lessons,byId,labels,empty,valid,union,assignments,path,status,profile,start,act,recommendation,attempt,openResponses,reconcile,evaluate,inventory,hint};
 root.Lecciones=api;
 if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

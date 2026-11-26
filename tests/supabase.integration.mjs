@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
+import {stateBytes} from './cargar-nube.mjs';
 
 const api = new URL(process.env.API_URL || 'http://127.0.0.1:54321');
 const auth = process.env.AUTH_URL ? new URL(process.env.AUTH_URL) : api;
@@ -118,6 +119,19 @@ test('Supabase local: CAS, UUID, acceso de estudio, rechazo administrativo y rev
     assert.deepEqual(readLessons.data.datos.lessons.runs[run].events,{[first]:one,[second]:two});
     assert.equal(readLessons.data.datos.lessonAssignments,undefined,'un dispositivo de estudio no puede asignar lecciones');
     assert.equal((await saveLessons(writeTwo.data.actualizado,{v:1,runs:{bad:{}}})).status,400);
+    const pad={pts:12,unknownSyntheticPadding:''};
+    const required=200000-stateBytes(pad);
+    const withPadding=extra=>({...pad,unknownSyntheticPadding:'ñ'.repeat(Math.floor(required/2))+
+      'x'.repeat(required%2+extra)});
+    const writeAtLimit=(base,d)=>rpc('tt_fase2_guardar_estudio',{p_perfil:profile,p_base:base,
+      p_id:randomUUID(),p_datos:d},student);
+    assert.equal(stateBytes(withPadding(0)),200000);
+    const atLimit=await writeAtLimit(writeTwo.data.actualizado,withPadding(0));
+    assert.equal(atLimit.data.ok,true);
+    assert.equal((await writeAtLimit(atLimit.data.actualizado,withPadding(1))).status,400);
+    const afterCap=await rpc('tt_fase2_estudio',{p_perfil:profile},student);
+    assert.equal(afterCap.data.actualizado,atLimit.data.actualizado);
+    assert.deepEqual(afterCap.data.datos.lessons,readLessons.data.datos.lessons);
     assert.equal((await rpc('tt_fase2_revocar',{p_perfil:profile,p_dispositivo:child},parent)).status,204);
     assert.equal((await rpc('tt_fase2_estudio',{p_perfil:profile},student)).status,403);
     assert.equal((await rpc('tt_fase2_guardar_estudio',studentSave,student)).status,403);

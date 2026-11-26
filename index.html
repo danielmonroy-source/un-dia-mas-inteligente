@@ -301,6 +301,12 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 #lessonPanel button{min-height:44px;margin-block:.25rem}
 #lessonPanel blockquote{padding:1rem;margin:.5rem 0;border-inline-start:4px solid currentColor}
 #lessonPanel input{max-width:100%;font-size:1rem}
+.math-rows{display:flex;flex-direction:column;align-items:flex-start;gap:7px}.math-rows.containers{flex-flow:row wrap}
+.math-rows div{display:flex;gap:6px;padding:4px}.math-rows.containers div{border:2px solid var(--teal);border-radius:.6rem .6rem 1.4rem 1.4rem;padding:8px}
+.math-rows i{width:15px;height:15px;border-radius:50%;background:#248776;border:1px solid currentColor}
+.math-line{list-style:none;display:flex;padding:0;flex-wrap:wrap;gap:6px}.math-line li{border-top:2px solid currentColor;min-width:32px;text-align:center}
+.math-bar{display:flex}.math-bar span{padding:8px;border:1px solid currentColor}.math-bar span+span{border-style:dashed}
+#lessonBuild input{width:72px}
 </style>
 </head>
 <body>
@@ -310,6 +316,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div class="lvl">Nivel <b id="lv">1</b><span class="lbar"><i id="lvb" style="width:0"></i></span></div>
     <button class="snd" id="snd">Sonido: sí</button>
   </header>
+  <p id="profileCapacity" class="diag-card" role="status" hidden></p>
 
   <section id="lecciones" hidden aria-labelledby="lessonTitle">
     <button id="lessonExit" class="ghost">Volver al inicio</button>
@@ -781,10 +788,23 @@ function nubeMerge(L,R,B,preferRemote=false){
   if(o.pinH)delete o.pin; // la contraseña en texto ya no se conserva cuando existe la cifrada
   o.ts=Math.max(L.ts||0,R.ts||0);
   return o}
+// PostgreSQL jsonb::text separates elements and keys with spaces.
+function stateBytes(data){
+  const json=JSON.stringify(data).replace(/"(?:\\.|[^"\\])*"|[,:]/g,token=>token.length===1?token+' ':token);
+  return new TextEncoder().encode(json).length;
+}
 /* NUBE-FIN */
 let BASE=profile.version||null, ANCHOR=profile.anchor||null, dirty=profile.dirty||false;
 let COLA=profile.queue||[],pending=profile.pending||null,lastBackup=profile.backup||null;
 let pushing=false,failures=0,safeWriteMissing=false;
+const setCapacity=bytes=>{
+  const notice=document.getElementById('profileCapacity');
+  const message=bytes>200000?'El historial supera la capacidad de sincronización. El avance está en este dispositivo. Pide ayuda a un adulto para guardar una copia.':
+    bytes>=180000?'Historial cerca del límite de sincronización. Pide a un adulto guardar una copia.':'';
+  if(notice.textContent!==message)notice.textContent=message;
+  notice.hidden=!message;
+  return message;
+};
 const lsave=()=>writeProfile(profileKey(PROFILE),{state:S,queue:COLA,version:BASE,anchor:ANCHOR,dirty,pending,backup:lastBackup});
 const save=()=>{try{calSnap()}catch(e){}S.ts=Math.max(Date.now(),(S.ts||0)+1);dirty=true;const saved=lsave();schedulePush();return saved};
 function mot(a){try{if(!window.Motor)return;if(!S.ku)Motor.migrar(S,today());COLA.push(Motor.registrar(S,a));dirty=true;lsave()}catch(e){}}
@@ -845,6 +865,14 @@ async function push(){
         if(!lsave()){pending=null;throw new Error('almacenamiento lleno')}
       }
       const sent=pending;
+      const bytes=stateBytes(sent.state);
+      if(bytes>200000){
+        // Keep the rejected snapshot and the newer state recoverable on this profile.
+        retry=false;
+        setCloud(setCapacity(bytes));
+        await flushCola();
+        return;
+      }
       const result=await rpc('tt_guardar3',{p_codigo:CODE,p_datos:sent.state,p_base:sent.base,p_id:sent.id});
       if(result?.conflicto){
         pending=null;lsave();
@@ -858,6 +886,7 @@ async function push(){
     }
     await flushCola();failures=0;
     $('studyHelp').hidden=true;
+    setCapacity(stateBytes(S));
     setCloud(storageFailed?'El almacenamiento local no está disponible. Revisa el espacio del dispositivo.':
       dirty?'Hay progreso pendiente de sincronizar.':'Al día con la nube ('+hhmm()+')')
   }catch(e){
@@ -876,6 +905,7 @@ async function push(){
   }
 }
 const pull=push;
+if(pending)setCapacity(stateBytes(pending.state));
 addEventListener('online',()=>{safeWriteMissing=false;push()});
 document.addEventListener('visibilitychange',()=>{if(ONLINE&&document.visibilityState==='visible'&&$('play').hidden&&$('srplay').hidden&&$('qz').hidden)pull()});
 const $=id=>document.getElementById(id);
@@ -3223,7 +3253,7 @@ function lessonMenu(){
     const action=p.active?'Continuar':p.due&&p.due<=day?'Repasar':S.lessonAssignments?.[l.id]?'Elegida en familia':'Explorar';
     return {l,p,action};
   }).sort((a,b)=>Number(b.action!=='Explorar')-Number(a.action!=='Explorar'));
-  $('lessonPanel').innerHTML='<p>Aprende una estrategia en unos 5 a 10 minutos. Puedes hacer una pausa cuando quieras.</p>'+
+  $('lessonPanel').innerHTML='<p>Aprende una estrategia en unos 5 a 10 minutos. Puedes hacer una pausa cuando quieras.</p><p id="lessonMenuNotice" role="status" hidden></p>'+
     items.map(({l,p,action})=>`<button class="mode" data-lesson-start="${l.id}" ${!p.active&&p.due>day?'disabled':''}>
       <span><b>${htmlText(l.title)}</b><small>${htmlText(l.area)} · ${p.due>day&&!p.active?'Próximo repaso '+p.due:action}</small></span></button>`).join('');
   $('lessonTitle').focus();
@@ -3233,7 +3263,15 @@ function lessonStart(id){
   if(!l)return;
   const direct=Lecciones.profile(S.lessons,id).active;
   const run=direct||Lecciones.start(lessonData(),l.id,today());
-  if(!run)return;
+  if(!run){
+    const notice=$('lessonMenuNotice');
+    if(notice){
+      const due=Lecciones.profile(S.lessons,l.id).due;
+      notice.textContent='Antes de seguir, vuelve a «'+l.title+'» a partir del '+due+'. Puedes explorar otra lección.';
+      notice.hidden=false;
+    }
+    return;
+  }
   lessonRunId=run.id;lessonOwner=PROFILE;
   save();lessonScreen();
 }
@@ -3247,6 +3285,39 @@ function lessonChoices(q,id){
   const offset=[...(q.id+id)].reduce((sum,c)=>sum+c.charCodeAt(0),0)%choices.length;
   return choices.slice(offset).concat(choices.slice(0,offset));
 }
+let mathDraft=null;
+function mathDiagram(model){
+  const {type,a,b}=model;
+  const dots=n=>'<i aria-hidden="true"></i>'.repeat(n);
+  if(type==='array'||type==='groups'){
+    const row=type==='array'?'fila':'grupo';
+    return `<p>${a} ${a===1?row:row+'s'} · ${b} por ${row}</p><div class="math-rows ${type==='groups'?'containers':''}" aria-hidden="true">
+      ${('<div>'+dots(b)+'</div>').repeat(a)}</div>`;
+  }
+  if(type==='line'||type==='gap'){
+    const marks=type==='line'?Array.from({length:a+1},(_,i)=>i*b):[0,a,a+b];
+    return `<ol class="math-line" aria-label="Recta numérica">${marks.map(n=>'<li>'+n+'</li>').join('')}</ol>`;
+  }
+  if(type==='bar')return `<div class="math-bar" aria-label="Diagrama de partes"><span>${a} conocidas</span><span>¿Cuántas faltan?</span></div><p>Meta · ${a+b}</p>`;
+  return `<table><caption>Tabla de cantidades</caption><tbody><tr><th scope="row">Ya tienes</th><td>${a}</td></tr>
+    <tr><th scope="row">Meta</th><td>${a+b}</td></tr><tr><th scope="row">Faltan</th><td>?</td></tr></tbody></table>`;
+}
+const mathErrors={'grupos-por-elementos':'Grupos y objetos por grupo','dato-irrelevante':'Dato irrelevante incluido',
+  'dato-necesario':'Revisar los datos necesarios',operacion:'Operación diferente',unidad:'Unidad omitida',
+  'resultado-intermedio':'Resultado de otra parte',comprobacion:'Comprobación distinta',calculo:'Resultado distinto',
+  pregunta:'Pregunta por otra cantidad',representacion:'Representación distinta'};
+const mathEvidence={concepto:'Comprensión conceptual',calculo:'Cálculo',recuperacion:'Producto sin pista',
+  operacion:'Elección de operación',pregunta:'Comprensión de la pregunta',datos:'Selección de datos',
+  representacion:'Representación',comprobacion:'Comprobación',resolucion:'Resolución con unidad',
+  'dos-pasos':'Dos pasos',reconocimiento:'Reconocimiento'};
+function mathControls(q){
+  if(!q.build)return '';
+  const labels=q.model.type==='array'?['Filas','Columnas']:['Grupos','Fichas por grupo'];
+  return `<form id="lessonBuild">
+    ${labels.map((label,i)=>`<label>${label} <input type="number" id="math${i}" min="1" max="10" value="${i===0?q.model.a:q.model.b}" required inputmode="numeric"></label>`).join('')}
+    <button class="big">Comprobar construcción</button></form>`;
+}
+
 function lessonScreen(){
   const run=lessonCurrent();
   if(!run){lessonMenu();return}
@@ -3264,7 +3335,12 @@ function lessonScreen(){
     const message=feedback?.pending?'Anotamos que puedes revisar esta actividad con un adulto.':
       feedback?.ok?'Tu respuesta coincide con la estrategia.':'Date un momento para revisar qué pide la actividad.';
     const blocks=q.blocks?`<ul id="lessonBlocks" class="lesson-blocks">${lessonBlockHTML()}</ul>`:'';
-    const explanation=feedback&&!feedback.pending&&!feedback.ok&&level<4&&canRetry?l.strategy:q.explain;
+    mathDraft=q.model?{...q.model}:null;
+    const rotate=mathDraft?.type==='array'&&!q.build?'<button class="ghost" data-math-rotate>Girar el arreglo</button>':'';
+    const diagram=mathDraft?`<div id="lessonModel" ${q.build?'aria-live="polite"':''}>${mathDiagram(mathDraft)}</div>`:'';
+    const errorHint=feedback?.error?mathErrors[feedback.error]:null;
+    const explanation=feedback&&!feedback.pending&&!feedback.ok&&level<4&&canRetry?
+      (errorHint?errorHint+'. '+(Lecciones.hint[feedback.error]||q.hint||l.strategy):l.strategy):q.explain;
     if(feedback||level===4){
       body=`${text}<p>${htmlText(q.prompt)}</p>${blocks}<p role="status">${htmlText(feedback?message:'Demostración')}. ${htmlText(explanation)}
         ${level===4&&q.answer!==null?' Solución: '+htmlText(String(q.answer).replaceAll('|',' → ')):''}</p>
@@ -3272,20 +3348,21 @@ function lessonScreen(){
     }else{
       const helps=['','Vuelve a leer y señala la palabra que indica qué hacer.',l.strategy,q.partial||'Fíjate en este ejemplo parecido. '+l.example];
       const choices=lessonChoices(q,run.id);
-      const controls=choices?choices.map((x,i)=>`<button class="mode" data-lesson-choice="${i}">${htmlText(x)}</button>`).join(''):
+      const controls=q.build?mathControls(q):choices?choices.map((x,i)=>`<button class="mode" data-lesson-choice="${i}">${htmlText(x)}</button>`).join(''):
         q.tokens?q.tokens.map((x,i)=>`<button class="ghost" data-lesson-token="${i}">${q.icons?.[x]?`<span class="lesson-figure f${i}" aria-hidden="true"></span>`:''}${htmlText(x)}</button>`).join('')+
           '<p id="lessonSequence" aria-live="polite">Tus pasos aparecerán aquí.</p><button class="ghost" data-lesson-clear>Empezar de nuevo</button><button class="big" data-lesson-check>Comprobar</button>':
           `${q.canje?'<button class="ghost" data-lesson-exchange>Cambiar las piezas</button>':''}<form id="lessonWritten">
             <label>Tu respuesta <input id="lessonInput" maxlength="300" ${q.canje?'disabled':''} required autocomplete="off"></label>
             <button class="big" ${q.canje?'disabled':''}>Comprobar</button></form>`;
-      body=`${text}<p id="lessonPrompt">${htmlText(q.prompt)}</p>${blocks}${level?`<p role="status">${htmlText(helps[level])}</p>`:''}
+      body=`${text}<p id="lessonPrompt">${htmlText(q.prompt)}</p>${blocks}${diagram}${rotate}${level?`<p role="status">${htmlText(helps[level])}</p>`:''}
         ${controls}<p id="lessonNotice" role="status"></p><button class="ghost" data-lesson-act="access">Escuchar consigna</button>
         <button class="ghost" data-lesson-act="help">${level===3?'Ver la solución':'Pedir una pista'}</button>`;
     }
   }
   $('lessonPanel').innerHTML=`<h3 tabindex="-1" id="lessonStep">${htmlText(l.title)}</h3>
     <p>Etapa ${s.cursor+1} de ${s.total} · ${htmlText(Lecciones.labels[stage])}</p>${body}
-    ${s.done?'':'<button class="ghost" data-lesson-pause>Descansar</button>'}`;
+    ${s.done?'':'<button class="ghost" data-lesson-pause>Descansar</button>'}
+    ${l.id==='recordar-productos'?'<button class="ghost" data-lesson-tables>Ir a las tablas de Inicio</button>':''}`;
   $('lessonStep').focus({preventScroll:true});
 }
 function lessonAction(kind,value){
@@ -3303,7 +3380,16 @@ function lessonAction(kind,value){
 }
 $('lessonLaunch').addEventListener('click',lessonMenu);
 $('lessonExit').addEventListener('click',()=>{lessonRunId='';show('home');renderHome()});
+$('lessonPanel').addEventListener('input',e=>{
+  if(!mathDraft||!['math0','math1'].includes(e.target.id)||!e.target.validity.valid)return;
+  mathDraft[e.target.id==='math0'?'a':'b']=e.target.valueAsNumber;
+  $('lessonModel').innerHTML=mathDiagram(mathDraft);
+});
 $('lessonPanel').addEventListener('submit',e=>{
+  if(e.target.id==='lessonBuild'){
+    e.preventDefault();
+    lessonAction('answer',[$('math0').valueAsNumber,$('math1').valueAsNumber].join('|'));return;
+  }
   if(e.target.id!=='lessonWritten')return;
   e.preventDefault();lessonAction('answer',$('lessonInput').value);
 });
@@ -3311,6 +3397,9 @@ $('lessonPanel').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.lessonStart){lessonStart(b.dataset.lessonStart);return}
   if(b.hasAttribute('data-lesson-menu')){lessonMenu();return}
+  if(b.hasAttribute('data-lesson-tables')){
+    lessonRunId='';show('home');renderHome();$('path').querySelector('button:not(:disabled)')?.focus();return;
+  }
   const run=lessonCurrent();if(!run)return;
   const {q}=Lecciones.status(run);
   if(b.hasAttribute('data-lesson-resume')){lessonScreen();return}
@@ -3326,6 +3415,10 @@ $('lessonPanel').addEventListener('click',e=>{
   }
   if(b.dataset.lessonAct){lessonAction(b.dataset.lessonAct);return}
   if(!q)return;
+  if(b.hasAttribute('data-math-rotate')&&mathDraft?.type==='array'){
+    [mathDraft.a,mathDraft.b]=[mathDraft.b,mathDraft.a];
+    $('lessonModel').innerHTML=mathDiagram(mathDraft);return;
+  }
   if(b.dataset.lessonChoice!==undefined){
     const options=lessonChoices(q,run.id);
     lessonAction('answer',options[+b.dataset.lessonChoice]);return;
@@ -3361,6 +3454,9 @@ function lessonParent(day){
       <p>${p.active?'Iniciada · ':''}${p.complete.length?p.complete.length+' ciclos completados · ':''}
       ${S.lessonAssignments?.[l.id]?'Asignada · ':''}${p.due?'Repaso desde '+p.due:''}</p>
       <p>Vio la explicación ${p.exposure} · Ejemplo ${p.examples} · Práctica guiada ${p.guided} · Resolvió por su cuenta ${p.independent} · Aplicó ${p.applied} · Recordó días después ${p.retained}</p>
+      ${Object.entries(p.math).map(([k,n])=>`<p>${htmlText(mathEvidence[k]||k)} · ${n}</p>`).join('')}
+      ${Object.entries(p.errors).map(([k,n])=>`<p>${htmlText(mathErrors[k]||k)} · ${n}</p>`).join('')}
+      ${l.id==='recordar-productos'?'<p>Las tablas de Inicio siguen disponibles para practicar. El tiempo no determina el dominio.</p>':''}
       ${p.help||p.difficulty||p.pending?`<p>Ayudas ${p.help} · Respuestas por revisar ${p.pending} · Dificultades en práctica o repaso ${p.difficulty}</p>`:''}
       ${Lecciones.openResponses(S.lessons,l.id).map(e=>`<p>Pendiente · ${htmlText(Lecciones.byId[l.id].tasks.find(q=>q.id===e.q)?.prompt||'Respuesta abierta')}</p>`).join('')}
       <p>En familia · ${htmlText(l.home)}</p>

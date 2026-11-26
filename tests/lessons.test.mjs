@@ -38,7 +38,7 @@ function finish(d){
 }
 test('el catálogo reutiliza habilidades, diferencia actividades diagnósticas y valida canjes',()=>{
   const seen=new Set();
-  assert.equal(L.lessons.length,18);
+  assert.equal(L.lessons.filter(l=>!['Multiplicación','Problemas'].includes(l.area)).length,18);
   for(const l of L.lessons){
     assert.ok(Motor.HAB[l.skill]);assert.ok(l.home);assert.ok(l.tasks.length>=7);
     assert.ok(l.prereq.every(id=>L.byId[id]));

@@ -17,6 +17,15 @@ const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url
     if(attempt)mot(attempt);
     save();
   };
+  window.syntheticFinishLesson = id => {
+    const data=S.lessons??=Lecciones.empty(), run=Lecciones.start(data,id,today());
+    for(let i=0;run&&i<20;i++){
+      const stage=Lecciones.status(run);
+      if(stage.done)break;
+      Lecciones.act(data,run,stage.q&&!stage.feedback?'answer':'advance',today(),stage.q?.answer??'Revisión sintética.',S);
+    }
+    save();
+  };
   if(CODE)pull();else pinMigrate();`);
 const motor = readFileSync(fileURLToPath(new URL('../motor.js', import.meta.url)), 'utf8');
 const family = readFileSync(fileURLToPath(new URL('../family.js', import.meta.url)), 'utf8');
@@ -614,4 +623,96 @@ test('lecciones guardan pausa y ayudas, sincronizan dos dispositivos y aíslan p
     await shot(a.page,'fase3-lectura.png');
     assert.deepEqual([...a.errores,...b.errores],[]);
   }finally{await Promise.all([a.ctx.close(),b.ctx.close()])}
+});
+
+test('matemáticas permite construir grupos, reanudar y sincronizar la evidencia por perfil',async()=>{
+  const db=nubeFalsa(),a=await abrir(db),b=await abrir(db);
+  const screenshot=async(page,name)=>{
+    if(process.env.UDMI_MATH_SCREENSHOTS)await page.screenshot({
+      path:join(process.env.UDMI_MATH_SCREENSHOTS,name),fullPage:true});
+  };
+  try{
+    await esperar(()=>db.datos.pinH,'perfil sintético inicial');
+    await a.page.click('#lessonLaunch');
+    await a.page.click('[data-lesson-start="grupos-iguales"]');
+    await a.page.fill('#lessonInput','desiguales');
+    await a.page.click('#lessonWritten button');
+    for(let i=0;i<3;i++)await a.page.click('[data-lesson-act="advance"]');
+    await a.page.fill('#math0','3');
+    await a.page.fill('#math1','5');
+    assert.equal(await a.page.locator('#lessonModel .math-rows i').count(),15);
+    await screenshot(a.page,'fase35-grupos.png');
+    await a.page.click('#lessonBuild button');
+    await a.page.click('[data-lesson-act="advance"]');
+    await a.page.fill('#math0','3');
+    await a.page.fill('#math1','4');
+    await a.page.click('#lessonBuild button');
+    await a.page.getByText('Grupos y objetos por grupo',{exact:false}).waitFor();
+    await a.page.click('[data-lesson-pause]');
+    await esperar(()=>db.intentos.some(row=>row.err==='grupos-por-elementos'),'error observable sincronizado');
+    await b.page.reload();
+    await b.page.waitForFunction(()=>document.querySelector('#cloud').textContent.includes('Al día con la nube'));
+    await b.page.click('#lessonLaunch');
+    await b.page.locator('[data-lesson-start="grupos-iguales"]').filter({hasText:'Continuar'}).click();
+    await b.page.click('[data-lesson-act="retry"]');
+    await b.page.fill('#math0','3');
+    await b.page.fill('#math1','4');
+    await b.page.click('#lessonBuild button');
+    await b.page.getByText('Tu respuesta coincide',{exact:false}).waitFor();
+    await esperar(()=>db.intentos.some(row=>row.extra?.evidencia==='concepto'&&row.extra.etapa==='independiente'&&row.ok),
+      'evidencia distinta en el segundo dispositivo');
+    await b.page.click('#lessonExit');
+    await b.page.click('#papas > summary');
+    await b.page.fill('#pin','2580');await b.page.click('#pinGo');
+    await b.page.click('#diagMapLaunch');
+    await b.page.getByText('Lecciones guiadas y repasos',{exact:true}).click();
+    const group=b.page.locator('#diagMapBody li').filter({hasText:'Construye grupos iguales'}).filter({hasText:'Comprensión conceptual'}).first();
+    await group.getByText('Comprensión conceptual',{exact:false}).waitFor();
+    if(process.env.UDMI_MATH_SCREENSHOTS)await group.screenshot({path:join(process.env.UDMI_MATH_SCREENSHOTS,'fase35-familia.png')});
+    const code='d'.repeat(32),other=nubeFalsa({code});
+    await b.page.route('https://*.supabase.co/rest/v1/rpc/*',other.ruta);
+    await b.page.goto(url.replace(CODE,code));
+    await b.page.click('#lessonLaunch');
+    assert.equal(await b.page.locator('[data-lesson-start="grupos-iguales"]').filter({hasText:'Continuar'}).count(),0);
+    assert.equal(other.datos.lessons,undefined);
+    if(process.env.UDMI_MATH_SCREENSHOTS){
+      await b.page.evaluate(()=>window.syntheticFinishLesson('encontrar-accion'));
+      await b.page.click('#lessonExit');
+      await b.page.click('#lessonLaunch');
+      await b.page.click('[data-lesson-start="entender-pregunta"]');
+      await b.page.locator('#lessonPrompt').filter({hasText:'¿Cuántos quedan?'}).waitFor();
+      await screenshot(b.page,'fase35-problema.png');
+    }
+    assert.equal(db.datos.pts,240);
+    assert.deepEqual([...a.errores,...b.errores],[]);
+  }finally{await Promise.all([a.ctx.close(),b.ctx.close()]);}
+});
+
+test('aviso de capacidad preserva estado y revisión pendiente al recargar',async()=>{
+  const db=nubeFalsa(),{ctx,page,errores}=await abrir(db);
+  try{
+    await esperar(()=>db.datos.pinH,'perfil sintético inicial');
+    db.cambiarDesdeOtroDispositivo(d=>{d.syntheticPadding='x'.repeat(180000);});
+    await page.reload();
+    await page.locator('#profileCapacity').filter({hasText:'Historial cerca del límite'}).waitFor();
+    db.cambiarDesdeOtroDispositivo(d=>{d.syntheticPadding='x'.repeat(201000);});
+    await page.reload();
+    const day='2026-01-01';
+    await page.locator('#profileCapacity').filter({hasText:'El historial supera la capacidad'}).waitFor();
+    await page.evaluate(day=>window.syntheticProgress({day,record:{tOk:true},points:11}),day);
+    await page.locator('#profileCapacity').filter({hasText:'El historial supera la capacidad'}).waitFor();
+    assert.equal(db.datos.pts,240);
+    const key='tt-profile-v1:'+CODE;
+    const read=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.pending,key);
+    const before=await read();
+    assert.equal(before.state.pts,251);
+    assert.equal(before.pending.state.daily[day].tOk,true);
+    await page.reload();
+    await page.locator('#profileCapacity').filter({hasText:'El historial supera la capacidad'}).waitFor();
+    const after=await read();
+    assert.equal(after.pending.id,before.pending.id);
+    assert.equal(after.state.pts,251);
+    assert.deepEqual(errores,[]);
+  }finally{await ctx.close();}
 });
