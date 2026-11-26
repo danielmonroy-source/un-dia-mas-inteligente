@@ -141,6 +141,24 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
 .pizza .crust{fill:#d99a4e}.pizza .pz{fill:#ffe6a3;stroke:#c98a3c;stroke-width:1.5}.pizza .pz.on{fill:#ffb347}.pizza .pp{fill:#c0392b}
 .op svg{display:block;margin:0 auto}.op .fl{display:block;font-size:22px;margin-top:2px}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+/* valor posicional */
+.vb{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;align-items:flex-end;--s:6px;margin:4px 0;max-width:100%}.vb.sm{--s:5px}
+.vg{display:flex;flex-wrap:wrap;gap:3px;align-items:flex-end;justify-content:center}.vg.g0{max-width:calc(var(--s)*5 + 12px)}.vg.g1{max-width:calc(var(--s)*10 + 27px)}.vg.g2,.vg.g3{max-width:calc(var(--s)*50 + 40px)}
+.vb i,.vcol i{display:block;border-radius:1px}
+.k1{width:var(--s);height:var(--s);background:#f39c34;box-shadow:inset 0 0 0 1px #b8691a}
+.k10{width:var(--s);height:calc(var(--s)*10);background:repeating-linear-gradient(#2fa35a 0 calc(var(--s) - 1px),#1c7a40 0 var(--s));box-shadow:inset 0 0 0 1px #1c7a40}
+.k100{width:calc(var(--s)*10);height:calc(var(--s)*10);background:repeating-linear-gradient(90deg,transparent 0 calc(var(--s) - 1px),#1d55b0 0 var(--s)),repeating-linear-gradient(#3b7ddd 0 calc(var(--s) - 1px),#1d55b0 0 var(--s));box-shadow:inset 0 0 0 1px #1d55b0}
+.k1000{width:calc(var(--s)*10);height:calc(var(--s)*10);background:repeating-linear-gradient(90deg,transparent 0 calc(var(--s) - 1px),#5b2c95 0 var(--s)),repeating-linear-gradient(#8a4fd1 0 calc(var(--s) - 1px),#5b2c95 0 var(--s));box-shadow:4px -4px 0 #6d3bb0,8px -8px 0 #5b2c95;margin:8px 8px 0 0}
+.vpt{border-collapse:separate;border-spacing:4px;margin:6px auto;font-weight:800}.vpt th,.vpt td{min-width:46px;padding:4px 8px;border-radius:8px;text-align:center}.vpt th{font-size:15px;color:#fff}.vpt td{font-size:26px;background:var(--ld1)}
+.vpt th.c0{background:#d9822b}.vpt th.c1{background:#23884a}.vpt th.c2{background:#2a64c4}.vpt th.c3{background:#7442b8}.vpt td.hi{outline:3px solid var(--pink)}
+.qp .vpw{font-size:clamp(22px,6.5vw,30px);line-height:1.25}
+.vbuild{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.vcol{flex:1;min-width:72px;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--card);border-radius:18px;padding:8px 4px;--s:4px;box-shadow:0 4px 0 var(--line)}
+.vcol>b{font-size:15px}.vcol.c0>b{color:#d9822b}.vcol.c1>b{color:#23884a}.vcol.c2>b{color:#2a64c4}.vcol.c3>b{color:#7442b8}
+.vpm{width:56px;height:52px;border:0;border-radius:14px;font-size:30px;font-weight:800;background:var(--ld1);color:var(--ink);cursor:pointer}.vpm:disabled{opacity:.3;cursor:default}
+.vcn{font-size:30px;font-weight:800;line-height:1}.vcol .k1{width:7px;height:7px}.vcol .vg{min-height:44px;max-width:100%}.vcol .vg.g2,.vcol .vg.g3{max-width:calc(var(--s)*20 + 6px)}
+.vpok{display:block;width:100%;margin-top:12px}
+.vlv{display:flex;gap:6px;flex-wrap:wrap}.vlv button{flex:1;min-height:48px;border:0;border-radius:14px;font-weight:800;font-size:16px;background:var(--card);color:var(--ink);cursor:pointer}.vlv button.on{background:var(--pink);color:#fff}
+.vphow{margin-top:12px}.vphow p{margin:8px 0}.vleg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}.vleg>div{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:14px;background:var(--ld1);border-radius:12px;padding:8px 4px}
 /* suma y resta */
 .worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
 .worlds button{border:3px solid transparent;background:var(--card);border-radius:18px;min-height:60px;font-weight:800;font-size:20px;cursor:pointer;line-height:1.1;padding:4px 8px}
@@ -306,7 +324,7 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div class="tabs" id="tabs"><button data-t="reto">⭐ Reto del día</button><button data-t="libre">Practicar libre</button></div>
     <div class="daily" id="daily"></div>
     <div id="libre">
-    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button><button data-w="orto">🔤 Ortografía</button><button data-w="log">🧩 Lógica</button><button data-w="reloj">🕒 Reloj</button><button data-w="din">💰 Dinero</button><button data-w="cie">🔬 Ciencia</button><button data-w="frac">🍕 Fracciones</button><button data-w="cult">🌎 Cultura general</button></div>
+    <div class="worlds" id="worlds"><button data-w="x">× Tablas</button><button data-w="sr">+ − Suma y resta</button><button data-w="vp">🧱 Valor posicional</button><button data-w="en">ABC Inglés</button><button data-w="rd">Lectura</button><button data-w="orto">🔤 Ortografía</button><button data-w="log">🧩 Lógica</button><button data-w="reloj">🕒 Reloj</button><button data-w="din">💰 Dinero</button><button data-w="cie">🔬 Ciencia</button><button data-w="frac">🍕 Fracciones</button><button data-w="cult">🌎 Cultura general</button></div>
     <div id="wX">
     <h2>Tu camino</h2>
     <div class="path" id="path"></div>
@@ -1455,13 +1473,14 @@ function qzAsk(){
   $('qzlab').textContent=(q.retry?'Otra vez: ':'')+q.lab;
   $('qzq').innerHTML=`<div class="qp">${q.q}</div>`;$('qzmsg').innerHTML='';
   const tx=q.tx||QZ.kind==='rd';
+  if(q.vpb){q.cur=[0,0,0,0];vpbRender(q);qzDots();return}
   if(q.build){q.pos=0;q.miss=false;$('qzans').innerHTML=`<div class="bld" id="bldOut"></div><div class="enk bldw">${shuffle(q.build.map((w,i)=>`<button data-b="${i}" data-w="${w}">${w}</button>`)).join('')}</div>`;qzDots();return}
   $('qzans').innerHTML=`<div class="${tx?'opts1':'opts'}">${q.opts.map((o,i)=>`<button class="op ${tx?'tx':'sm'}" data-i="${i}">${o.h}</button>`).join('')}</div>`;
   if(q.auto)say(q.auto);
   qzDots()}
-function qzKey(q){if(QZ.kind==='rd')return 'lec:info';if(QZ.kind==='gen')return 'gen:'+QZ.act;
+function qzKey(q){if(q.mk)return q.mk;if(QZ.kind==='rd')return 'lec:info';if(QZ.kind==='gen')return 'gen:'+QZ.act;
   return QZ.part==='w'?'en:'+q.ans:'enf:'+(q.build?q.after:q.ans)}
-function qzLog(ok,q,primero){mot({k:qzKey(q),ok,primero,pista:false,fmt:q.build?'rcl':'rec',ms:Date.now()-(QZ.t0||Date.now()),err:ok?null:'otro',
+function qzLog(ok,q,primero){mot({k:qzKey(q),ok,primero,pista:false,fmt:q.build||q.vpb?'rcl':'rec',ms:Date.now()-(QZ.t0||Date.now()),err:ok?null:'otro',
   origen:QZ.kind==='gen'?(QZ.reto?'reto':'libre'):(S.tab==='libre'?'libre':'reto'),extra:QZ.kind==='rd'?{s:STORIES[QZ.si]&&STORIES[QZ.si].id,q:q.k}:QZ.kind==='gen'?{q:q.k}:null})}
 function qzResolve(ok,b,q){QZ.lock=true;qzLog(ok,q,!q.retry&&!q.wrong);
   if(ok){
@@ -1482,6 +1501,7 @@ function qzResolve(ok,b,q){QZ.lock=true;qzLog(ok,q,!q.retry&&!q.wrong);
   QZ.i++;qzDots();save();
   QZ.to=setTimeout(()=>QZ.i>=QZ.list.length?qzFinish():qzAsk(),ok?(q.build?1800:1100):2600)}
 $('qzans').addEventListener('click',e=>{if(!QZ||QZ.lock)return;const q=QZ.list[QZ.i];
+  if(q.vpb){vpbClick(e,q);return}
   if(q.build){const c=e.target.closest('[data-b]');if(!c||c.disabled)return;
     if(c.dataset.w===q.build[q.pos]){q.pos++;c.disabled=true;$('bldOut').innerHTML=q.build.slice(0,q.pos).map(w=>`<span>${w}</span>`).join('');tone(600+q.pos*50,.06);
       if(q.pos>=q.build.length)qzResolve(!q.miss,null,q)}
@@ -1509,6 +1529,7 @@ function qzFinish(){
     if(PK[k]){const P=PK[k],id=P.data[QZ.si].id;S[P.st]=S[P.st]||{};S[P.st][id]=Math.max(S[P.st][id]||0,QZ.first)}
     if(QZ.reto&&(!PK[k]||QZ.si===pkPick(k))&&!(R.ex[k]&&R.ex[k].ok)){if(PK[k]&&S[PK[k].sel]===PK[k].data[QZ.si].id)S[PK[k].sel]='';R.ex[k]={ok:true,cal:r1(QZ.first/N*10),first:QZ.first,n:N};news.push(`¡Terminaste <b>${g.n}</b> del reto de hoy!`)}
     news.push(QZ.first===N?'¡Todas bien a la primera!':`Contestaste bien <b>${QZ.first} de ${N}</b> a la primera.`);
+    if(k==='vp')vpTermina(QZ.first,N,news);
   }else{
     const st=STORIES[QZ.si];S.rd=S.rd||{};S.rdLog=S.rdLog||[];
     const tries=S.rdLog.filter(x=>x.id===st.id).length+1;
@@ -1628,7 +1649,8 @@ function dinAlcanza(){let it,W;do{it=Array.from({length:rint(2,4)},()=>pickOne([
   return mkQ(0,`<span class="rq">Tienes:</span><span class="mon">${it.map(mny).join('')}</span><span class="rq">¿Te alcanza para ${c[1]} ${c[0]} de <b>$${P}</b>?</span>`,ok?'Sí':'No',[ok?'No':'Sí'],{noMsg:`Tienes $${W} y cuesta $${P}: <b>${ok?'sí':'no'} alcanza</b>.`})}
 function dinQuiz(){return numLab([dinContar(),dinCambio(),dinAlcanza(),dinContar(),dinCambio(),dinContar(),dinCambio(),dinAlcanza(),dinContar(),dinCambio()])}
 
-const GEN={orto:{n:'Ortografía',e:'🔤',d:'Letras que se confunden: b/v, c/s/z, ll/y, g/j, h, r/rr, acentos y mayúsculas.',f:ortoQuiz},
+const GEN={vp:{n:'Valor posicional',e:'🧱',d:'Unidades, decenas, centenas y millares con bloques: arma números, descompónlos y compáralos.',f:()=>vpQuiz()},
+  orto:{n:'Ortografía',e:'🔤',d:'Letras que se confunden: b/v, c/s/z, ll/y, g/j, h, r/rr, acentos y mayúsculas.',f:ortoQuiz},
   log:{n:'Lógica',e:'🧩',d:'Series de números, figuras que siguen, ¿cuál no va? y acertijos.',f:logQuiz},
   reloj:{n:'El reloj',e:'🕒',d:'Leer la hora en un reloj de manecillas y saber qué hora será.',f:relojQuiz},
   din:{n:'Dinero',e:'💰',d:'Contar monedas y billetes, dar cambio y saber si alcanza.',f:dinQuiz},
@@ -1639,17 +1661,17 @@ const GEN={orto:{n:'Ortografía',e:'🔤',d:'Letras que se confunden: b/v, c/s/z
 function genStart(k,reto){if(PK[k]){pkOpen(k,pkPick(k),reto);return}qzStart('gen',GEN[k].f(),{act:k,reto:!!reto})}
 function renderGen(){const k=S.world,g=GEN[k];if(!g){$('wG').innerHTML='';return}const x=(S.gx||{})[k]||{};
   $('wG').innerHTML=`<h2>${g.e} ${g.n}</h2><p class="note">${g.d}</p><button class="big" id="genGo">Practicar (10 preguntas)</button>
-  <p class="note">${x.n?`Rondas: <b>${x.n}</b> · Mejor resultado: <b>${x.best}</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>`;
+  <p class="note">${x.n?`Rondas: <b>${x.n}</b> · Mejor resultado: <b>${x.best}</b> a la primera`:'Todavía no has jugado. ¡Inténtalo!'}</p>${k==='vp'?vpExtra():''}`;
   if(PK[k]){const P=PK[k],t=P.data[pkPick(k)];$('genGo').textContent=`Hoy: ${t.e} ${t.t}`;
     const Dn=P.data.map((x,j)=>j).filter(j=>pkDone(k,P.data[j]));
     $('wG').insertAdjacentHTML('beforeend',`${k==='cult'?'<button class="ghost" id="cultQ">Preguntas rápidas (10 al azar)</button>':''}${Dn.length?`<details class="rdold"><summary>Ya ${P.visto}s (${Dn.length})</summary><p class="note">Puedes repasarlos cuando quieras.</p><div class="modes">${Dn.map(j=>{const s=P.data[j];return `<button class="mode" data-pi="${j}"><span class="n em2">${s.e}</span><span><b>${s.t}</b><span>${S[P.st][s.id]}/${s.q.length}</span></span></button>`}).join('')}</div></details>`:''}`)}}
-$('wG').addEventListener('click',e=>{if(e.target.closest('#genGo')){genStart(S.world,false);return}if(e.target.closest('#cultQ')){genStart('cultq',false);return}const c=e.target.closest('[data-pi]');if(c)pkOpen(S.world,+c.dataset.pi,false)});
+$('wG').addEventListener('click',e=>{if(e.target.closest('#genGo')){genStart(S.world,false);return}const v=e.target.closest('[data-vnv]');if(v){S.vpNv=+v.dataset.vnv;save();tone(660,.06);renderGen();return}if(e.target.closest('#cultQ')){genStart('cultq',false);return}const c=e.target.closest('[data-pi]');if(c)pkOpen(S.world,+c.dataset.pi,false)});
 
 /* --- Reto del día configurable --- */
-const RK_ALL=['t','c','en','rd','orto','log','reloj','din','cie','frac','cult'],RK_DEF=['t','c','en','rd'];
+const RK_ALL=['t','c','en','rd','vp','orto','log','reloj','din','cie','frac','cult'],RK_DEF=['t','c','en','rd'];
 const retoCfg=()=>{const c=(S.retoCfg||RK_DEF).filter(k=>RK_ALL.includes(k));return c.length?c:RK_DEF.slice()};
 const dayKeys=R=>{const c=R&&R.cfg?R.cfg.filter(k=>RK_ALL.includes(k)):[];return c.length?c:RK_DEF};
-const KS={t:'Tabla',c:'Cuentas',en:'Inglés',rd:'Lectura',orto:'Ortografía',log:'Lógica',reloj:'Reloj',din:'Dinero',cie:'Ciencia',frac:'Fracciones',cult:'Cultura general'};
+const KS={t:'Tabla',c:'Cuentas',en:'Inglés',rd:'Lectura',vp:'Valor posicional',orto:'Ortografía',log:'Lógica',reloj:'Reloj',din:'Dinero',cie:'Ciencia',frac:'Fracciones',cult:'Cultura general'};
 const kName=(k,R)=>k==='t'?'Tabla del '+R.t:k==='c'?'Cuentas en columna':GEN[k]?GEN[k].n:KS[k];
 const kDone=(k,R)=>k==='t'?!!R.tOk:k==='c'?!!R.col:k==='en'?!!R.en:k==='rd'?!!R.rd:!!(R.ex&&R.ex[k]&&R.ex[k].ok);
 const kCal=(k,R)=>k==='t'?R.tCal:k==='c'?R.colCal:k==='en'?R.enCal:k==='rd'?R.rdCal:(R.ex&&R.ex[k]?R.ex[k].cal:null);
@@ -2122,6 +2144,122 @@ function frBusca(){const n=pickOne([2,3,4,6,8]),k=rint(1,n-1);const others=[];
   const cand=shuffle([[n-k,n],[k,n===8?4:8],[k+1>n-1?1:k+1,n],[1,n===2?4:2]]);for(const x of cand){if(others.length>=2)break;if(x[0]/x[1]!==k/n&&x[0]<x[1]&&!others.some(o=>o[0]===x[0]&&o[1]===x[1]))others.push(x)}
   return {k:0,lab:'',q:`<span class="rq">¿Cuál pizza muestra <b>${fr(k,n)}</b>?</span>`,opts:shuffle([{h:pizzaSVG(n,k,90),v:1},...others.map(x=>({h:pizzaSVG(x[1],x[0],90),v:0}))]),ans:1,pic:true,noMsg:`${fr(k,n)} es ${frTxt(k,n)}: la pizza en ${n} pedazos con ${k} pintados.`}}
 function fracQuiz(){return numLab([frQue(),frLee(),frQue(),frMas(),frBusca(),frCuento(),frQue(),frLee(),frMas(),frCuento()])}
+
+/* ===== Valor posicional con bloques =====
+   Nivel 1: hasta 99 (unidades y decenas) · Nivel 2: hasta 999 (centenas) · Nivel 3: hasta 9,999 (millares).
+   Cada respuesta se registra en el motor como "<habilidad>:<formato>" (vp-ud, vp-c, vp-um, vp-desc, vp-comp). */
+const VPL=[{n:'Hasta 99',max:99},{n:'Hasta 999',max:999},{n:'Hasta 9,999',max:9999}];
+const VPP=[['unidad','unidades','U','las'],['decena','decenas','D','las'],['centena','centenas','C','las'],['millar','millares','UM','los']];
+const VPH=['vp-ud','vp-c','vp-um'];
+const vpNv=()=>Math.min(3,Math.max(1,S.vpNv||2));
+const nf=n=>n>=1000?Math.floor(n/1000)+','+String(n%1000).padStart(3,'0'):String(n);
+const vpDig=n=>[n%10,Math.floor(n/10)%10,Math.floor(n/100)%10,Math.floor(n/1000)%10]; // [U,D,C,UM]
+const NWU=['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce','trece','catorce','quince','dieciséis','diecisiete','dieciocho','diecinueve','veinte','veintiuno','veintidós','veintitrés','veinticuatro','veinticinco','veintiséis','veintisiete','veintiocho','veintinueve'];
+const NWT=['','','','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+const NWC=['','ciento','doscientos','trescientos','cuatrocientos','quinientos','seiscientos','setecientos','ochocientos','novecientos'];
+const w99=n=>n<30?NWU[n]:NWT[Math.floor(n/10)]+(n%10?' y '+NWU[n%10]:'');
+const w999=n=>n===100?'cien':[n>=100?NWC[Math.floor(n/100)]:'',n%100||n<100?w99(n%100):''].filter(Boolean).join(' ');
+function numPalabras(n){if(!n)return 'cero';const m=Math.floor(n/1000),r=n%1000;return [m?(m===1?'mil':w99(m)+' mil'):'',r?w999(r):''].filter(Boolean).join(' ')}
+/* número al azar con L+1 cifras; a veces con un cero en medio (el error más común) */
+function vpNum(L,distintas){for(let t=0;t<200;t++){const d=[rint(1,9)];for(let i=0;i<L;i++)d.push(rint(0,9));
+    if(L>=2&&Math.random()<.3)d[rint(1,L)]=0;else for(let i=1;i<=L;i++)if(!d[i]&&Math.random()<.7)d[i]=rint(1,9);
+    if(distintas&&new Set(d).size<d.length)continue;return +d.join('')}
+  return L===1?47:L===2?358:4127}
+const vpRev=n=>+String(n).split('').reverse().join('');
+const vpSinCero=n=>+String(n).replace(/0/g,'')||n;
+const vpEnRango=(L,arr,n)=>arr.filter(x=>x!==n&&x>0&&x<=VPL[L-1].max*10+9);
+/* bloques: cubo = millar, placa = centena, barra = decena, cubito = unidad */
+function vpBlocks(n,sm){const d=vpDig(n),cls=['k1','k10','k100','k1000'];let h='';
+  for(let p=3;p>=0;p--)if(d[p])h+=`<span class="vg g${p}">${Array.from({length:d[p]},()=>`<i class="${cls[p]}"></i>`).join('')}</span>`;
+  return `<span class="vb${sm?' sm':''}">${h||'<span class="note">(sin bloques)</span>'}</span>`}
+function vpTabla(n,L,hi){const d=vpDig(n);let th='',td='';for(let p=L;p>=0;p--){th+=`<th class="c${p}">${VPP[p][2]}</th>`;td+=`<td class="c${p}${p===hi?' hi':''}">${d[p]}</td>`}
+  return `<table class="vpt"><tr>${th}</tr><tr>${td}</tr></table>`}
+const vpPartes=n=>{const d=vpDig(n),o=[];for(let p=3;p>=0;p--)if(d[p])o.push(d[p]*10**p);return o};
+const vpSuma=a=>a.map(nf).join(' + ');
+const vpQ=(mk,q,ans,oth,ex)=>Object.assign(mkQ(0,q,typeof ans==='number'?nf(ans):ans,oth.map(x=>typeof x==='number'?nf(x):x)),{mk},ex||{});
+
+function vpBloques(L){const n=vpNum(L),h=VPH[L-1];
+  return vpQ(h+':bloques',`<span class="rq">¿Qué número forman los bloques?</span>${vpBlocks(n)}`,n,shuffle(vpEnRango(L,[vpRev(n),vpSinCero(n),n+10,n-10,n+1,n+100,n-1],n)),
+    {noMsg:`Es el <b>${nf(n)}</b>.${vpTabla(n,L)}Cuenta cada tipo de bloque y escribe el número en su lugar.`})}
+function vpConstruir(L,palabras){const n=vpNum(L),h=VPH[L-1];
+  return {k:0,lab:'',mk:h+':construir',vpb:true,L,target:n,q:`<span class="rq">Arma con bloques el número:</span><span class="${palabras?'vpw':'gw'}">${palabras?cap(numPalabras(n)):nf(n)}</span>`,
+    okMsg:`¡Así se arma el <b>${nf(n)}</b>!`}}
+function vpValor(L){const n=vpNum(L,true),d=vpDig(n);let p;do{p=rint(0,L)}while(!d[p]&&L);const dg=d[p],h=VPH[L-1];
+  const s=nf(n);
+  let i=0,cnt=-1;const chars=[...s];for(let j=chars.length-1;j>=0;j--){if(chars[j]===',')continue;cnt++;if(cnt===p){i=j;break}}
+  const marc=chars.map((c,j)=>j===i?`<u>${c}</u>`:c).join('');
+  return vpQ(h+':valor',`<span class="rq">En este número, ¿cuánto vale el <b>${dg}</b> marcado?</span><span class="gw">${marc}</span>`,dg*10**p,[0,1,2,3].filter(k=>k!==p).map(k=>dg*10**k),
+    {noMsg:`El ${dg} está en ${VPP[p][3]} <b>${VPP[p][1]}</b>, así que vale <b>${nf(dg*10**p)}</b>.${vpTabla(n,L,p)}`})}
+function vpLugar(L){const n=vpNum(L,true),d=vpDig(n),p=rint(0,L),h=VPH[L-1];
+  const oth=[];for(let k=0;k<=L;k++)if(k!==p)oth.push(d[k]);oth.push((d[p]+1)%10,(d[p]+9)%10);
+  return vpQ(h+':lugar',`<span class="rq">¿Qué número está en el lugar de ${VPP[p][3]} <b>${VPP[p][1]}</b>?</span><span class="gw">${nf(n)}</span>`,d[p],oth,
+    {noMsg:`En ${VPP[p][3]} ${VPP[p][1]} está el <b>${d[p]}</b>.${vpTabla(n,L,p)}`})}
+function vpPalabras(L){const n=vpNum(L),d=vpDig(n),h=VPH[L-1],P=[];for(let p=L;p>=0;p--)if(d[p])P.push(`${d[p]} ${VPP[p][d[p]===1?0:1]}`);
+  const txt=P.length>1?P.slice(0,-1).join(', ')+' y '+P[P.length-1]:P[0];
+  return vpQ(h+':palabras',`<span class="rq">¿Qué número forman</span><span class="vpw">${txt}?</span>`,n,shuffle(vpEnRango(L,[vpSinCero(n),vpRev(n),n*10,n+10,n-10],n)),
+    {noMsg:`Es el <b>${nf(n)}</b>. Si un lugar no se menciona, lleva <b>0</b>.${vpTabla(n,L)}`})}
+function vpDescomp(L){const n=vpNum(L),P=vpPartes(n),d=vpDig(n),dg=[];for(let p=L;p>=0;p--)if(d[p])dg.push(d[p]);
+  const mal1=P.map(x=>x>=10?x/10:x),mal2=P.map((x,i)=>i===0?x:x*10),mal3=dg;
+  const oth=[mal1,mal2,mal3].map(vpSuma).filter(x=>x!==vpSuma(P));
+  return vpQ('vp-desc:descomponer',`<span class="rq">¿Cómo se descompone este número?</span><span class="gw">${nf(n)}</span>`,vpSuma(P),oth,{tx:true,noMsg:`${nf(n)} = <b>${vpSuma(P)}</b>${vpTabla(n,L)}`})}
+function vpCompon(L){const n=vpNum(L),P=vpPartes(n),Q=Math.random()<.4?shuffle(P.slice()):P;
+  return vpQ('vp-desc:componer',`<span class="rq">¿Qué número es?</span><span class="seq">${vpSuma(Q)}</span>`,n,shuffle(vpEnRango(L,[vpRev(n),vpSinCero(n),n+10,n-10,n*10],n)),
+    {noMsg:`${vpSuma(Q)} = <b>${nf(n)}</b>. Pon cada parte en su lugar.${vpTabla(n,L)}`})}
+function vpFalta(L){let n;do{n=vpNum(L)}while(vpPartes(n).length<2);const P=vpPartes(n),i=rint(0,P.length-1),x=P[i],dx=String(x)[0];
+  const q=P.map((v,j)=>j===i?'<u>?</u>':nf(v)).join(' + ');
+  return vpQ('vp-desc:falta',`<span class="rq">¿Qué número falta?</span><span class="seq">${nf(n)} = ${q}</span>`,x,shuffle([+dx,+dx*10,+dx*100,+dx*1000].filter(v=>v!==x)),
+    {noMsg:`Falta el <b>${nf(x)}</b>: ${nf(n)} = ${vpSuma(P)}`})}
+function vpCanje(L){const p=rint(1,L),hi=p,lo=p-1,a=rint(1,L===1?3:5),b=rint(11,19),n=a*10**hi+b*10**lo;
+  const txt=`${a} ${VPP[hi][a===1?0:1]} y ${b} ${VPP[lo][1]}`;
+  return vpQ('vp-desc:canje',`<span class="rq">¿Qué número forman</span><span class="vpw">${txt}?</span>`,n,[+(String(a)+String(b)+'0'.repeat(lo)),(a+b)*10**lo,a*10**hi+(b%10)*10**lo],
+    {noMsg:`${b} ${VPP[lo][1]} son 1 ${VPP[hi][0]} y ${b-10} ${VPP[lo][b-10===1?0:1]}. Entonces hay ${a+1} ${VPP[hi][a+1===1?0:1]} y ${b-10} ${VPP[lo][b-10===1?0:1]}: <b>${nf(n)}</b>`})}
+function vpPar(L){const a=vpNum(L);let b;const r=Math.random();
+  if(r<.45){b=vpRev(a);if(b===a||String(b).length!==String(a).length)b=a+(rint(0,1)?10:-10)*(L>1&&rint(0,1)?10:1)}
+  else{const d=vpDig(a),p=rint(0,L);d[p]=(d[p]+rint(1,8))%10;if(p===L&&!d[p])d[p]=1;b=d[0]+d[1]*10+d[2]*100+d[3]*1000}
+  if(b===a||b<=0)b=a+1;return [a,b]}
+function vpMayor(L){const [a,b]=vpPar(L),men=Math.random()<.35,ans=men?Math.min(a,b):Math.max(a,b);
+  return Object.assign(vpQ('vp-comp:mayor',`<span class="rq">¿Cuál número es <b>${men?'menor':'mayor'}</b>?</span>`,ans,[a,b]),
+    {noMsg:`Es el <b>${nf(ans)}</b>. Compara de izquierda a derecha: el primer lugar donde cambian decide.`})}
+function vpSigno(L){let a,b,eq=Math.random()<.2;if(eq){a=vpNum(L);b=a}else[a,b]=vpPar(L);
+  const right=eq?vpSuma(vpPartes(b)):nf(b),s=a>b?'>':a<b?'<':'=';
+  return vpQ('vp-comp:signo',`<span class="rq">¿Qué signo va en el cuadro?</span><span class="seq">${nf(a)} <u>☐</u> ${right}</span><span class="note">&gt; mayor que · &lt; menor que · = igual</span>`,s,['>','<','='],
+    {noMsg:`${nf(a)} <b>${s}</b> ${right}. La boca abierta del signo apunta al número mayor.`})}
+function vpOrden(L){const base=vpNum(L),set=new Set([base]);let t=0;while(set.size<4&&t++<50){const d=vpDig(base),p=rint(0,L);d[p]=rint(p===L?1:0,9);set.add(d[0]+d[1]*10+d[2]*100+d[3]*1000)}
+  const A=[...set],grande=Math.random()<.5,ans=grande?Math.max(...A):Math.min(...A);
+  return vpQ('vp-comp:orden',`<span class="rq">¿Cuál es el número <b>más ${grande?'grande':'pequeño'}</b>?</span>`,ans,A,{noMsg:`Es el <b>${nf(ans)}</b>. De menor a mayor: ${A.sort((x,y)=>x-y).map(nf).join(', ')}`})}
+function vpMas(L){const h=VPH[L-1],p=rint(L>1?1:0,L),u=10**p,mas=Math.random()<.6;let n;do{n=vpNum(L)}while(mas?n+u>VPL[L-1].max:n-u<1);
+  const ans=mas?n+u:n-u;
+  return vpQ(h+':mas',`<span class="rq">¿Qué número es <b>${nf(u)} ${mas?'más':'menos'}</b> que</span><span class="gw">${nf(n)}</span>`,ans,shuffle(vpEnRango(L,[n+(mas?1:-1)*u*10,n+(mas?1:-1)*(p?u/10:u*100),n,mas?n-u:n+u],ans)),
+    {noMsg:`Solo cambian ${VPP[p][3]} <b>${VPP[p][1]}</b>: ${nf(n)} ${mas?'+':'−'} ${nf(u)} = <b>${nf(ans)}</b>`})}
+function vpQuiz(){const L=vpNv();
+  return numLab([vpBloques(L),vpConstruir(L,false),vpValor(L),pickOne([vpDescomp,vpCompon,vpFalta])(L),vpMayor(L),vpPalabras(L),
+    pickOne([vpLugar,vpMas])(L),pickOne([vpCanje,vpFalta])(L),pickOne([vpSigno,vpOrden])(L),vpConstruir(L,true)])}
+/* pregunta de armar: botones + y − por lugar */
+function vpbRender(q){const c=q.cur,cls=['k1','k10','k100','k1000'];let h='';
+  for(let p=q.L;p>=0;p--)h+=`<div class="vcol c${p}"><b>${cap(VPP[p][1])}</b><button class="vpm" data-vp="${p}" data-s="1" aria-label="Agregar ${VPP[p][0]}">+</button>
+    <span class="vcn">${c[p]}</span><button class="vpm" data-vp="${p}" data-s="-1" aria-label="Quitar ${VPP[p][0]}" ${c[p]?'':'disabled'}>−</button>
+    <span class="vg g${p}">${Array.from({length:c[p]},()=>`<i class="${cls[p]}"></i>`).join('')}</span></div>`;
+  $('qzans').innerHTML=`<div class="vbuild">${h}</div><button class="big vpok" id="vpOk">¡Listo!</button>`}
+function vpbVal(q){return q.cur[0]+q.cur[1]*10+q.cur[2]*100+q.cur[3]*1000}
+function vpbClick(e,q){const b=e.target.closest('[data-vp]');
+  if(b){const p=+b.dataset.vp;q.cur[p]=Math.max(0,Math.min(9,q.cur[p]+ +b.dataset.s));tone(b.dataset.s>0?600+p*80:420,.05);$('qzmsg').innerHTML='';vpbRender(q);return}
+  if(!e.target.closest('#vpOk'))return;
+  if(vpbVal(q)===q.target){q.okMsg=`¡Así se arma el <b>${nf(q.target)}</b>!`;qzResolve(true,null,q);return}
+  qzLog(false,q,!q.retry&&!q.wrong);
+  if(!q.retry&&!q.wrong){QZ.res[q.k]='no';QZ.list.push(Object.assign({},q,{retry:true,wrong:0,cur:[0,0,0,0]}))}
+  q.wrong=(q.wrong||0)+1;QZ.combo=0;mark(false);mood('m5','oops');tone(220,.25,'triangle');$('qzcombo').hidden=true;flame('m5',0);
+  const t=vpDig(q.target);let p=q.L;while(p>=0&&t[p]===q.cur[p])p--;
+  $('qzmsg').innerHTML=p<0?'Revisa otra vez.':`Revisa ${VPP[p][3]} <b>${VPP[p][1]}</b>: ${q.wrong>1?`necesitas <b>${t[p]}</b>.`:`tienes ${q.cur[p]} y ${q.cur[p]>t[p]?'te sobran':'te faltan'}.`}`;qzDots();save()}
+function vpExtra(){const L=vpNv();
+  return `<p class="cfgh">Números para practicar</p><div class="vlv">${VPL.map((v,i)=>`<button class="${i+1===L?'on':''}" data-vnv="${i+1}">${v.n}</button>`).join('')}</div>
+  <details class="rdold vphow"><summary>¿Cómo funciona? (ver los bloques)</summary>
+  <div class="vleg"><div>${vpBlocks(1,1)}<span>1 cubito = <b>1 unidad</b></span></div><div>${vpBlocks(10,1)}<span>1 barra = 10 unidades = <b>1 decena</b></span></div>
+  <div>${vpBlocks(100,1)}<span>1 placa = 10 decenas = <b>1 centena</b></span></div><div>${vpBlocks(1000,1)}<span>1 cubo = 10 centenas = <b>1 millar</b></span></div></div>
+  <p>Cada lugar vale <b>10 veces más</b> que el de su derecha. Por eso en <b>346</b> el 3 vale 300, el 4 vale 40 y el 6 vale 6:</p>${vpBlocks(346,1)}${vpTabla(346,2)}
+  <p class="vpw">346 = 300 + 40 + 6</p><p>Si un lugar está vacío se escribe <b>0</b>: 3 centenas y 5 unidades es <b>305</b>, no 35.</p></details>`}
+function vpTermina(first,N,news){const L=vpNv();
+  if(first>=N-1&&L<3){S.vpNv=L+1;news.push(`Valor posicional sube de nivel: ahora practicas números <b>${VPL[L].n.toLowerCase()}</b>.`)}
+  else if(first<=N/2&&L>1)news.push(`Si se te hizo difícil, en Valor posicional puedes elegir <b>${VPL[L-2].n}</b>.`)}
 
 /* ===== Cultura general ===== */
 const CULT=[

@@ -79,7 +79,7 @@ const H=[
 const CATALOGO=H.map(([id,campo,area,n,dep,prio,papel,apl,esperados])=>({id,campo,area,n,dep,prio,papel:!!papel,apl:!!apl,esperados:esperados||0,plan:!id.startsWith('en-')&&!id.startsWith('comp-')}));
 const HAB={};CATALOGO.forEach(h=>HAB[h.id]=h);
 
-const GENH={orto:'esc-orto',log:'comp-logica',reloj:'comp-reloj',din:'comp-dinero',frac:'comp-frac',cie:'comp-ciencia',cult:'comp-cultura',cultq:'comp-cultura'};
+const GENH={vp:'vp-c',orto:'esc-orto',log:'comp-logica',reloj:'comp-reloj',din:'comp-dinero',frac:'comp-frac',cie:'comp-ciencia',cult:'comp-cultura',cultq:'comp-cultura'};
 /* A qué habilidad pertenece cada conocimiento */
 function habilidadDe(k){
   const [p,r]=[k.slice(0,k.indexOf(':')),k.slice(k.indexOf(':')+1)];
