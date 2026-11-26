@@ -204,7 +204,67 @@ function reconcile(S){
   S.ku=target.ku;
 }
 const openResponses=(data,id)=>Object.values(data?.runs||{}).filter(r=>r.lesson===id).flatMap(rows).filter(e=>e.pending);
-const api={lessons,byId,labels,empty,valid,union,assignments,path,status,profile,start,act,recommendation,attempt,openResponses,reconcile,evaluate,inventory,hint};
+const stageAction={activar:'enseñar',explicar:'enseñar',ejemplo:'enseñar',guiada:'practicar',
+  independiente:'comprobar',aplicacion:'aplicar',repaso:'repasar',reflexion:'continuar',agenda:'continuar'};
+function nextAdaptive(S,day){
+  const diagnostics=root.Diagnostico?.map(S,day)||[];
+  const candidates=[];
+  const profiles=new Map(lessons.map(l=>[l.id,profile(S.lessons,l.id)]));
+  for(const l of lessons){
+    const p=profiles.get(l.id);
+    if(p.active){
+      const st=status(p.active);
+      candidates.push({id:l.id,action:stageAction[st.stage],reason:'en-curso',rank:0,order:p.active.day});
+    }else if(p.due&&p.due<=day){
+      candidates.push({id:l.id,action:p.applied?'repasar':'enseñar',reason:p.applied?'repaso-pendiente':'volver-a-explicar',rank:1,order:p.due});
+    }
+  }
+  const offer=(l,reason,rank,order='')=>{
+    const first=recommendation(S,l.id,day);
+    const p=profiles.get(first.id);
+    if(p.active||p.complete.length)return;
+    candidates.push({id:first.id,action:'enseñar',reason:first.id===l.id?reason:'prerrequisito',
+      ...(first.id!==l.id?{target:l.id}:{}),rank,order});
+  };
+  for(const l of lessons){
+    const assigned=S.lessonAssignments?.[l.id];
+    const last=profiles.get(l.id).complete.at(-1)?.day;
+    if(assigned&&assigned<=day&&(!last||last<assigned))offer(l,'familia',2,assigned);
+  }
+  for(const r of diagnostics){
+    if(r.h.requiresParent)continue;
+    const check=r.conflict||r.initial.mixed;
+    if(check&&root.Diagnostico.next(S.diag,6,r.h.id))
+      candidates.push({skill:r.h.id,action:'evaluar',reason:'evidencia-mixta',rank:3,order:r.h.id});
+    if(!check&&['nec','apr'].includes(r.initial.state)){
+      for(const l of lessons.filter(l=>l.skill===r.h.id))offer(l,'diagnóstico',4);
+    }
+  }
+  for(const l of lessons){
+    if(diagnostics.some(r=>r.h.id===l.skill&&r.initial.state==='pra'))offer(l,'ampliar',5);
+  }
+  for(const l of lessons)offer(l,'explorar',6);
+  candidates.sort((a,b)=>a.rank-b.rank||a.order.localeCompare(b.order));
+  const first=candidates[0];
+  if(!first)return null;
+  const {rank,order,...selection}=first;
+  return selection;
+}
+function weekly(S,day){
+  const first=nextDay(day,-6),counts={independent:0,applied:0,retained:0};
+  const seen=new Set();
+  for(const run of Object.values(S.lessons?.runs||{})){
+    for(const e of rows(run)){
+      if(e.kind!=='answer'||!e.strong||e.day<first||e.day>day||seen.has(e.id))continue;
+      seen.add(e.id);
+      if(e.stage==='independiente')counts.independent++;
+      if(e.stage==='aplicacion')counts.applied++;
+      if(e.retained)counts.retained++;
+    }
+  }
+  return counts;
+}
+const api={lessons,byId,labels,empty,valid,union,assignments,path,status,profile,start,act,recommendation,attempt,openResponses,reconcile,evaluate,inventory,hint,nextAdaptive,weekly};
 root.Lecciones=api;
 if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

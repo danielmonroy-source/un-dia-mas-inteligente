@@ -716,3 +716,25 @@ test('aviso de capacidad preserva estado y revisión pendiente al recargar',asyn
     assert.deepEqual(errores,[]);
   }finally{await ctx.close();}
 });
+
+test('mi práctica de hoy abre y reanuda la propuesta sin reemplazar el reto diario',async()=>{
+  const db=nubeFalsa(),{ctx,page,errores}=await abrir(db);
+  try{
+    await esperar(()=>db.datos.pinH,'perfil sintético');
+    await page.click('#adaptiveLaunch');
+    const first=await page.locator('#adaptiveCard h3').textContent();
+    await page.click('#adaptiveGo');
+    assert.equal(await page.locator('#lessonStep').textContent(),first);
+    await page.click('[data-lesson-act="help"]');
+    await page.click('[data-lesson-pause]');
+    await page.reload();
+    await page.click('#adaptiveLaunch');
+    assert.match(await page.locator('#adaptiveCard').textContent(),/Continúa donde hiciste la pausa/);
+    await page.click('#adaptiveGo');
+    assert.match(await page.locator('#lessonPanel').textContent(),/señala la palabra/);
+    await page.click('#lessonExit');
+    assert.equal(await page.locator('#tabs [data-t="reto"]').isVisible(),true);
+    assert.equal(await page.locator('#sPts').textContent(),'240');
+    assert.deepEqual(errores,[]);
+  }finally{await ctx.close();}
+});

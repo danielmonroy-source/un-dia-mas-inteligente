@@ -364,6 +364,8 @@ details.papas summary{cursor:pointer;font-weight:700;min-height:36px;line-height
     <div id="wRD" hidden></div>
     <div id="wG" hidden></div>
     </div>
+    <button class="big" id="adaptiveLaunch" hidden>Mi práctica de hoy</button>
+    <div id="adaptiveCard" class="diag-card" hidden></div>
     <button class="big" id="lessonLaunch" hidden>Lecciones guiadas</button>
     <button class="big" id="diagLaunch" hidden>Aventura de habilidades</button>
     <button class="ghost" id="diagFollow" hidden>Explorar una actividad corta</button>
@@ -959,6 +961,7 @@ function renderHome(){
   const diagnosis=typeof Diagnostico!=='undefined';
   $('diagLaunch').hidden=!diagnosis;
   $('lessonLaunch').hidden=typeof Lecciones==='undefined'||!window.Motor;
+  $('adaptiveLaunch').hidden=$('lessonLaunch').hidden;
   $('diagMapLaunch').hidden=!diagnosis;
   $('diagFollow').hidden=!diagnosis||!Object.entries(S.diagPlan||{}).some(([h,date])=>date<=today()&&Diagnostico.next(S.diag,6,h));
   renderTop();
@@ -3258,8 +3261,8 @@ function lessonMenu(){
       <span><b>${htmlText(l.title)}</b><small>${htmlText(l.area)} · ${p.due>day&&!p.active?'Próximo repaso '+p.due:action}</small></span></button>`).join('');
   $('lessonTitle').focus();
 }
-function lessonStart(id){
-  const l=Lecciones.recommendation(S,id,today());
+function lessonStart(id,selected=false){
+  const l=selected?Lecciones.byId[id]:Lecciones.recommendation(S,id,today());
   if(!l)return;
   const direct=Lecciones.profile(S.lessons,id).active;
   const run=direct||Lecciones.start(lessonData(),l.id,today());
@@ -3273,7 +3276,7 @@ function lessonStart(id){
     return;
   }
   lessonRunId=run.id;lessonOwner=PROFILE;
-  save();lessonScreen();
+  save();show('lecciones');lessonScreen();
 }
 function lessonBlockHTML(){
   return lessonBlocks.map((n,i)=>`<li><b>${n} ${['unidades','decenas','centenas','millares'][i]}</b>
@@ -3378,6 +3381,34 @@ function lessonAction(kind,value){
   }
   if(kind!=='access')lessonScreen();
 }
+const adaptiveReasons={'en-curso':'Continúa donde hiciste la pausa.',
+  'repaso-pendiente':'Vuelve a usar lo aprendido después de unos días.','volver-a-explicar':'Vuelve a ver la estrategia e inténtala con calma.',
+  familia:'Tu familia eligió esta lección.',prerrequisito:'Practica primero una habilidad que te ayudará con la siguiente.',
+  diagnóstico:'Empieza con una explicación y un ejemplo.',ampliar:'Prueba la estrategia en otra situación.',
+  explorar:'Explora una estrategia nueva.','evidencia-mixta':'Prueba otro ejemplo para elegir tus próximas actividades.'};
+const sameAdaptive=(a,b)=>a?.id===b?.id&&a?.skill===b?.skill&&a?.reason===b?.reason&&a?.action===b?.action;
+let shownAdaptive=null;
+function adaptiveCard(){
+  const choice=Lecciones.nextAdaptive(S,today()),card=$('adaptiveCard');
+  shownAdaptive=choice;card.hidden=false;
+  if(!choice){
+    card.innerHTML='<p tabindex="-1" role="status">Por hoy puedes descansar. También puedes abrir el reto de siempre.</p>';
+    card.querySelector('p').focus();return;
+  }
+  const title=choice.id?Lecciones.byId[choice.id].title:Motor.HAB[choice.skill].n;
+  card.innerHTML='<h3>'+htmlText(title)+'</h3><p>'+htmlText(adaptiveReasons[choice.reason])+'</p>'+
+    '<button class="big" id="adaptiveGo">Empezar o continuar</button>';
+  $('adaptiveGo').focus();
+}
+$('adaptiveLaunch').addEventListener('click',adaptiveCard);
+$('adaptiveCard').addEventListener('click',e=>{
+  if(e.target.id!=='adaptiveGo')return;
+  const choice=Lecciones.nextAdaptive(S,today());
+  if(!choice||!sameAdaptive(choice,shownAdaptive)){adaptiveCard();return}
+  $('adaptiveCard').hidden=true;
+  if(choice.skill)diagStart(6,choice.skill);
+  else lessonStart(choice.id,true);
+});
 $('lessonLaunch').addEventListener('click',lessonMenu);
 $('lessonExit').addEventListener('click',()=>{lessonRunId='';show('home');renderHome()});
 $('lessonPanel').addEventListener('input',e=>{
@@ -3462,7 +3493,10 @@ function lessonParent(day){
       <p>En familia · ${htmlText(l.home)}</p>
       <button class="ghost" data-lesson-assign="${r.id}">${r.id===l.id?'Asignar lección':'Asignar primero '+htmlText(r.title)}</button></li>`;
   });
-  return '<details><summary>Lecciones guiadas y repasos</summary><ul>'+catalog.join('')+'</ul></details>';
+  const week=Lecciones.weekly(S,day);
+  return '<details><summary>Lecciones guiadas y repasos</summary><p>Últimos siete días · '+
+    week.independent+' respuestas independientes · '+week.applied+' aplicaciones · '+week.retained+
+    ' recuerdos en repaso</p><ul>'+catalog.join('')+'</ul></details>';
 }
 
 /* Aventura diagnóstica. El control del dominio permanece en el motor de práctica. */
