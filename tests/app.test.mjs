@@ -47,7 +47,7 @@ function nubeFalsa({ sinV3 = false, sinIntentos = false, code = CODE } = {}) {
     if (b.p_codigo !== code) return route.fulfill({ status: 400, body: '{}' });
     const respaldar = motivo => db.respaldos.unshift({ id: db.respaldos.length + 1, creado: new Date().toISOString(), motivo, datos: JSON.parse(JSON.stringify(db.datos)) });
     switch (fn) {
-      case 'tt_cargar': return json({ datos: db.datos, actualizado: db.actualizado });
+      case 'tt_cargar': return json({ datos: db.datos, actualizado: db.actualizado, historialSeparado:db.historialSeparado });
       case 'tt_guardar': db.datos = b.p_datos; db.actualizado = stamp(); return json(db.actualizado);
       case 'tt_guardar3':
         if (sinV3) return route.fulfill({ status: 404, body: '{}' });
@@ -735,6 +735,28 @@ test('mi práctica de hoy abre y reanuda la propuesta sin reemplazar el reto dia
     await page.click('#lessonExit');
     assert.equal(await page.locator('#tabs [data-t="reto"]').isVisible(),true);
     assert.equal(await page.locator('#sPts').textContent(),'240');
+    assert.deepEqual(errores,[]);
+  }finally{await ctx.close();}
+});
+
+test('un perfil bloqueado reintenta su historial al detectar el almacenamiento separado',async()=>{
+  const db=nubeFalsa(),{ctx,page,errores}=await abrir(db);
+  try{
+    await esperar(()=>db.datos.pinH,'perfil sintético');
+    db.cambiarDesdeOtroDispositivo(d=>{d.lessons={v:1,runs:{},syntheticPadding:'x'.repeat(205000)}});
+    await page.reload();
+    await page.locator('#profileCapacity').filter({hasText:'El historial supera la capacidad'}).waitFor();
+    const day='2026-01-06';
+    await page.evaluate(day=>window.syntheticProgress({day,record:{tOk:true},points:11}),day);
+    const key='tt-profile-v1:'+CODE;
+    await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.pending,key);
+    assert.equal(db.datos.pts,240);
+    db.historialSeparado=true;
+    await page.reload();
+    await esperar(()=>db.datos.pts===251,'revisión pendiente confirmada');
+    await page.locator('#profileCapacity').waitFor({state:'hidden'});
+    assert.equal(db.datos.daily[day].tOk,true);
+    assert.equal(db.datos.lessons.syntheticPadding.length,205000);
     assert.deepEqual(errores,[]);
   }finally{await ctx.close();}
 });
